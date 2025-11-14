@@ -1,0 +1,14 @@
+scipy==1.13.0
+numpy==1.26.4
+pandas==2.2.1
+matplotlib==3.8.3
+plotly==5.22.0
+Pyomo==6.7.1
+dwave-cloud-client==0.11.3
+dwave-preprocessing==0.6.5
+dwave-samplers==1.2.0
+dwave-hybrid==0.6.11
+dwave-system==1.23.0
+dimod==0.12.14
+networkx==3.3
+minorminer==0.2.13
