@@ -1,41 +1,47 @@
-from typing import Mapping, Hashable, List, Tuple
 import numpy as np
 import pandas as pd
 from scipy.linalg import lu
-from numpy import floating, integer
+
+int_arr = np.ndarray[tuple[int], np.dtype[int]]
+flt_mat = np.ndarray[tuple[int, int], np.dtype[np.float64]]
 
 
 class QUBO:
-    def __init__(self, qubo_dict: Mapping[tuple[Hashable, Hashable], float | floating | integer],
-                 cols_idx: List[int], rows_idx: List[int]):
-        self.qubo_dict: Mapping[tuple[Hashable, Hashable], float | floating | integer] = qubo_dict
-        self.cols_idx: List[int] = cols_idx
-        self.rows_idx: List[int] = rows_idx
+    def __init__(self, mat: flt_mat, rows_idx: int_arr, cols_idx: int_arr, offset: float = 0.0):
+        assert mat.shape[0] == mat.shape[1], "Problem matrix must be square"
+        assert mat.shape[1] == cols_idx.shape[0], "Invalid numer of columns, must be as long as cols_idx array"
+        assert mat.shape[0] == rows_idx.shape[0], "Invalid numer of rows, must be as long as rows_idx array"
+        mat, cols_idx, rows_idx = QUBO.sanitize(mat, cols_idx, rows_idx)
+        self.mat: np.ndarray[tuple[int, int], np.dtype[np.float64]] = mat
+        self.cols_idx: np.ndarray[tuple[int], np.dtype[int]] = cols_idx
+        self.rows_idx: np.ndarray[tuple[int], np.dtype[int]] = rows_idx
+        self.offset: float = offset
+        self.problem_size: int = mat.shape[0]
         self.solutions: pd.DataFrame | None = None
-        self.qubo_matrix: np.ndarray | None = None
-        self.__from_dict_to_matrix((len(rows_idx), len(cols_idx)))
 
-    def __is_upper_triangular(self) -> bool:
-        rows, cols = self.qubo_matrix.shape
-        if rows != cols:
-            return False
-        for i in range(rows):
-            for j in range(i):
-                if self.qubo_matrix[i, j] != 0:
-                    return False
-        return True
+    def __str__(self) -> str:
+        return f"QUBO(cols: {self.cols_idx}, rows: {self.rows_idx}, offset: {self.offset}, problem_size: {self.problem_size})"
 
-    def __from_dict_to_matrix(self, dims: Tuple[int, int]) -> None:
-        self.qubo_matrix = np.zeros(dims)
-        for k, v in self.qubo_dict.items():
-            self.qubo_matrix[(k[0] - 1) % dims[0], (k[1] - 1) % dims[1]] = v
-        if not self.__is_upper_triangular():
-            self.qubo_matrix = lu(self.qubo_matrix, permute_l=True)[1]
-        self.__from_matrix_to_dict()
+    @staticmethod
+    def sanitize(mat: flt_mat, cols_idx: int_arr, rows_idx: int_arr) -> tuple[flt_mat, int_arr, int_arr]:
+        if not np.allclose(mat, np.triu(mat)):
+            mat = lu(mat, permute_l=True)[1]
 
-    def __from_matrix_to_dict(self) -> None:
-        self.qubo_dict = {}
-        for i in range(self.qubo_matrix.shape[0]):
-            for j in range(self.qubo_matrix.shape[1]):
-                if self.qubo_matrix[i, j] != 0:
-                    self.qubo_dict[(i + min(self.rows_idx), j + min(self.cols_idx))] = float(self.qubo_matrix[i, j])
+        if mat.shape[0] % 2 != 0:
+            '''
+            TODO check last index of rows and cols, if both are -1 instead of adding another -1 contract the matrix
+            
+            1  2  -1    1 2                 1  2  -1 -1
+            3  4  -1 -> 3 4 - INSTEAD OF -> 3  4  -1 -1
+            -1 -1 -1                        -1 -1 -1 -1
+                                            -1 -1 -1 -1
+            '''
+            tmp = np.zeros((mat.shape[0] + 1, mat.shape[1] + 1))
+            tmp[:-1, :-1] = mat
+            mat = tmp
+            cols_idx = np.append(cols_idx, -1)
+            rows_idx = np.append(rows_idx, -1)
+
+        return mat, cols_idx, rows_idx
+
+    # def __eq__(self, other)  # def __repr__(self)
