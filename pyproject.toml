@@ -19,5 +19,7 @@ dev = ["pytest>=9.0.1",
     "pytest-cov>=7.0.0",
 ]
 
-[tool.setuptools.packages]
-find = {include = ["qsplit*"]}
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["qsplit*"]
+namespaces = false
