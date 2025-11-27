@@ -886,7 +886,7 @@ wheels = [
 [[package]]
 name = "qsplit"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "dwave-system" },
     { name = "numpy" },
