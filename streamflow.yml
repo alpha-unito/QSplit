@@ -1,0 +1,29 @@
+version: v1.0
+
+workflows:
+  qsplit-dwave:
+    type: cwl
+    config:
+      file: cwl/main.cwl
+      settings: cwl/config.yml
+    bindings:
+      - step: /split
+        target:
+          deployment: qsplit-docker
+      - step: /dwave_solve
+        target:
+          deployment: qsplit-docker
+      - step: /aggregate
+        target:
+          deployment: qsplit-docker
+
+deployments:
+  qsplit-docker:
+    type: docker
+    config:
+      image: qsplit:latest
+      workdir: /workspace
+      volume:
+        - .:/workspace
+      env:
+        - PYTHONPATH=/workspace/src
