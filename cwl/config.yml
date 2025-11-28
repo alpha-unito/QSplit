@@ -1,5 +1,5 @@
 input_matrix:
   class: File
-  path: data/input_matrix.csv
+  path: data/24x24.csv
 
 cut_dim: 2

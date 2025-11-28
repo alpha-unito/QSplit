@@ -72,13 +72,14 @@ def main() -> None:
         pickle.dump(full_qubo, f)
 
     csv_path = out_path.with_suffix(".csv")
-    mat_for_csv = np.round(full_qubo.mat, 1)
+    mat = full_qubo.mat.copy()
+    mat[np.abs(mat) < 1e-9] = 0.0
 
     np.savetxt(
         csv_path,
-        mat_for_csv,
+        mat,
         delimiter=",",
-        fmt="%.1f",
+        fmt="%.6f"
     )
 
     print("QUBO aggregated:")

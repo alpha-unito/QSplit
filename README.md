@@ -10,7 +10,7 @@ consistent object.
 
 At a high level, the workflow does the following:
 
-1. Takes the `cwl/data/input_matrix.csv` and convert it to a QUBO object, stored as a pickled `QUBO` object in `initial_qubo.pkl`.
+1. Takes the "csv" matrix and convert it to a QUBO object, stored as a pickled `QUBO` object in `initial_qubo.pkl`.
 2. Uses **QSplit** to decompose this matrix into several smaller sub-QUBOs.
 3. Sends each sub-QUBO to a container that runs a D-Wave (or compatible)
    sampler and returns a solution.
@@ -73,8 +73,8 @@ machines or clusters.
 
 ### 2. Preparing the input QUBO
 
-The repository ships an example matrix (`cwl/data/input_matrix.csv`) that will be QUBO serialised in `initial_qubo.pkl` during the first step. To
-experiment with different inputs, you can edit `cwl/data/input_matrix.csv`.
+The repository ships an example matrix declared in the `cwl/config.yml` that will be QUBO serialised in `initial_qubo.pkl` during the first step. To
+experiment with different inputs, you can edit `cwl/config.yml`.
 
 The CWL configuration file `cwl/config.yml` references this file and
 specifies parameters such as `cut_dim` and the output directory for sub‑problems.
