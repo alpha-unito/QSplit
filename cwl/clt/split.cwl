@@ -24,6 +24,11 @@ inputs:
     inputBinding:
       prefix: --adaptive
 
+  tree_file:
+    type: string
+    inputBinding:
+      prefix: --tree-file
+
   out_dir:
     type: string
     inputBinding:
@@ -34,8 +39,13 @@ outputs:
     type: File[]
     outputBinding:
       glob: "subproblems/*.pkl"
-      
+
   full_qubo:
     type: File
     outputBinding:
       glob: "initial_qubo.pkl"
+
+  tree_meta:
+    type: File
+    outputBinding:
+      glob: $(inputs.tree_file)

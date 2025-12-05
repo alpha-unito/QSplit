@@ -18,6 +18,11 @@ inputs:
       prefix: --solved-list
       valueFrom: $(self.map(function (f) { return f.path; }).join(","))
 
+  tree_file:
+    type: File
+    inputBinding:
+      prefix: --tree-file
+
   output_qubo_name:
     type: string
     inputBinding:

@@ -19,7 +19,8 @@ steps:
       approach: { default: "dr" }
       adaptive: { default: true }
       out_dir: { default: "subproblems" }
-    out: [sub_qubos, full_qubo]
+      tree_file: { default: "tree.json" }
+    out: [sub_qubos, full_qubo, tree_meta]
 
   dwave_solve:
     run: clt/dwave_solve.cwl
@@ -35,5 +36,6 @@ steps:
     in:
       input_qubo: split/full_qubo
       solved_list: dwave_solve/solved_qubo
+      tree_file: split/tree_meta
       output_qubo_name: { default: "aggregated.pkl" }
     out: [aggregated_csv]
