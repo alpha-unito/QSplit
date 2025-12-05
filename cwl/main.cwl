@@ -7,9 +7,8 @@ requirements:
 inputs:
   input_matrix: File
   cut_dim: int
-  backends:
-    type: string
-    default: "dwave"
+  backends: string
+  backend_cut_dims: string
 
 outputs:
   final_solution:
@@ -22,12 +21,9 @@ steps:
     in:
       input_qubo: input_matrix
       cut_dim: cut_dim
-      approach: { default: "dr" }
-      adaptive: { default: true }
-      out_dir: { default: "subproblems" }
-      tree_file: { default: "tree.json" }
       backends: backends
-      backend_file: { default: "backends.json" }
+      adaptive: { default: true }
+      backend_cut_dims: backend_cut_dims
     out: [sub_qubos, full_qubo, tree_meta, sub_backends]
 
   dwave_solve:
@@ -35,7 +31,6 @@ steps:
     in:
       input_qubo: split/sub_qubos
       backend: split/sub_backends
-      output_qubo_name: { default: "solved.pkl" }
     out: [solved_qubo]
     scatter: [input_qubo, backend]
     scatterMethod: dotproduct
@@ -46,5 +41,4 @@ steps:
       input_qubo: split/full_qubo
       solved_list: dwave_solve/solved_qubo
       tree_file: split/tree_meta
-      output_qubo_name: { default: "aggregated.pkl" }
     out: [aggregated_csv]

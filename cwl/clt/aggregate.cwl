@@ -25,6 +25,7 @@ inputs:
 
   output_qubo_name:
     type: string
+    default: "aggregated.pkl"
     inputBinding:
       prefix: --output-qubo
 

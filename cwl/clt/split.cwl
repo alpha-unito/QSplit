@@ -46,6 +46,12 @@ inputs:
     inputBinding:
       prefix: --backends
 
+  backend_cut_dims:
+    type: string
+    default: ""
+    inputBinding:
+      prefix: --backend-cut-dims
+
   backend_file:
     type: string
     default: "backends.json"
