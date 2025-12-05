@@ -1,6 +1,9 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
+requirements:
+  - class: InlineJavascriptRequirement
+
 baseCommand: [python, -m, qsplit.cli_split]
 
 inputs:
@@ -16,6 +19,7 @@ inputs:
 
   approach:
     type: string
+    default: "dr"
     inputBinding:
       prefix: --approach
 
@@ -26,19 +30,33 @@ inputs:
 
   tree_file:
     type: string
+    default: "tree.json"
     inputBinding:
       prefix: --tree-file
 
   out_dir:
     type: string
+    default: "subproblems"
     inputBinding:
       prefix: --out-dir
+
+  backends:
+    type: string
+    default: "dwave"
+    inputBinding:
+      prefix: --backends
+
+  backend_file:
+    type: string
+    default: "backends.json"
+    inputBinding:
+      prefix: --backend-file
 
 outputs:
   sub_qubos:
     type: File[]
     outputBinding:
-      glob: "subproblems/*.pkl"
+      glob: $(inputs.out_dir + "/*.pkl")
 
   full_qubo:
     type: File
@@ -49,3 +67,13 @@ outputs:
     type: File
     outputBinding:
       glob: $(inputs.tree_file)
+
+  sub_backends:
+    type: string[]
+    outputBinding:
+      glob: $(inputs.backend_file)
+      loadContents: true
+      outputEval: |
+        ${
+          return JSON.parse(self[0].contents);
+        }

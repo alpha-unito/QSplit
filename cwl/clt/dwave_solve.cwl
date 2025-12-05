@@ -9,6 +9,9 @@ inputs:
     inputBinding:
       prefix: --input-qubo
 
+  backend:
+    type: string
+
   output_qubo_name:
     type: string
     default: solved.pkl

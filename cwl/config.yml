@@ -3,3 +3,7 @@ input_matrix:
   path: data/24x24.csv
 
 cut_dim: 2
+
+# thiis is a comma-separated list of backend labels used by the split step
+# to assign each leaf sub-QUBO in round-robin order.
+backends: "dwave,ibm,iqm"

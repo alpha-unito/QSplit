@@ -10,15 +10,74 @@ workflows:
       - step: /split
         target:
           deployment: qsplit-docker
+
       - step: /dwave_solve
         target:
-          deployment: qsplit-docker
+          - deployment: qsplit-dwave
+          - deployment: qsplit-ibm
+          - deployment: qsplit-iqm
+        filters:
+          - subqubo-routing
+
       - step: /aggregate
         target:
           deployment: qsplit-docker
 
+bindingFilters:
+  subqubo-routing:
+    type: matching
+    config:
+      filters:
+        - target:
+            deployment: qsplit-dwave
+          job:
+            - port: backend
+              match: "dwave"
+
+        - target:
+            deployment: qsplit-ibm
+          job:
+            - port: backend
+              match: "ibm"
+
+        - target:
+            deployment: qsplit-iqm
+          job:
+            - port: backend
+              match: "iqm"
+
 deployments:
   qsplit-docker:
+    type: docker
+    config:
+      image: qsplit:latest
+      workdir: /workspace
+      volume:
+        - .:/workspace
+      env:
+        - PYTHONPATH=/workspace/src
+
+  qsplit-dwave:
+    type: docker
+    config:
+      image: qsplit:latest
+      workdir: /workspace
+      volume:
+        - .:/workspace
+      env:
+        - PYTHONPATH=/workspace/src
+
+  qsplit-ibm:
+    type: docker
+    config:
+      image: qsplit:latest
+      workdir: /workspace
+      volume:
+        - .:/workspace
+      env:
+        - PYTHONPATH=/workspace/src
+
+  qsplit-iqm:
     type: docker
     config:
       image: qsplit:latest

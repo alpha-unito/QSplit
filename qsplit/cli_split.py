@@ -15,7 +15,7 @@ def _build_qubo_from_matrix(matrix_path: str) -> QUBO:
     n_rows, n_cols = mat.shape
     rows_idx = np.arange(n_rows)
     cols_idx = np.arange(n_cols)
-    qubo = QUBO(mat=mat, rows_idx=rows_idx, cols_idx=cols_idx)
+    qubo = QUBO(mat, rows_idx=rows_idx, cols_idx=cols_idx)
     save_qubo("initial_qubo.pkl", qubo)
     return qubo
 
@@ -61,6 +61,13 @@ def _recursively_split(
         _recursively_split(sub, child_prefix, cut_dim, out_dir, nodes, leaves)
 
 
+def _assign_backends(leaves: List[Path], backends_csv: str) -> List[str]:
+    cycle = [b.strip() for b in backends_csv.split(",") if b.strip()]
+    if not cycle:
+        cycle = ["dwave"]
+    return [cycle[i % len(cycle)] for i in range(len(leaves))]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Split QUBO into subproblems")
     parser.add_argument("--input-qubo", help="Input full QUBO (.pkl)")
@@ -70,6 +77,18 @@ def main() -> None:
     parser.add_argument("--adaptive", action="store_true", help="Adaptive splitting (currently unused)")
     parser.add_argument("--out-dir", required=True, help="Output directory for sub-QUBOs")
     parser.add_argument("--tree-file", default="tree.json", help="Output metadata file describing the split tree")
+
+    parser.add_argument(
+        "--backends",
+        default="dwave",
+        help="Comma-separated list of backend labels to assign to leaf sub-QUBOs in round-robin order",
+    )
+    parser.add_argument(
+        "--backend-file",
+        default="backends.json",
+        help="Output JSON file containing backend labels aligned with generated leaf sub-QUBOs",
+    )
+
     args = parser.parse_args()
 
     if bool(args.input_qubo) == bool(args.input_matrix):
@@ -92,11 +111,18 @@ def main() -> None:
     with tree_path.open("w", encoding="utf-8") as f:
         json.dump({"root": "root", "nodes": tree_nodes}, f, indent=2)
 
-    # tree_path = Path("tree.json")  # oppure /tmp/.../tree.json
-    # with tree_path.open("r", encoding="utf-8") as fh:
-    #     meta = json.load(fh)
+    backend_labels = _assign_backends(leaves, args.backends)
+    backend_path = Path(args.backend_file).resolve()
+    backend_path.parent.mkdir(parents=True, exist_ok=True)
+    with backend_path.open("w", encoding="utf-8") as f:
+        json.dump(backend_labels, f, indent=2)
 
-    # print_tree(meta["root"], meta["nodes"]) 
+    try:
+        with tree_path.open("r", encoding="utf-8") as fh:
+            meta = json.load(fh)
+        print_tree(meta["root"], meta["nodes"])
+    except Exception:
+        pass
 
     print("[cli_split] Generated leaf sub-QUBOs:")
     for p in leaves:
