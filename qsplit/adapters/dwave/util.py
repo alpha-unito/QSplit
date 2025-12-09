@@ -15,7 +15,9 @@ def from_qubo_matrix_to_bqm(qubo: QUBO) -> BinaryQuadraticModel:
     return BinaryQuadraticModel.from_numpy_vectors(linear, quadratic, offset=qubo.offset, vartype=dimod.BINARY)
 
 
-def to_dataframe(sampleset: SampleSet) -> pd.DataFrame:
+def to_dataframe(sampleset: SampleSet, qubo: QUBO) -> pd.DataFrame:
     res = sampleset.to_pandas_dataframe()
+    rename_map = {i: name for i, name in enumerate(qubo.cols_idx)}
+    res.rename(columns=rename_map, inplace=True)
     res = res.drop(columns=['num_occurrences']).drop_duplicates().sort_values(by='energy', ascending=True)
     return res[res['energy'] == min(res['energy'])]

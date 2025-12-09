@@ -30,7 +30,7 @@ class TestDWaveAdapter(unittest.TestCase):
         samples = np.array([[0, 0], [1, 1], [0, 1], [0, 0]])
         energies = np.array([1.5, 5.0, 1.5, 1.5])
         sampleset = dimod.SampleSet.from_samples(samples, vartype=dimod.BINARY, energy=energies)
-        df = to_dataframe(sampleset)
+        df = to_dataframe(sampleset, self.qubo)
 
         self.assertNotIn('num_occurrences', df.columns)
         self.assertEqual(len(df), 2)
