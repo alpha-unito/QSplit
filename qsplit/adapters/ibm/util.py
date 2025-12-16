@@ -1,0 +1,113 @@
+import numpy as np
+import pandas as pd
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import QAOAAnsatz
+from qiskit.quantum_info import SparsePauliOp
+from qiskit_aer import AerSimulator
+from qiskit_ibm_runtime import EstimatorV2, IBMBackend
+from qiskit_ibm_runtime import SamplerV2
+from scipy.optimize import minimize
+
+from qsplit.qubo import QUBO
+
+
+def __get_variables_mapping(qubo: QUBO) -> tuple[dict, list]:
+    all_vars = sorted(list(set(qubo.rows_idx) | set(qubo.cols_idx)))
+    var_to_qubit = {var: i for i, var in enumerate(all_vars)}
+    return var_to_qubit, all_vars
+
+
+def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePauliOp, dict, list]:
+    var_to_qubit, all_vars = __get_variables_mapping(qubo)
+    num_qubits = len(all_vars)
+
+    pauli_list = []
+
+    for i, row_var in enumerate(qubo.rows_idx):
+        for j, col_var in enumerate(qubo.cols_idx):
+            coeff = qubo.mat[i, j]
+            if coeff != 0:
+                qubit_r = var_to_qubit[row_var]
+                qubit_c = var_to_qubit[col_var]
+                pauli_list.append(("ZZ", [qubit_r, qubit_c], coeff))
+
+    cost_hamiltonian = SparsePauliOp.from_sparse_list(pauli_list, num_qubits)
+    circuit = QAOAAnsatz(cost_operator=cost_hamiltonian, reps=2)
+    circuit.measure_all()
+
+    return circuit, cost_hamiltonian, var_to_qubit, all_vars
+
+
+__objective_func_vals = []
+
+
+def __optimize_circuit(backend: IBMBackend | AerSimulator, candidate_circuit: QuantumCircuit,
+                       cost_hamiltonian: SparsePauliOp) -> QuantumCircuit:
+    initial_gamma = np.pi
+    initial_beta = np.pi / 2
+    init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
+    estimator = EstimatorV2(backend)
+    estimator.options.default_shots = 1000
+    estimator.options.dynamical_decoupling.enable = True
+    estimator.options.dynamical_decoupling.sequence_type = "XY4"
+    estimator.options.twirling.enable_gates = True
+    estimator.options.twirling.num_randomizations = "auto"
+    result = minimize(__cost_func_estimator, init_params, args=(candidate_circuit, cost_hamiltonian, estimator),
+                      method="COBYLA", tol=1e-2)
+    optimized_circuit = candidate_circuit.assign_parameters(result.x)
+    return optimized_circuit
+
+
+def __cost_func_estimator(params, ansatz, hamiltonian, estimator):
+    isa_hamiltonian = hamiltonian.apply_layout(ansatz.layout)
+    pub = (ansatz, isa_hamiltonian, params)
+    job = estimator.run([pub])
+    results = job.result()[0]
+    cost = results.data.evs
+    __objective_func_vals.append(cost)
+    return cost
+
+
+def get_qaoa_circuit_optimized(backend, pm, qubo):
+    circuit, cost_hamiltonian, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
+    candidate_circuit = pm.run(circuit)
+    optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian)
+    return optimized_circ, var_to_qubit, all_vars
+
+
+def run_quantum_optimizer(backend, optimized_circuit):
+    sampler = SamplerV2(mode=backend)
+    sampler.options.default_shots = 1000
+    sampler.options.dynamical_decoupling.enable = True
+    sampler.options.dynamical_decoupling.sequence_type = "XY4"
+    sampler.options.twirling.enable_gates = True
+    sampler.options.twirling.num_randomizations = "auto"
+    pub = (optimized_circuit,)
+    job = sampler.run([pub], shots=int(1e3))
+    counts_int = job.result()[0].data.meas.get_int_counts()
+    return counts_int
+
+
+def to_dataframe(counts_int: dict, qubo: QUBO, var_to_qubit: dict, all_vars: list) -> pd.DataFrame:
+    data = []
+    num_qubits = len(all_vars)
+
+    for state_int, count in counts_int.items():
+        bin_str = np.binary_repr(state_int, width=num_qubits)
+        full_solution = np.array([int(bit) for bit in bin_str])[::-1]
+        sol_dict = {var_name: full_solution[q_idx] for var_name, q_idx in var_to_qubit.items()}
+        vec_row = np.array([sol_dict[r] for r in qubo.rows_idx])
+        vec_col = np.array([sol_dict[c] for c in qubo.cols_idx])
+        energy = vec_row @ qubo.mat @ vec_col.T
+        row = sol_dict.copy()
+        row['energy'] = energy
+        data.append(row)
+
+    res = pd.DataFrame(data)
+    res = res.sort_values(by='energy', ascending=True)
+    cols = [c for c in res.columns if c not in ['energy']]
+    cols.sort()
+    res = res[cols + ['energy']]
+    best_energy = res['energy'].min()
+
+    return res[res['energy'] == best_energy]
