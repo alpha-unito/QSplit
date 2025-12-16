@@ -1,0 +1,126 @@
+import unittest
+
+import numpy as np
+import pandas as pd
+from qiskit.circuit.library import QAOAAnsatz
+from qiskit.quantum_info import SparsePauliOp
+
+from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as cpu_solve
+from qsplit.adapters.ibm.util import __get_variables_mapping as get_variables_mapping, \
+    __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
+from qsplit.qubo import QUBO
+
+
+class TestIBMAdapter(unittest.TestCase):
+    ##################################################
+    # __get_variables_mapping                        #
+    ##################################################
+    def test_overlapping_indices(self):
+        qubo = QUBO(mat=np.triu(np.ones((2, 2))), rows_idx=np.array([1, 2]), cols_idx=np.array([2, 3]))
+        expected_vars = [1, 2, 3]
+        expected_mapping = {1: 0, 2: 1, 3: 2}
+        var_to_qubit, all_vars = get_variables_mapping(qubo)
+
+        self.assertEqual(all_vars, expected_vars)
+        self.assertEqual(var_to_qubit, expected_mapping)
+        self.assertEqual(len(all_vars), 3)
+
+    def test_disjoint_indices(self):
+        qubo = QUBO(mat=np.triu(np.ones((2, 2))), rows_idx=np.array([10, 11]), cols_idx=np.array([20, 21]))
+        expected_vars = [10, 11, 20, 21]
+        expected_mapping = {10: 0, 11: 1, 20: 2, 21: 3}
+        var_to_qubit, all_vars = get_variables_mapping(qubo)
+
+        self.assertEqual(all_vars, expected_vars)
+        self.assertEqual(var_to_qubit, expected_mapping)
+        self.assertEqual(len(all_vars), 4)
+
+    def test_single_index_set(self):
+        qubo = QUBO(np.triu(np.ones((3, 3))), rows_idx=np.array([0, 1, 2]), cols_idx=np.array([0, 1, 2]))
+        expected_vars = [-1, 0, 1, 2]
+        expected_mapping = {-1: 0, 0: 1, 1: 2, 2: 3}
+        var_to_qubit, all_vars = get_variables_mapping(qubo)
+
+        self.assertEqual(all_vars, expected_vars)
+        self.assertEqual(var_to_qubit, expected_mapping)
+        self.assertEqual(len(all_vars), 4)
+
+    ##################################################
+    # __from_qubo_matrix_to_circuit                  #
+    ##################################################
+
+    def test_standard_qubo_mapping(self):
+        mat = np.array([[0, 1], [0, 0]])
+        qubo = QUBO(mat=mat, rows_idx=np.array([0, 1]), cols_idx=np.array([0, 1]))
+        circuit, hamiltonian, var_to_qubit, all_vars = from_qubo_matrix_to_circuit(qubo)
+
+        self.assertEqual(all_vars, [0, 1])
+        self.assertEqual(var_to_qubit, {0: 0, 1: 1})
+        self.assertEqual(len(all_vars), 2)
+        expected_hamiltonian = SparsePauliOp.from_sparse_list([("ZZ", [0, 1], 1.0)], len(all_vars))
+        self.assertTrue(expected_hamiltonian.equiv(hamiltonian))
+        self.assertIsInstance(circuit, QAOAAnsatz)
+        self.assertEqual(circuit.num_qubits, 2)
+        self.assertTrue(circuit.clbits)
+
+    def test_bipartite_mapping(self):
+        mat = np.array([[1.5, 0.0], [0.0, 2.0]])
+        qubo = QUBO(mat=mat, rows_idx=np.array([10, 12]), cols_idx=np.array([20, 21]))
+        circuit, hamiltonian, var_to_qubit, all_vars = from_qubo_matrix_to_circuit(qubo)
+
+        self.assertEqual(all_vars, [10, 12, 20, 21])
+        self.assertEqual(var_to_qubit, {10: 0, 12: 1, 20: 2, 21: 3})
+        self.assertEqual(len(all_vars), 4)
+        expected_hamiltonian = SparsePauliOp.from_sparse_list([("ZZ", [0, 2], 1.5), ("ZZ", [1, 3], 2.0)], len(all_vars))
+        self.assertTrue(expected_hamiltonian.equiv(hamiltonian))
+        self.assertEqual(circuit.num_qubits, 4)
+
+    def test_zero_terms_ignored(self):
+        mat = np.array([[0, 10.0], [0, 0]])
+        qubo = QUBO(mat=mat, rows_idx=np.array([10, 11]), cols_idx=np.array([10, 11]))
+        circuit, hamiltonian, var_to_qubit, all_vars = from_qubo_matrix_to_circuit(qubo)
+        expected_hamiltonian = SparsePauliOp.from_sparse_list([("ZZ", [0, 1], 10.0), ], len(all_vars))
+
+        self.assertTrue(expected_hamiltonian.equiv(hamiltonian))
+        self.assertEqual(len(hamiltonian.paulis), 1)
+
+    ##################################################
+    # __optimize_circuit                             #
+    ##################################################
+
+    ##################################################
+    # __cost_func_estimator                          #
+    ##################################################
+
+    ##################################################
+    # get_qaoa_circuit_optimized                     #
+    ##################################################
+
+    ##################################################
+    # run_quantum_optimizer                          #
+    ##################################################
+
+    ##################################################
+    # to_dataframe                                   #
+    ##################################################
+
+    ##################################################
+    # cpu_noiseless                                  #
+    ##################################################
+
+    def test_ibm_cpu_solve(self):
+        rows_idx = np.array([1, 2])
+        cols_idx = np.array([1, 2])
+        mat = np.array([[0, 1], [0, 0]])
+        qubo = QUBO(mat=mat, rows_idx=rows_idx, cols_idx=cols_idx)
+        expected_dataframe = pd.DataFrame({1: [1, 0, 0], 2: [0, 1, 0], 'energy': [0, 0, 0]}).reset_index(drop=True)
+        actual_dataframe = cpu_solve(qubo).reset_index(drop=True)
+        self.assertEqual(expected_dataframe['energy'].min(), actual_dataframe['energy'].min())
+        var_cols = [col for col in expected_dataframe.columns if col not in ['energy']]
+        expected_solutions = set(expected_dataframe[var_cols].apply(tuple, axis=1))
+        actual_solutions = set(actual_dataframe[var_cols].apply(tuple, axis=1))
+        self.assertTrue(all(x in expected_solutions for x in actual_solutions))
+
+
+if __name__ == '__main__':
+    unittest.main()
