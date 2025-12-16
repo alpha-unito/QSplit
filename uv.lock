@@ -1037,37 +1037,46 @@ name = "qsplit"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "dwave-system" },
     { name = "numpy" },
     { name = "pandas" },
-    { name = "qiskit" },
-    { name = "qiskit-aer" },
-    { name = "qiskit-ibm-runtime" },
     { name = "scipy" },
 ]
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
+dwave = [
+    { name = "dwave-system" },
+]
+ibm-cpu = [
+    { name = "qiskit" },
+    { name = "qiskit-aer" },
+]
+ibm-gpu = [
+    { name = "qiskit-aer" },
+]
+ibm-quantum = [
+    { name = "qiskit" },
+    { name = "qiskit-ibm-runtime" },
+]
 
 [package.metadata]
 requires-dist = [
-    { name = "dwave-system", specifier = ">=1.34.0" },
+    { name = "dwave-system", marker = "extra == 'dwave'", specifier = ">=1.34.0" },
     { name = "numpy", specifier = ">=2.3.4" },
     { name = "pandas", specifier = ">=2.3.3" },
-    { name = "qiskit", specifier = ">=2.2.3" },
-    { name = "qiskit-aer", extras = ["gpu"], specifier = ">=0.17.2" },
-    { name = "qiskit-ibm-runtime", specifier = ">=0.43.1" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.1" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "qiskit", marker = "extra == 'ibm-cpu'", specifier = ">=2.2.3" },
+    { name = "qiskit", marker = "extra == 'ibm-quantum'", specifier = ">=2.2.3" },
+    { name = "qiskit-aer", marker = "extra == 'ibm-cpu'", specifier = ">=0.17.2" },
+    { name = "qiskit-aer", extras = ["gpu"], marker = "extra == 'ibm-gpu'", specifier = ">=0.17.2" },
+    { name = "qiskit-ibm-runtime", marker = "extra == 'ibm-quantum'", specifier = ">=0.43.1" },
     { name = "scipy", specifier = ">=1.16.3" },
 ]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.0.1" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-]
+provides-extras = ["ibm-quantum", "dwave", "ibm-cpu", "ibm-gpu", "dev"]
 
 [[package]]
 name = "requests"
