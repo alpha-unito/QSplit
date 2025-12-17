@@ -1,3 +1,9 @@
+# Acknowledgement:
+# Parts of this code are adapted from the official IBM Quantum documentation
+# regarding the Quantum Approximate Optimization Algorithm (QAOA).
+# Source: https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm
+# Modifications have been made to tailor the implementation to local requirements.
+
 import numpy as np
 import pandas as pd
 from qiskit import QuantumCircuit
