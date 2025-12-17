@@ -11,13 +11,13 @@ from scipy.optimize import minimize
 from qsplit.qubo import QUBO
 
 
-def __get_variables_mapping(qubo: QUBO) -> tuple[dict, list]:
+def __get_variables_mapping(qubo: QUBO) -> tuple[dict[int, int], list[int]]:
     all_vars = sorted(list(set(qubo.rows_idx) | set(qubo.cols_idx)))
     var_to_qubit = {var: i for i, var in enumerate(all_vars)}
     return var_to_qubit, all_vars
 
 
-def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePauliOp, dict, list]:
+def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePauliOp, dict[int, int], list[int]]:
     var_to_qubit, all_vars = __get_variables_mapping(qubo)
     num_qubits = len(all_vars)
 
@@ -88,7 +88,8 @@ def run_quantum_optimizer(backend, optimized_circuit):
     return counts_int
 
 
-def to_dataframe(counts_int: dict, qubo: QUBO, var_to_qubit: dict, all_vars: list) -> pd.DataFrame:
+def to_dataframe(counts_int: dict[int, int], qubo: QUBO, var_to_qubit: dict[int, int],
+                 all_vars: list[int]) -> pd.DataFrame:
     data = []
     num_qubits = len(all_vars)
 

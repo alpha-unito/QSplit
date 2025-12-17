@@ -7,7 +7,7 @@ from qiskit.quantum_info import SparsePauliOp
 
 from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as cpu_solve
 from qsplit.adapters.ibm.util import __get_variables_mapping as get_variables_mapping, \
-    __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
+    __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit, to_dataframe
 from qsplit.qubo import QUBO
 
 
@@ -15,6 +15,7 @@ class TestIBMAdapter(unittest.TestCase):
     ##################################################
     # __get_variables_mapping                        #
     ##################################################
+
     def test_overlapping_indices(self):
         qubo = QUBO(mat=np.triu(np.ones((2, 2))), rows_idx=np.array([1, 2]), cols_idx=np.array([2, 3]))
         expected_vars = [1, 2, 3]
@@ -103,6 +104,53 @@ class TestIBMAdapter(unittest.TestCase):
     ##################################################
     # to_dataframe                                   #
     ##################################################
+
+    def test_to_dataframe_filtering_min_energy(self):
+        mat = np.array([[1.0, 0.0], [0.0, 1.0]])
+        rows = np.array([1, 2])
+        cols = np.array([1, 2])
+        qubo = QUBO(mat, rows, cols)
+        counts_int = {0: 50, 1: 20, 2: 20, 3: 10}
+        all_vars = [1, 2]
+        var_to_qubit = {1: 0, 2: 1}
+        df = to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
+
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]['energy'], 0.0)
+        self.assertEqual(df.iloc[0][1], 0)
+        self.assertEqual(df.iloc[0][2], 0)
+
+    def test_to_dataframe_variable_mapping_and_ordering(self):
+        mat = np.array([[10.0, 0.0], [0.0, 1.0]])
+        rows = np.array([10, 20])
+        cols = np.array([10, 20])
+        qubo = QUBO(mat, rows, cols)
+        counts_int = {1: 100, 2: 100}
+        all_vars = [10, 20]
+        var_to_qubit = {10: 0, 20: 1}
+
+        df = to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
+        self.assertEqual(len(df), 1)
+        best_row = df.iloc[0]
+        self.assertEqual(best_row['energy'], 1.0)
+        self.assertEqual(best_row[10], 0)
+        self.assertEqual(best_row[20], 1)
+
+    def test_to_dataframe_with_padding_variable(self):
+        mat_raw = np.array([[5.0]])
+        rows_raw = np.array([1])
+        cols_raw = np.array([1])
+        qubo = QUBO(mat_raw, rows_raw, cols_raw)
+
+        self.assertIn(-1, qubo.rows_idx)
+        all_vars = [1, -1]
+        var_to_qubit = {1: 0, -1: 1}
+        counts_int = {0: 50, 1: 50}
+        df = to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
+
+        self.assertEqual(df.iloc[0]['energy'], 0.0)
+        self.assertEqual(df.iloc[0][1], 0)
+        self.assertIn(-1, df.columns)
 
     ##################################################
     # cpu_noiseless                                  #
