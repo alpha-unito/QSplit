@@ -38,6 +38,6 @@ def qsplit_sampler(qubo: QUBO, cut_dim: int) -> QUBO:
         qubo.solutions = solve(qubo)
         return qubo
 
-    sub_problems = split_problem(qubo)
-    solutions = [qsplit_sampler(p, cut_dim) for p in sub_problems]
-    return aggregate_solutions(solutions, qubo)
+    subs = split_problem(qubo)
+    sols = [qsplit_sampler(p, cut_dim) for p in subs]
+    return aggregate_solutions((sols[0], sols[1], sols[2]), qubo)

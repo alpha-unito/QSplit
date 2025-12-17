@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List, Any
-
 import numpy as np
 import pandas as pd
 
@@ -23,7 +21,7 @@ from qsplit.qubo import QUBO
 from qsplit.resolve_conflicts import local_search
 
 
-def aggregate_solutions(solutions: List[QUBO], qubo: QUBO) -> QUBO:
+def aggregate_solutions(solutions: tuple[QUBO, QUBO, QUBO], qubo: QUBO) -> QUBO:
     # Aggregate upper-left qubo with lower-right
     starting_sols = __combine_ul_lr(solutions[0], solutions[2])
     # Set missing columns in upper-right qubo to NaN
@@ -43,7 +41,7 @@ def aggregate_solutions(solutions: List[QUBO], qubo: QUBO) -> QUBO:
     return qubo
 
 
-def __combine_rows(row1: pd.Series, row2: pd.Series) -> List[float | Any]:
+def __combine_rows(row1: pd.Series, row2: pd.Series) -> list[float]:
     combined_row = []
     for col in row1.index:
         val1, val2 = row1[col], row2[col]
@@ -68,7 +66,7 @@ def __combine_rows(row1: pd.Series, row2: pd.Series) -> List[float | Any]:
     return combined_row
 
 
-def __nan_hamming_distance(a: np.ndarray, b: np.ndarray) -> float | Any:
+def __nan_hamming_distance(a: np.ndarray, b: np.ndarray) -> float:
     mask = ~np.isnan(a) & ~np.isnan(b)
     if np.sum(mask) == 0:
         return np.inf

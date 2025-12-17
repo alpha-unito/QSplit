@@ -14,14 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Tuple
-
 import numpy as np
 
 from qsplit.qubo import QUBO
 
 
-def split_problem(qubo: QUBO) -> Tuple[QUBO, QUBO, QUBO]:
+def split_problem(qubo: QUBO) -> tuple[QUBO, QUBO, QUBO]:
     """
         Returns 3 sub-problems in qubo form.
         The 3 sub-problems correspond to the matrices obtained by dividing the qubo matrix of the original problem
