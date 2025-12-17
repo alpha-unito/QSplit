@@ -1055,6 +1055,7 @@ ibm-cpu = [
     { name = "qiskit-aer" },
 ]
 ibm-gpu = [
+    { name = "qiskit" },
     { name = "qiskit-aer" },
 ]
 ibm-quantum = [
@@ -1070,6 +1071,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.1" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "qiskit", marker = "extra == 'ibm-cpu'", specifier = ">=2.2.3" },
+    { name = "qiskit", marker = "extra == 'ibm-gpu'", specifier = ">=2.2.3" },
     { name = "qiskit", marker = "extra == 'ibm-quantum'", specifier = ">=2.2.3" },
     { name = "qiskit-aer", marker = "extra == 'ibm-cpu'", specifier = ">=0.17.2" },
     { name = "qiskit-aer", extras = ["gpu"], marker = "extra == 'ibm-gpu'", specifier = ">=0.17.2" },
