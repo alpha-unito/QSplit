@@ -3,6 +3,8 @@ class: Workflow
 
 requirements:
   - class: ScatterFeatureRequirement
+  - class: StepInputExpressionRequirement
+  - class: InlineJavascriptRequirement
 
 inputs:
   input_matrix: File
@@ -11,9 +13,13 @@ inputs:
   backend_cut_dims: string
 
 outputs:
-  final_solution:
+  final_matrix:
     type: File
-    outputSource: aggregate/aggregated_csv
+    outputSource: aggregate/aggregate_csv
+
+  final_solutions:
+    type: File
+    outputSource: aggregate/aggregate_solutions
 
 steps:
   split:
@@ -24,21 +30,27 @@ steps:
       backends: backends
       adaptive: { default: true }
       backend_cut_dims: backend_cut_dims
-    out: [sub_qubos, full_qubo, tree_meta, sub_backends]
+    out: [sub_qubos, full_qubo, tree_meta]
 
   dwave_solve:
     run: clt/dwave_solve.cwl
     in:
       input_qubo: split/sub_qubos
-      backend: split/sub_backends
+      backend:
+        valueFrom: |
+          ${
+            // .../subproblems/<backend>/<node>.pkl
+            var p = inputs.input_qubo.path;
+            var parts = p.split("/");
+            return parts[parts.length - 2];
+          }
     out: [solved_qubo]
-    scatter: [input_qubo, backend]
-    scatterMethod: dotproduct
+    scatter: [input_qubo]
 
   aggregate:
     run: clt/aggregate.cwl
     in:
       input_qubo: split/full_qubo
-      solved_list: dwave_solve/solved_qubo
       tree_file: split/tree_meta
-    out: [aggregated_csv]
+      solved_list: dwave_solve/solved_qubo
+    out: [aggregate_csv, aggregate_solutions]

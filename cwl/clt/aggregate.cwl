@@ -1,36 +1,45 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-requirements:
-  - class: InlineJavascriptRequirement
-
-baseCommand: ["python", "-m", "qsplit.cli_aggregate"]
+baseCommand: [python3, -m, qsplit.cli_aggregate]
 
 inputs:
   input_qubo:
     type: File
     inputBinding:
       prefix: --input-qubo
-
-  solved_list:
-    type: File[]
-    inputBinding:
-      prefix: --solved-list
-      valueFrom: $(self.map(function (f) { return f.path; }).join(","))
+      separate: true
 
   tree_file:
     type: File
     inputBinding:
       prefix: --tree-file
+      separate: true
 
-  output_qubo_name:
-    type: string
-    default: "aggregated.pkl"
+  solved_list:
+    type: File[]
     inputBinding:
-      prefix: --output-qubo
+      prefix: --solved-list
+      separate: true
+      valueFrom: |
+        ${
+          return inputs.solved_list.map(f => f.path).join(",");
+        }
 
 outputs:
-  aggregated_csv:
+  aggregate_csv:
     type: File
     outputBinding:
-      glob: $(inputs.output_qubo_name.replace(".pkl", ".csv"))
+      glob: "aggregate.csv"
+
+  aggregate_solutions:
+    type: File
+    outputBinding:
+      glob: "aggregate.solutions.csv"
+
+arguments:
+  - "--output-qubo"
+  - "aggregate.pkl"
+
+requirements:
+  - class: InlineJavascriptRequirement
