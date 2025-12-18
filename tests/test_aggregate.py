@@ -19,6 +19,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
+from qsplit.aggregation.aggregate_linear import aggregate_solutions as aggregate_linear
 from qsplit.aggregation.aggregate_recursive import (__fill_with_nan as fill_with_nan, __combine_ul_lr as combine_ul_lr,
                                                     __nan_hamming_distance as nan_hamming_distance,
                                                     __get_closest_assignments as get_closest_assignments,
@@ -331,6 +332,43 @@ class TestFillWithNan(unittest.TestCase):
         result_df = fill_with_nan(schema, df)
         expected_df = pd.DataFrame({'B': [30, 40]})
         pd.testing.assert_frame_equal(result_df, expected_df)
+
+
+class TestAggregateLinear(unittest.TestCase):
+    def setUp(self):
+        self.matrix = np.zeros((4, 4))
+        self.ids = np.array([0, 1, 2, 3])
+        self.original_qubo = QUBO(self.matrix, self.ids, self.ids)
+
+    def test_basic_majority_vote(self):
+        sub1 = QUBO(np.zeros((2, 2)), np.array([0, 1]), np.array([0, 1]))
+        sub1.solutions = pd.DataFrame({0: [1, 1], 1: [1, 0]})
+        sub2 = QUBO(np.zeros((2, 2)), np.array([1, 2]), np.array([1, 2]))
+        sub2.solutions = pd.DataFrame({1: [1], 2: [0]})
+        result = aggregate_linear([sub1, sub2], self.original_qubo)
+        res_df = result.solutions
+
+        self.assertEqual(res_df.loc[0, 0], 1)
+        self.assertEqual(res_df.loc[0, 1], 1)
+        self.assertEqual(res_df.loc[0, 2], 0)
+
+    def test_conflicting_perfect_split(self):
+        sub1 = QUBO(np.zeros((1, 1)), np.array([0]), np.array([0]))
+        sub1.solutions = pd.DataFrame({0: [1]})
+        sub2 = QUBO(np.zeros((1, 1)), np.array([0]), np.array([0]))
+        sub2.solutions = pd.DataFrame({0: [0]})
+        result = aggregate_linear([sub1, sub2], self.original_qubo)
+
+        self.assertEqual(result.solutions.loc[0, 0], 1)
+
+    def test_dataframe_structure(self):
+        sub1 = QUBO(np.zeros((1, 1)), np.array([0]), np.array([0]))
+        sub1.solutions = pd.DataFrame({0: [1]})
+        result = aggregate_linear([sub1], self.original_qubo)
+
+        self.assertIsInstance(result.solutions, pd.DataFrame)
+        self.assertEqual(len(result.solutions), 1)
+        self.assertEqual(list(result.solutions.columns), [0, 1, 2, 3])
 
 
 if __name__ == '__main__':
