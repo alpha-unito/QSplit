@@ -24,11 +24,12 @@ import numpy as np
 import pandas as pd
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import QAOAAnsatz
+from qiskit.passmanager import BasePassManager
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import AerSimulator
+from qiskit_algorithms.optimizers import COBYLA
 from qiskit_ibm_runtime import EstimatorV2, IBMBackend
 from qiskit_ibm_runtime import SamplerV2
-from scipy.optimize import minimize
 
 from qsplit.qubo import QUBO
 
@@ -48,12 +49,20 @@ def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePau
     for i, row_var in enumerate(qubo.rows_idx):
         for j, col_var in enumerate(qubo.cols_idx):
             coeff = qubo.mat[i, j]
-            if coeff != 0:
-                qubit_r = var_to_qubit[row_var]
-                qubit_c = var_to_qubit[col_var]
-                pauli_list.append(("ZZ", [qubit_r, qubit_c], coeff))
+            if coeff == 0:
+                continue
+
+            if row_var == col_var:
+                pauli_list.append(("Z", [var_to_qubit[row_var]], coeff))
+            else:
+                pauli_list.append(("ZZ", [var_to_qubit[row_var], var_to_qubit[col_var]], coeff))
+
+    if qubo.offset != 0:
+        pauli_list.append(("I" * num_qubits, list(range(num_qubits)), qubo.offset))
 
     cost_hamiltonian = SparsePauliOp.from_sparse_list(pauli_list, num_qubits)
+    cost_hamiltonian = cost_hamiltonian.simplify()
+
     circuit = QAOAAnsatz(cost_operator=cost_hamiltonian, reps=2)
     circuit.measure_all()
 
@@ -69,18 +78,24 @@ def __optimize_circuit(backend: IBMBackend | AerSimulator, candidate_circuit: Qu
     initial_beta = np.pi / 2
     init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
     estimator = EstimatorV2(backend)
-    estimator.options.default_shots = 100
-    estimator.options.dynamical_decoupling.enable = True
-    estimator.options.dynamical_decoupling.sequence_type = "XY4"
-    estimator.options.twirling.enable_gates = True
-    estimator.options.twirling.num_randomizations = "auto"
-    result = minimize(__cost_func_estimator, init_params, args=(candidate_circuit, cost_hamiltonian, estimator),
-                      method="COBYLA", tol=1e-2)
+    estimator.options.default_shots = 500
+    if isinstance(backend, IBMBackend):
+        estimator.options.dynamical_decoupling.enable = True
+        estimator.options.dynamical_decoupling.sequence_type = "XY4"
+        estimator.options.twirling.enable_gates = True
+        estimator.options.twirling.num_randomizations = "auto"
+
+    def objective_function(params: list[float]) -> float:
+        return __cost_func_estimator(params, candidate_circuit, cost_hamiltonian, estimator)
+
+    optimizer = COBYLA()
+    result = optimizer.minimize(fun=objective_function, x0=init_params)
     optimized_circuit = candidate_circuit.assign_parameters(result.x)
     return optimized_circuit
 
 
-def __cost_func_estimator(params, ansatz, hamiltonian, estimator):
+def __cost_func_estimator(params: list[float], ansatz: QuantumCircuit, hamiltonian: SparsePauliOp,
+                          estimator: EstimatorV2) -> float:
     isa_hamiltonian = hamiltonian.apply_layout(ansatz.layout)
     pub = (ansatz, isa_hamiltonian, params)
     job = estimator.run([pub])
@@ -90,21 +105,23 @@ def __cost_func_estimator(params, ansatz, hamiltonian, estimator):
     return cost
 
 
-def get_qaoa_circuit_optimized(backend, pm, qubo):
+def get_qaoa_circuit_optimized(backend: IBMBackend | AerSimulator, pm: BasePassManager, qubo: QUBO) -> tuple[
+    QuantumCircuit, dict[int, int], list[int]]:
     circuit, cost_hamiltonian, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
     candidate_circuit = pm.run(circuit)
     optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian)
     return optimized_circ, var_to_qubit, all_vars
 
 
-def run_quantum_optimizer(backend, optimized_circuit):
+def run_quantum_optimizer(backend: IBMBackend | AerSimulator, optimized_circuit: QuantumCircuit) -> dict[int, int]:
     sampler = SamplerV2(mode=backend)
-    sampler.options.dynamical_decoupling.enable = True
-    sampler.options.dynamical_decoupling.sequence_type = "XY4"
-    sampler.options.twirling.enable_gates = True
-    sampler.options.twirling.num_randomizations = "auto"
+    if isinstance(backend, IBMBackend):
+        sampler.options.dynamical_decoupling.enable = True
+        sampler.options.dynamical_decoupling.sequence_type = "XY4"
+        sampler.options.twirling.enable_gates = True
+        sampler.options.twirling.num_randomizations = "auto"
     pub = (optimized_circuit,)
-    job = sampler.run([pub], shots=100)
+    job = sampler.run([pub], shots=500)
     counts_int = job.result()[0].data.meas.get_int_counts()
     return counts_int
 
