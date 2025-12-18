@@ -78,7 +78,7 @@ class TestSplitProblem(unittest.TestCase):
         # LR check
         self.assertEqual(res_lr.mat[0, 0], 3.0)
         self.assertEqual(np.count_nonzero(res_lr.mat), 1)
-        self.assertEqual(res_lr.rows_idx.tolist(), [3, 4, -1, -1])
+        self.assertEqual(res_lr.rows_idx.tolist(), [3, 4])
 
     def test_raise_value_error_for_lower_left(self):
         dim = 4
