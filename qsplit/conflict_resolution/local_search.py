@@ -22,7 +22,7 @@ from qsplit.adapters.dwave.dwave_sa import solve
 from qsplit.qubo import QUBO
 
 
-def local_search(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
+def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
     for i, row in df.iterrows():
         no_energy = row.drop('energy')
         var_num = len(no_energy)

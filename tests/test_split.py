@@ -19,7 +19,7 @@ import unittest
 import numpy as np
 
 from qsplit.qubo import QUBO
-from qsplit.split import split_problem
+from qsplit.splitting.split_recursive import split_problem
 
 
 class TestSplitProblem(unittest.TestCase):

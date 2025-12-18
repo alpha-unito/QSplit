@@ -20,9 +20,9 @@ import numpy as np
 
 from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.adapters.dwave.dwave_sa import solve
-from qsplit.aggregate import aggregate_solutions
+from qsplit.aggregation.aggregate_recursive import aggregate_solutions
 from qsplit.qubo import QUBO
-from qsplit.split import split_problem
+from qsplit.splitting.split_recursive import split_problem
 
 
 def qsplit_sampler(qubo: QUBO, cut_dim: int) -> QUBO:

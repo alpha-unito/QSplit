@@ -19,12 +19,12 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from qsplit.aggregate import (__fill_with_nan as fill_with_nan, __combine_ul_lr as combine_ul_lr,
-                              __nan_hamming_distance as nan_hamming_distance,
-                              __get_closest_assignments as get_closest_assignments, __combine_rows as combine_rows,
-                              aggregate_solutions)
+from qsplit.aggregation.aggregate_recursive import (__fill_with_nan as fill_with_nan, __combine_ul_lr as combine_ul_lr,
+                                                    __nan_hamming_distance as nan_hamming_distance,
+                                                    __get_closest_assignments as get_closest_assignments,
+                                                    __combine_rows as combine_rows, aggregate_solutions)
 from qsplit.qubo import QUBO
-from qsplit.split import split_problem
+from qsplit.splitting.split_recursive import split_problem
 
 
 class TestAggregateSolutions(unittest.TestCase):
@@ -41,7 +41,7 @@ class TestAggregateSolutions(unittest.TestCase):
              3: [0, 1, 0, 1, 0, 1, 0, 1, 0, 0], 'energy': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ]})
         lr_qubo.solutions = pd.DataFrame({3: [1], 4: [1], 'energy': [-1269.0]})
 
-        result_qubo = aggregate_solutions([ul_qubo, ur_qubo, lr_qubo], original_qubo)
+        result_qubo = aggregate_solutions((ul_qubo, ur_qubo, lr_qubo), original_qubo)
 
         expected_qubo = QUBO(original_problem, original_problem_ids, original_problem_ids)
         expected_qubo.solutions = pd.DataFrame({0: [1.0], 1: [1.0], 2: [0], 3: [1.0], 'energy': [-1314.0]})

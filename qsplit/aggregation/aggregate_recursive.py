@@ -17,8 +17,8 @@
 import numpy as np
 import pandas as pd
 
+from qsplit.conflict_resolution.local_search import nan_subqubo
 from qsplit.qubo import QUBO
-from qsplit.resolve_conflicts import local_search
 
 
 def aggregate_solutions(solutions: tuple[QUBO, QUBO, QUBO], qubo: QUBO) -> QUBO:
@@ -36,7 +36,7 @@ def aggregate_solutions(solutions: tuple[QUBO, QUBO, QUBO], qubo: QUBO) -> QUBO:
 
     # Conflicts resolution
     qubo.solutions = (
-        local_search(combined_df, qubo).reset_index(drop=True).drop_duplicates().nsmallest(n=10, columns='energy'))
+        nan_subqubo(combined_df, qubo).reset_index(drop=True).drop_duplicates().nsmallest(n=10, columns='energy'))
 
     return qubo
 
