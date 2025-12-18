@@ -69,7 +69,7 @@ def __optimize_circuit(backend: IBMBackend | AerSimulator, candidate_circuit: Qu
     initial_beta = np.pi / 2
     init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
     estimator = EstimatorV2(backend)
-    estimator.options.default_shots = 1000
+    estimator.options.default_shots = 100
     estimator.options.dynamical_decoupling.enable = True
     estimator.options.dynamical_decoupling.sequence_type = "XY4"
     estimator.options.twirling.enable_gates = True
@@ -99,13 +99,12 @@ def get_qaoa_circuit_optimized(backend, pm, qubo):
 
 def run_quantum_optimizer(backend, optimized_circuit):
     sampler = SamplerV2(mode=backend)
-    sampler.options.default_shots = 1000
     sampler.options.dynamical_decoupling.enable = True
     sampler.options.dynamical_decoupling.sequence_type = "XY4"
     sampler.options.twirling.enable_gates = True
     sampler.options.twirling.num_randomizations = "auto"
     pub = (optimized_circuit,)
-    job = sampler.run([pub], shots=int(1e3))
+    job = sampler.run([pub], shots=100)
     counts_int = job.result()[0].data.meas.get_int_counts()
     return counts_int
 
