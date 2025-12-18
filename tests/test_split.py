@@ -14,11 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 import unittest
 
 import numpy as np
 
 from qsplit.qubo import QUBO
+from qsplit.splitting.split_linear import split_problem as split_linear
 from qsplit.splitting.split_recursive import split_problem
 
 
@@ -102,6 +104,44 @@ class TestSplitProblem(unittest.TestCase):
 
         self.assertEqual(lr.cols_idx.tolist(), [3, 4, 5, -1])
         self.assertEqual(lr.rows_idx.tolist(), [3, 4, 5, -1])
+
+
+class TestSplitLinear(unittest.TestCase):
+    def test_split_simple_blocks(self):
+        mat = np.zeros((4, 4))
+        mat[0, 0] = 10.0
+        mat[2, 2] = 20.0
+        ids = np.array([10, 11, 12, 13])
+        qubo = QUBO(mat, ids.copy(), ids.copy())
+        os.environ["CUT_DIM"] = "2"
+        res = split_linear(qubo)
+
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].mat[0, 0], 10.0)
+        self.assertEqual(res[1].mat[0, 0], 20.0)
+        self.assertEqual(res[0].rows_idx.tolist(), [10, 11])
+        self.assertEqual(res[1].rows_idx.tolist(), [12, 13])
+
+    def test_padding_logic(self):
+        mat = np.eye(3)
+        ids = np.array([1, 2, 3])
+        qubo = QUBO(mat, ids.copy(), ids.copy())
+        os.environ["CUT_DIM"] = "2"
+        res = split_linear(qubo)
+
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[1].rows_idx.tolist(), [3, -1])
+        self.assertEqual(res[1].mat.shape, (2, 2))
+
+    def test_skip_empty_blocks(self):
+        mat = np.zeros((4, 4))
+        mat[0, 0] = 5.0
+        qubo = QUBO(mat, np.array([0, 1, 2, 3]), np.array([0, 1, 2, 3]))
+        os.environ["CUT_DIM"] = "2"
+        res = split_linear(qubo)
+
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].rows_idx.tolist(), [0, 1])
 
 
 if __name__ == '__main__':
