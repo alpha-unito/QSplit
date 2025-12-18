@@ -7,7 +7,7 @@ import numpy as np
 
 from .io_utils import load_qubo, save_qubo
 from .qubo import QUBO
-from .split import split_problem
+from .splitting.split_recursive import split_problem
 
 _backend_counts: Dict[str, int] = {}
 

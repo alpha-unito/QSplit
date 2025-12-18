@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Tuple
 import numpy as np
 import pandas as pd
 
-from .aggregate import aggregate_solutions
+from .aggregation.aggregate_recursive import aggregate_solutions
 from .io_utils import load_qubo, save_qubo
 from .qubo import QUBO
 
