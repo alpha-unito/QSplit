@@ -56,3 +56,15 @@ class TestConflictResolution(unittest.TestCase):
             {1: [1.0, 0.0, 0.0], 2: [0.0, 1.0, 0.0], 3: [1.0, 1.0, 1.0], 'energy': [4.0, 6.0, 3.0]})
 
         pd.testing.assert_frame_equal(result_df, expected_df)
+
+    def test_different_rows_cols(self):
+        df = pd.DataFrame.from_dict({'0': [np.nan], '1': [np.nan], '6': [np.nan], '7': [0.0], 'energy': [np.nan]})
+        problem = QUBO(mat=np.array(
+            [[-68.79627191, -68.80109593, -88.38327757, 73.23522915], [0, -124.02536823, -149.05350201, 7.45948431],
+             [0, 0, 128.9931199, -52.7871462], [0, 0, 0, 9.09390549]]), cols_idx=np.array([4, 5, 6, 7]),
+            rows_idx=np.array([0, 1, 2, 3]))
+        result_df = nan_subqubo(df, problem)
+        print(result_df)
+        expected_df = pd.DataFrame.from_dict({'0': [0.0], '1': [0.0], '6': [0.0], '7': [0.0], 'energy': [0.0]})
+        print(expected_df)
+        pd.testing.assert_frame_equal(result_df, expected_df)

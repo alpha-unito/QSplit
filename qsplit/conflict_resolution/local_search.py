@@ -30,15 +30,36 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
         if not np.any(np.isnan(no_energy.values)):
             df.loc[i, 'energy'] = no_energy.values.T @ qubo.mat[:var_num, :var_num] @ no_energy.values
         else:
-            nans = no_energy[np.isnan(no_energy)]
-            idxs = np.array(nans.index.astype(int))
-            qubo_nans = qubo.mat[np.ix_(idxs, idxs)]
-            if np.count_nonzero(qubo_nans) == 0:
-                nans_sol = solve_zeros(QUBO(qubo_nans, cols_idx=idxs, rows_idx=idxs))
-            else:
-                nans_sol = solve(QUBO(qubo_nans, cols_idx=idxs, rows_idx=idxs))
-            best_sol = nans_sol.sort_values(by='energy', ascending=True).iloc[0]
-            df.loc[i, idxs] = best_sol[idxs]
-            df.loc[i, 'energy'] = df.iloc[i][:-1] @ qubo.mat[:var_num, :var_num] @ df.iloc[i][:-1].T
+            nan_indices = no_energy[no_energy.isna()].index.astype(int)
+            nan_rows = [idx for idx in nan_indices if idx in qubo.rows_idx]
+            nan_cols = [idx for idx in nan_indices if idx in qubo.cols_idx]
+            row_map = [list(qubo.rows_idx).index(r) for r in nan_rows]
+            col_map = [list(qubo.cols_idx).index(c) for c in nan_cols]
+            qubo_rect = qubo.mat[np.ix_(row_map, col_map)]
+            size_r = len(nan_rows)
+            size_c = len(nan_cols)
+            n = max(size_r, size_c)
+            qubo_square = np.zeros((n, n))
+            qubo_square[:size_r, :size_c] = qubo_rect
+            rows_padded = np.array(nan_rows + [-1] * (n - size_r))
+            cols_padded = np.array(nan_cols + [-1] * (n - size_c))
+            solver = solve_zeros if np.count_nonzero(qubo_square) == 0 else solve
+            qubo_nan = QUBO(qubo_square, cols_idx=cols_padded, rows_idx=rows_padded)
+            nans_sol = solver(qubo_nan)
+            best_sol = nans_sol.sort_values(by='energy').iloc[0]
+            for idx in nan_indices:
+                if idx != -1:
+                    target_col = None
+                    if idx in df.columns:
+                        target_col = idx
+                    elif str(idx) in df.columns:
+                        target_col = str(idx)
+                    if target_col is not None:
+                        val = 0.0
+                        if target_col in best_sol.index:
+                            val = best_sol[target_col]
+                        df.at[i, target_col] = val
+            full_row_values = df.iloc[i].drop('energy').values
+            df.loc[i, 'energy'] = full_row_values.T @ qubo.mat[:var_num, :var_num] @ full_row_values
 
     return df

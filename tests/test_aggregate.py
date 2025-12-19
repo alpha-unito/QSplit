@@ -39,7 +39,7 @@ class TestAggregateSolutions(unittest.TestCase):
         ul_qubo.solutions = pd.DataFrame({0: [1], 1: [1], 'energy': [-1119]})
         ur_qubo.solutions = pd.DataFrame(
             {0: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1], 1: [0, 0, 0, 0, 1, 1, 1, 1, 0, 0], 2: [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
-             3: [0, 1, 0, 1, 0, 1, 0, 1, 0, 0], 'energy': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ]})
+             3: [0, 1, 0, 1, 0, 1, 0, 1, 0, 0], 'energy': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})
         lr_qubo.solutions = pd.DataFrame({3: [1], 4: [1], 'energy': [-1269.0]})
 
         result_qubo = aggregate_solutions((ul_qubo, ur_qubo, lr_qubo), original_qubo)
