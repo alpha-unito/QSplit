@@ -1,6 +1,6 @@
 input_matrix:
   class: File
-  path: data/32x32.csv
+  path: data/32x32_b.csv
 
 cut_dim: 16
 backends: "iqm,dwave"

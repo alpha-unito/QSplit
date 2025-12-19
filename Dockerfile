@@ -11,7 +11,7 @@ WORKDIR /workspace
 COPY . /workspace
 
 RUN pip install --upgrade pip setuptools wheel \
-    && pip install ".[ibm-cpu,dwave]"
+    && pip install ".[ibm-cpu,ibm-quantum,dwave]"
 
 ENV PYTHONPATH=/workspace
 
