@@ -1,17 +1,20 @@
 FROM python:3.13-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ make \
-    git \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
-COPY . /workspace
+COPY pyproject.toml ./
+COPY qsplit ./qsplit
 
 RUN pip install --upgrade pip setuptools wheel \
-    && pip install ".[ibm-cpu,ibm-quantum,dwave]"
+    && pip install .
 
 ENV PYTHONPATH=/workspace
 

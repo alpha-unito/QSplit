@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, -m, qsplit.cli_split]
+baseCommand: [python3, -m, qsplit.cli.cli_split]
 
 inputs:
   input_qubo:

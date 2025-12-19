@@ -2,9 +2,8 @@ import argparse
 import os
 import sys
 from typing import Callable
-
 from .io_utils import load_qubo, save_qubo
-from .qubo import QUBO
+from qsplit.qubo import QUBO
 
 
 def _warn(msg: str) -> None:
@@ -18,47 +17,47 @@ def _load_solver(backend: str) -> Callable:
         b = "classic"
 
     if b == "classic":
-        from .adapters.all_zero import solve as solver_fn
+        from adapters.all_zero import solve as solver_fn
         return solver_fn
 
     if b == "dwave":
         try:
-            from .adapters.dwave.dwave_sa import solve as solver_fn
+            from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
             return solver_fn
         except Exception as e1:
             _warn(f"D-Wave QA solver not available ({type(e1).__name__}: {e1}). Trying SA...")
             try:
-                from .adapters.dwave.dwave_sa import solve as solver_fn
+                from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
                 return solver_fn
             except Exception as e2:
                 _warn(f"D-Wave SA solver not available ({type(e2).__name__}: {e2}). Falling back to classic.")
-                from .adapters.all_zero import solve as solver_fn
+                from qsplit.adapters.all_zero import solve as solver_fn
                 return solver_fn
 
     if b == "ibm":
         try:
-            from .adapters.ibm.ibm_qaoa_cpu_noiseless import solve as solver_fn
+            from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as solver_fn
             return solver_fn
         except ModuleNotFoundError as e:
             _warn(f"IBM solver dependencies missing ({e}). Falling back to classic.")
-            from .adapters.all_zero import solve as solver_fn
+            from qsplit.adapters.all_zero import solve as solver_fn
             return solver_fn
         except Exception as e:
             _warn(f"IBM solver not available ({type(e).__name__}: {e}). Falling back to classic.")
-            from .adapters.all_zero import solve as solver_fn
+            from qsplit.adapters.all_zero import solve as solver_fn
             return solver_fn
 
     if b == "iqm":
         try:
-            from .adapters.dwave.dwave_sa import solve as solver_fn
+            from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
             return solver_fn
         except Exception as e:
             _warn(f"IQM fallback SA not available ({type(e).__name__}: {e}). Falling back to classic.")
-            from .adapters.all_zero import solve as solver_fn
+            from qsplit.adapters.all_zero import solve as solver_fn
             return solver_fn
 
     _warn(f"Unknown backend '{backend}', falling back to classic.")
-    from .adapters.all_zero import solve as solver_fn
+    from qsplit.adapters.all_zero import solve as solver_fn
     return solver_fn
 
 

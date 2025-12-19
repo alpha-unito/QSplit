@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-from .qubo import QUBO
+from qsplit.qubo import QUBO
 
 def save_qubo(path: str | Path, qubo: QUBO) -> None:
     path = Path(path)

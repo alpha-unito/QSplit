@@ -1,13 +1,11 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-
+from typing import Dict, List
 import numpy as np
-
 from .io_utils import load_qubo, save_qubo
-from .qubo import QUBO
-from .splitting.split_recursive import split_problem
+from qsplit.qubo import QUBO
+from qsplit.splitting.split_recursive import split_problem
 
 _backend_counts: Dict[str, int] = {}
 

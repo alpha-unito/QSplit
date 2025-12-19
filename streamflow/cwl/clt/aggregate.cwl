@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, -m, qsplit.cli_aggregate]
+baseCommand: [python3, -m, qsplit.cli.cli_aggregate]
 
 inputs:
   input_qubo:
@@ -27,19 +27,11 @@ inputs:
         }
 
 outputs:
-  aggregate_csv:
-    type: File
-    outputBinding:
-      glob: "aggregate.csv"
-
   aggregate_solutions:
     type: File
     outputBinding:
       glob: "aggregate.solutions.csv"
 
 arguments:
-  - "--output-qubo"
-  - "aggregate.pkl"
-
 requirements:
   - class: InlineJavascriptRequirement

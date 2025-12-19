@@ -14,8 +14,8 @@ At a high level, the workflow does the following:
 2. Uses **QSplit** to decompose this matrix into several smaller sub-QUBOs.
 3. Sends each sub-QUBO to a container that runs a D-Wave (or compatible)
    sampler and returns a solution.
-4. Aggregates all the partial results into a new QUBO and a global assignment,
-   stored in `aggregated.csv`.
+4. Aggregates all the partial results into a global assignment,
+   stored in `aggregate.solutions.csv`.
 
 The orchestration is expressed in **CWL** and executed with **Streamflow**, which
 takes care of running the three stages (split, solve, aggregate) as separate
@@ -91,8 +91,6 @@ Streamflow will:
 
 - parse `cwl/main.cwl` and `cwl/config.yml`;
 - deploy the containers defined in `streamflow.yml`;
-- execute the `split`, `dwave_solve`, and `aggregate` steps;
-- write the aggregated QUBO to the final matrix in a csv format.
+- execute the `split`, `dwave_solve`, and `aggregate` steps.
 
-On successful completion, Streamflow will output the `aggregated.csv` file on the root of the project.
-
+On successful completion, Streamflow will output the `aggregate.solutions.csv` file on the root of the project.

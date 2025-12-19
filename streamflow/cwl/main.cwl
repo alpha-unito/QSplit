@@ -13,10 +13,6 @@ inputs:
   backend_cut_dims: string
 
 outputs:
-  final_matrix:
-    type: File
-    outputSource: aggregate/aggregate_csv
-
   final_solutions:
     type: File
     outputSource: aggregate/aggregate_solutions
@@ -53,4 +49,4 @@ steps:
       input_qubo: split/full_qubo
       tree_file: split/tree_meta
       solved_list: dwave_solve/solved_qubo
-    out: [aggregate_csv, aggregate_solutions]
+    out: [aggregate_solutions]
