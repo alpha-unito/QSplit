@@ -14,15 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import numpy as np
 import pandas as pd
 
 from qsplit.qubo import QUBO
 
 
 def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
-    all_indices = sorted(list(set(qubo.rows_idx).union(qubo.cols_idx)))
+    all_indices = sorted([idx for idx in set(qubo.rows_idx).union(qubo.cols_idx) if idx >= 0])
     idx_to_pos = {idx: i for i, idx in enumerate(all_indices)}
-    out_solutions = [0.5] * len(all_indices)
+    out_solutions = [0.0] * len(all_indices)
     counts = [0] * len(all_indices)
 
     for sub_qubo in solutions:
@@ -39,7 +40,12 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
         if counts[i] > 0:
             out_solutions[i] = out_solutions[i] / counts[i]
 
-    sol_dict = {all_indices[i]: [round(out_solutions[i])] for i in range(len(all_indices))}
+    x = np.array([round(val) for val in out_solutions])
+    n = len(all_indices)
+    energy = x.T @ qubo.mat[:n, :n] @ x
+    sol_dict = {all_indices[i]: [x[i]] for i in range(len(all_indices))}
+    sol_dict['energy'] = [float(energy)]
+
     qubo.solutions = pd.DataFrame(sol_dict)
 
     return qubo
