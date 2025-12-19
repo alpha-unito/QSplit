@@ -359,7 +359,7 @@ class TestAggregateLinear(unittest.TestCase):
         sub2.solutions = pd.DataFrame({0: [0]})
         result = aggregate_linear([sub1, sub2], self.original_qubo)
 
-        self.assertEqual(result.solutions.loc[0, 0], 1)
+        self.assertEqual(result.solutions.loc[0, 0], 0)
 
     def test_dataframe_structure(self):
         sub1 = QUBO(np.zeros((1, 1)), np.array([0]), np.array([0]))
@@ -368,7 +368,7 @@ class TestAggregateLinear(unittest.TestCase):
 
         self.assertIsInstance(result.solutions, pd.DataFrame)
         self.assertEqual(len(result.solutions), 1)
-        self.assertEqual(list(result.solutions.columns), [0, 1, 2, 3])
+        self.assertEqual(list(result.solutions.columns), [0, 1, 2, 3, 'energy'])
 
 
 if __name__ == '__main__':
