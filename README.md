@@ -63,7 +63,8 @@ pip install streamflow==0.2.0dev13
 From the project root:
 
 ```bash
-docker build -t qsplit:latest .
+docker build -f ./docker/qsplit-base.Dockerfile -t qsplit-base:latest .
+docker build -f ./docker/qsplit-dwave.Dockerfile -t qsplit-dwave:latest .
 ```
 
 All steps in the workflow (split, solve, aggregate) share this image. This
@@ -84,7 +85,7 @@ specifies parameters such as `cut_dim` and the output directory for sub‑proble
 To run the full hybrid workflow:
 
 ```bash
-streamflow run streamflow.yml
+streamflow run ./streamflow/streamflow.yml
 ```
 
 Streamflow will:

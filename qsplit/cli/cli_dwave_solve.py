@@ -13,6 +13,10 @@ def _warn(msg: str) -> None:
 def _load_solver(backend: str) -> Callable:
     b = (backend or "").strip().lower()
 
+    if b == "dummy":
+        from qsplit.adapters.dummy import solve as dummy_solve
+        return dummy_solve
+    
     if os.getenv("SOLVER_TAG", "").strip().lower() == "classic":
         b = "classic"
 

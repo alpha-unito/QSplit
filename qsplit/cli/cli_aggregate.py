@@ -138,7 +138,7 @@ def main() -> None:
     solved_paths = _parse_solved_paths(args.solved_list)
     solved_entries, solved_by_id = _load_solved_qubos(solved_paths)
 
-    lines: List[str] = ["node_id,backend,bitstring,energy"]
+    rows: List[Tuple[str, str, str, str]] = []
 
     for _, node_id, qubo in solved_entries:
         backend = str(nodes.get(node_id, {}).get("backend", ""))
@@ -155,7 +155,7 @@ def main() -> None:
                 energy = float(row["energy"])
             except Exception:
                 energy = float("nan")
-            lines.append(f"{node_id},{backend},{bits},{energy:.12g}")
+            rows.append((node_id, backend, bits, f"{energy:.12g}"))
 
     if solved_by_id:
         aggregated_root = _aggregate_tree_solutions(root_id, nodes, solved_by_id, full_qubo.mat, row_map, col_map)
@@ -168,8 +168,11 @@ def main() -> None:
                     energy = float(row["energy"])
                 except Exception:
                     energy = float("nan")
-                lines.append(f"{root_id},aggregate,{i},{bits},{energy:.12g}")
+                rows.append((root_id, "aggregate", f"{i},{bits}", f"{energy:.12g}"))
 
+    rows.sort(key=lambda r: r[0])
+    lines = ["node_id,backend,bitstring,energy"]
+    lines.extend(f"{node_id},{backend},{bitstring},{energy}" for node_id, backend, bitstring, energy in rows)
     Path("aggregate.solutions.csv").write_text("\n".join(lines), encoding="utf-8")
 
 

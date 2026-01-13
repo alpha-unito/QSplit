@@ -16,6 +16,7 @@ workflows:
           - deployment: qsplit-dwave
           - deployment: qsplit-ibm
           - deployment: qsplit-iqm
+          - deployment: qsplit-base
         filters:
           - subqubo-routing
 
@@ -28,6 +29,11 @@ bindingFilters:
     type: matching
     config:
       filters:
+        - target:
+            deployment: qsplit-base
+          job:
+            - port: backend
+              match: "dummy"
         - target:
             deployment: qsplit-dwave
           job:

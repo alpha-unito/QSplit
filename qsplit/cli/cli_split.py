@@ -1,11 +1,15 @@
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Dict, List
 import numpy as np
 from .io_utils import load_qubo, save_qubo
+from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
+from qsplit.halting_heuristic.stop import is_empty, is_sparse
+import os
 
 _backend_counts: Dict[str, int] = {}
 
@@ -54,6 +58,14 @@ def _eligible_backends(size: int, backends: List[str], backend_cut_dims: Dict[st
     return elig
 
 
+def _sparse_variable_count(qubo: QUBO) -> int:
+    rows_found, cols_found = np.nonzero(qubo.mat)
+    variables_in_rows = qubo.rows_idx[rows_found]
+    variables_in_cols = qubo.cols_idx[cols_found]
+    unique_vars = np.unique(np.concatenate([variables_in_rows, variables_in_cols]))
+    return len(unique_vars)
+
+
 def _choose_backend_weighted_rr(eligible: List[str], backend_cut_dims: Dict[str, int]) -> str:
     def weight(b: str) -> int:
         return max(int(backend_cut_dims.get(b, 1)), 1)
@@ -73,6 +85,7 @@ def _recursively_split(
     nodes: Dict[str, Dict],
     backends: List[str],
     backend_cut_dims: Dict[str, int],
+    cut_dim: int,
 ) -> None:
     qubo.node_id = node_id
 
@@ -83,10 +96,27 @@ def _recursively_split(
         "children": [],
     }
 
-    size = int(getattr(qubo, "problem_size", qubo.mat.shape[0]))
-    eligible = _eligible_backends(size, backends, backend_cut_dims)
+    if is_empty(qubo):
+        nodes[node_id]["backend"] = "dummy"
+        bdir = out_dir / "dummy"
+        bdir.mkdir(parents=True, exist_ok=True)
+        save_qubo(bdir / f"{node_id}.pkl", qubo)
+        return
 
-    if eligible:
+    sparse = is_sparse(qubo)
+    size = int(getattr(qubo, "problem_size", qubo.mat.shape[0]))
+    if is_empty(qubo):
+        nodes[node_id]["backend"] = "dummy"
+        bdir = out_dir / "dummy"
+        bdir.mkdir(parents=True, exist_ok=True)
+        save_qubo(bdir / f"{node_id}.pkl", qubo)
+        return
+
+    sparse = is_sparse(qubo)
+    effective_size = _sparse_variable_count(qubo) if sparse else size
+    eligible = _eligible_backends(effective_size, backends, backend_cut_dims)
+
+    if ((size <= cut_dim) or sparse) and eligible:
         chosen = _choose_backend_weighted_rr(eligible, backend_cut_dims)
         nodes[node_id]["backend"] = chosen
 
@@ -98,7 +128,7 @@ def _recursively_split(
     for idx, sub in enumerate(split_problem(qubo)):
         child_id = f"{node_id}_{idx}"
         nodes[node_id]["children"].append(child_id)
-        _recursively_split(sub, child_id, out_dir, nodes, backends, backend_cut_dims)
+        _recursively_split(sub, child_id, out_dir, nodes, backends, backend_cut_dims, cut_dim)
 
 
 def main() -> None:
@@ -115,11 +145,15 @@ def main() -> None:
     p.add_argument("--backend-file", default="backends.json")
     args = p.parse_args()
 
+    os.environ["CUT_DIM"] = str(args.cut_dim)
+
     if bool(args.input_qubo) == bool(args.input_matrix):
         raise SystemExit("Specify exactly one of --input-qubo or --input-matrix")
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    os.environ["CUT_DIM"] = str(args.cut_dim)
 
     if args.input_matrix:
         full = _build_qubo_from_matrix(args.input_matrix)
@@ -132,13 +166,13 @@ def main() -> None:
 
     for b in backends:
         if b not in backend_cut_dims:
-            raise SystemExit(f"Missing backend_cut_dim for backend '{b}'")
+            backend_cut_dims[b] = int(args.cut_dim)
 
     global _backend_counts
     _backend_counts = {b: 0 for b in backends}
 
     nodes: Dict[str, Dict] = {}
-    _recursively_split(full, "root", out_dir, nodes, backends, backend_cut_dims)
+    _recursively_split(full, "root", out_dir, nodes, backends, backend_cut_dims, args.cut_dim)
 
     Path(args.tree_file).write_text(json.dumps({"root": "root", "nodes": nodes}, indent=2), encoding="utf-8")
 

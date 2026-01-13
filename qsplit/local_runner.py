@@ -63,7 +63,7 @@ def qsplit_sampler_recursive(qubo: QUBO) -> QUBO:
 def qsplit_sampler_iterative(qubo: QUBO) -> QUBO:
     subs = split_problem_linear(qubo)
     for p in subs:
-        if is_empty(p) or is_sparse(qubo):
+        if is_empty(p):
             p.solutions = dummy_solve(p)
         else:
             p.solutions = solve(p)
