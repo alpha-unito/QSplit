@@ -40,10 +40,10 @@ def logical_expansion(subs: tuple[QUBO, QUBO, QUBO]) -> tuple[QUBO, QUBO, QUBO]:
 
 
 def qsplit_sampler_recursive(qubo: QUBO) -> QUBO:
-    if is_empty(qubo) or is_sparse(qubo):
+    if is_empty(qubo):
         qubo.solutions = dummy_solve(qubo)
         return qubo
-    if qubo.problem_size <= int(os.environ["CUT_DIM"]):
+    if (qubo.problem_size <= int(os.environ["CUT_DIM"])) or is_sparse(qubo):
         qubo.solutions = solve(qubo)
         return qubo
 
