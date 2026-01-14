@@ -51,9 +51,10 @@ On the host machine you need:
 
 - **Docker 4.24.2**, with the daemon running;
 - **Streamflow**, installed in the Python environment:
+- **Python >=3.11**
 
 ```bash
-pip install streamflow==0.2.0dev13
+python -m pip install "git+https://github.com/alpha-unito/streamflow.git"
 ```
 
 ## Run
@@ -87,11 +88,5 @@ To run the full hybrid workflow:
 ```bash
 streamflow run ./streamflow/streamflow.yml
 ```
-
-Streamflow will:
-
-- parse `cwl/main.cwl` and `cwl/config.yml`;
-- deploy the containers defined in `streamflow.yml`;
-- execute the `split`, `dwave_solve`, and `aggregate` steps.
 
 On successful completion, Streamflow will output the `aggregate.solutions.csv` file on the root of the project.

@@ -28,8 +28,8 @@ steps:
       backend_cut_dims: backend_cut_dims
     out: [sub_qubos, full_qubo, tree_meta]
 
-  dwave_solve:
-    run: clt/dwave_solve.cwl
+  parallelize:
+    run: clt/scatter.cwl
     in:
       input_qubo: split/sub_qubos
       backend:
@@ -48,5 +48,5 @@ steps:
     in:
       input_qubo: split/full_qubo
       tree_file: split/tree_meta
-      solved_list: dwave_solve/solved_qubo
+      solved_list: parallelize/solved_qubo
     out: [aggregate_solutions]

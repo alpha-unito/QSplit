@@ -11,7 +11,7 @@ workflows:
         target:
           deployment: qsplit-base
 
-      - step: /dwave_solve
+      - step: /parallelize
         target:
           - deployment: qsplit-dwave
           - deployment: qsplit-ibm
@@ -60,8 +60,6 @@ deployments:
       workdir: /workspace
       volume:
         - .:/workspace
-      env:
-        - PYTHONPATH=/workspace
 
   qsplit-dwave:
     type: docker
@@ -70,18 +68,14 @@ deployments:
       workdir: /workspace
       volume:
         - .:/workspace
-      env:
-        - PYTHONPATH=/workspace
 
   qsplit-ibm:
     type: docker
     config:
-      image: qsplit-ibm-cpu:latest
+      image: qsplit-ibm:latest
       workdir: /workspace
       volume:
         - .:/workspace
-      env:
-        - PYTHONPATH=/workspace
 
   qsplit-iqm:
     type: docker
@@ -90,5 +84,3 @@ deployments:
       workdir: /workspace
       volume:
         - .:/workspace
-      env:
-        - PYTHONPATH=/workspace

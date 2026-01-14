@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, -m, qsplit.cli.cli_dwave_solve]
+baseCommand: [python3, -m, qsplit.cli.cli_scatter]
 
 inputs:
   input_qubo:

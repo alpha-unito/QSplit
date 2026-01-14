@@ -5,3 +5,4 @@ __pycache__
 qsplit.egg-info
 sketch
 aggregate.solutions*
+settings.json
