@@ -12,7 +12,9 @@ def load_solver(backend: str) -> Callable:
         return dummy_solve
 
     if b == "classic":
-        from adapters.all_zero import solve as solver_fn
+        # from adapters.all_zero import solve as solver_fn
+        # return solver_fn
+        from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
         return solver_fn
 
     if b == "dwave":
@@ -20,7 +22,9 @@ def load_solver(backend: str) -> Callable:
         return solver_fn
 
     if b == "ibm":
-        from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as solver_fn
+        # from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as solver_fn
+        # return solver_fn
+        from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
         return solver_fn
 
     if b == "iqm":

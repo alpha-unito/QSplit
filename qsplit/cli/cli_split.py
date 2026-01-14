@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Dict, List
 import numpy as np
-from .io_utils import load_qubo, save_qubo
+from .io_utils import save_qubo
 from qsplit.halting_heuristic.stop import is_empty, vars_count
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
@@ -19,11 +19,6 @@ def build_qubo_from_matrix(matrix_path: str) -> QUBO:
     qubo = QUBO(mat=mat, rows_idx=np.arange(n), cols_idx=np.arange(n))
     save_qubo("initial_qubo.pkl", qubo)
     return qubo
-
-
-def parse_backends(backends_csv: str) -> List[str]:
-    xs = [b.strip() for b in (backends_csv or "").split(",") if b.strip()]
-    return xs or ["dwave"]
 
 
 def parse_backend_cut_dims(spec: str) -> Dict[str, int]:
@@ -72,10 +67,10 @@ def choose_backend_weighted_rr(
         return float(c) * fit
 
     def score(b: str) -> float:
-        return _backend_counts.get(b, 0) / float(weight(b))
+        return backend_counts.get(b, 0) / float(weight(b))
 
     chosen = min(eligible, key=lambda b: (score(b), eligible.index(b)))
-    backend_counts[chosen] = _backend_counts.get(chosen, 0) + 1
+    backend_counts[chosen] = backend_counts.get(chosen, 0) + 1
     return chosen
 
 
@@ -124,50 +119,28 @@ def recursively_split(
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--input-qubo")
-    p.add_argument("--input-matrix")
-    p.add_argument("--cut-dim", type=int, required=True)
+    p.add_argument("--input-matrix", required=True)
     p.add_argument("--adaptive", action="store_true")
     p.add_argument("--approach", default="dr")
-    p.add_argument("--tree-file", default="tree.json")
     p.add_argument("--out-dir", default="subproblems")
-    p.add_argument("--backends", default="dwave")
     p.add_argument("--backend-cut-dims", default="")
-    p.add_argument("--backend-file", default="backends.json")
     args = p.parse_args()
-
-    os.environ["CUT_DIM"] = str(args.cut_dim)
-
-    if bool(args.input_qubo) == bool(args.input_matrix):
-        raise SystemExit("Specify exactly one of --input-qubo or --input-matrix")
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    os.environ["CUT_DIM"] = str(args.cut_dim)
+    full = build_qubo_from_matrix(args.input_matrix)
 
-    if args.input_matrix:
-        full = build_qubo_from_matrix(args.input_matrix)
-    else:
-        full = load_qubo(args.input_qubo)
-        save_qubo("initial_qubo.pkl", full)
-
-    backends = parse_backends(args.backends)
     backend_cut_dims = parse_backend_cut_dims(args.backend_cut_dims)
 
-    for b in backends:
-        if b not in backend_cut_dims:
-            backend_cut_dims[b] = int(args.cut_dim)
-
-    global _backend_counts
-    _backend_counts = {b: 0 for b in backends}
+    global backend_counts
+    backend_counts = {b: 0 for b in backend_cut_dims.keys()}
 
     nodes: Dict[str, Dict] = {}
-    recursively_split(full, "root", out_dir, nodes, backends, backend_cut_dims)
+    recursively_split(full, "root", out_dir, nodes, backend_cut_dims.keys(), backend_cut_dims)
 
-    Path(args.tree_file).write_text(json.dumps({"root": "root", "nodes": nodes}, indent=2), encoding="utf-8")
-
-    Path(args.backend_file).write_text("[]", encoding="utf-8")
+    Path("tree.json").write_text(json.dumps({"root": "root", "nodes": nodes}, indent=2), encoding="utf-8")
+    Path("backends.json").write_text("[]", encoding="utf-8")
 
 
 if __name__ == "__main__":

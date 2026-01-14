@@ -7,9 +7,6 @@ inputs:
   input_qubo:
     type: File
     inputBinding: { prefix: --input-matrix }
-  cut_dim:
-    type: int
-    inputBinding: { prefix: --cut-dim }
   approach:
     type: string
     default: "dr"
@@ -17,10 +14,6 @@ inputs:
   adaptive:
     type: boolean
     inputBinding: { prefix: --adaptive }
-  backends:
-    type: string
-    default: "dwave"
-    inputBinding: { prefix: --backends }
   backend_cut_dims:
     type: string
     default: ""
@@ -29,14 +22,6 @@ inputs:
     type: string
     default: "subproblems"
     inputBinding: { prefix: --out-dir }
-  tree_file:
-    type: string
-    default: "tree.json"
-    inputBinding: { prefix: --tree-file }
-  backend_file:
-    type: string
-    default: "backends.json"
-    inputBinding: { prefix: --backend-file }
 
 outputs:
   sub_qubos:

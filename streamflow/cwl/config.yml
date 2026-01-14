@@ -1,11 +1,6 @@
-# NOTE:
-# cut_dim is the maximum size of submatrices
-
 input_matrix:
   class: File
   path: data/32x32_b.csv
 
-cut_dim: 32
-backends: "iqm,dwave"
-backend_cut_dims: "iqm:16,dwave:16"
+backend_cut_dims: "iqm:4,ibm:4,classic:16,dwave:8"
 

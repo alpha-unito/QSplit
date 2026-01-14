@@ -8,8 +8,6 @@ requirements:
 
 inputs:
   input_matrix: File
-  cut_dim: int
-  backends: string
   backend_cut_dims: string
 
 outputs:
@@ -22,8 +20,6 @@ steps:
     run: clt/split.cwl
     in:
       input_qubo: input_matrix
-      cut_dim: cut_dim
-      backends: backends
       adaptive: { default: true }
       backend_cut_dims: backend_cut_dims
     out: [sub_qubos, full_qubo, tree_meta]
@@ -35,7 +31,6 @@ steps:
       backend:
         valueFrom: |
           ${
-            // .../subproblems/<backend>/<node>.pkl
             var p = inputs.input_qubo.path;
             var parts = p.split("/");
             return parts[parts.length - 2];
