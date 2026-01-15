@@ -1,6 +1,6 @@
 import argparse
 from typing import Callable
-from .io_utils import load_qubo, save_qubo
+from .utils import load_qubo, save_qubo
 from qsplit.qubo import QUBO
 
 

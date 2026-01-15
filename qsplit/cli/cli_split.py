@@ -1,44 +1,13 @@
 import argparse
 import json
-import os
 from pathlib import Path
 from typing import Dict, List
-import numpy as np
-from .io_utils import save_qubo
+from .utils import build_qubo_from_matrix, parse_backend_cut_dims, save_qubo
 from qsplit.halting_heuristic.stop import is_empty, vars_count
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
-import os
 
 backend_counts: Dict[str, int] = {}
-
-
-def build_qubo_from_matrix(matrix_path: str) -> QUBO:
-    mat = np.loadtxt(matrix_path, delimiter=",")
-    n = mat.shape[0]
-    qubo = QUBO(mat=mat, rows_idx=np.arange(n), cols_idx=np.arange(n))
-    save_qubo("initial_qubo.pkl", qubo)
-    return qubo
-
-
-def parse_backend_cut_dims(spec: str) -> Dict[str, int]:
-    res: Dict[str, int] = {}
-    if not spec:
-        return res
-    for part in spec.split(","):
-        part = part.strip()
-        if ":" not in part:
-            continue
-        k, v = part.split(":", 1)
-        k = k.strip()
-        v = v.strip()
-        if not k:
-            continue
-        try:
-            res[k] = int(v)
-        except ValueError:
-            pass
-    return res
 
 
 def eligible_backends(size: int, backends: List[str], backend_cut_dims: Dict[str, int]) -> List[str]:

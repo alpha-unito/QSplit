@@ -2,5 +2,4 @@ input_matrix:
   class: File
   path: data/32x32_b.csv
 
-backend_cut_dims: "iqm:4,ibm:4,classic:16,dwave:8"
-
+backend_cut_dims: "iqm:4,ibm:4,classic:16,dwave:16"
