@@ -98,7 +98,7 @@ class TestQUBO(unittest.TestCase):
 
     def test_str_representation(self):
         qubo = QUBO(self.valid_mat, self.valid_rows_idx, self.valid_cols_idx, self.offset)
-        expected_str = "QUBO(cols: [1 2], rows: [1 2], offset: 5.0, problem_size: 2)"
+        expected_str = "QUBO(cols: [1 2], rows: [1 2], offset: 5.0, size: 2)"
         self.assertEqual(str(qubo), expected_str)
 
 
