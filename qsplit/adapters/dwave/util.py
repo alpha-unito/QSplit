@@ -35,5 +35,5 @@ def to_dataframe(sampleset: SampleSet, qubo: QUBO) -> pd.DataFrame:
     res = sampleset.to_pandas_dataframe()
     rename_map = {i: name for i, name in enumerate(qubo.cols_idx)}
     res.rename(columns=rename_map, inplace=True)
-    res = res.drop(columns=['num_occurrences']).drop_duplicates().sort_values(by='energy', ascending=True)
-    return res[res['energy'] == min(res['energy'])]
+    res = res.drop(columns=["num_occurrences"]).drop_duplicates().sort_values(by="energy", ascending=True)
+    return res[res["energy"] == min(res["energy"])]

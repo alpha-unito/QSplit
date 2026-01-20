@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
-from dwave.system import EmbeddingComposite, DWaveSampler
+from dwave.system import DWaveSampler, EmbeddingComposite
 
 from qsplit.adapters.dwave.util import from_qubo_matrix_to_bqm, to_dataframe
 from qsplit.qubo import QUBO

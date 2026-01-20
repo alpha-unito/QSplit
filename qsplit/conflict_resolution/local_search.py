@@ -24,11 +24,11 @@ from qsplit.qubo import QUBO
 
 def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
     for i, row in df.iterrows():
-        no_energy = row.drop('energy')
+        no_energy = row.drop("energy")
         var_num = len(no_energy)
 
         if not np.any(np.isnan(no_energy.values)):
-            df.loc[i, 'energy'] = no_energy.values.T @ qubo.mat[:var_num, :var_num] @ no_energy.values
+            df.loc[i, "energy"] = no_energy.values.T @ qubo.mat[:var_num, :var_num] @ no_energy.values
         else:
             nan_indices = no_energy[no_energy.isna()].index.astype(int)
             nan_rows = [idx for idx in nan_indices if idx in qubo.rows_idx]
@@ -46,7 +46,7 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
             solver = solve_zeros if np.count_nonzero(qubo_square) == 0 else solve
             qubo_nan = QUBO(qubo_square, cols_idx=cols_padded, rows_idx=rows_padded)
             nans_sol = solver(qubo_nan)
-            best_sol = nans_sol.sort_values(by='energy').iloc[0]
+            best_sol = nans_sol.sort_values(by="energy").iloc[0]
             for idx in nan_indices:
                 if idx != -1:
                     target_col = None
@@ -59,7 +59,7 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
                         if target_col in best_sol.index:
                             val = best_sol[target_col]
                         df.at[i, target_col] = val
-            full_row_values = df.iloc[i].drop('energy').values
-            df.loc[i, 'energy'] = full_row_values.T @ qubo.mat[:var_num, :var_num] @ full_row_values
+            full_row_values = df.iloc[i].drop("energy").values
+            df.loc[i, "energy"] = full_row_values.T @ qubo.mat[:var_num, :var_num] @ full_row_values
 
     return df

@@ -17,19 +17,22 @@
 import os
 import warnings
 
-from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.adapters.dwave.dwave_sa import solve
 from qsplit.aggregation.aggregate_linear import aggregate_solutions as aggregate_solutions_linear
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions as aggregate_solutions_recursive
+from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_linear import split_problem as split_problem_linear
 from qsplit.splitting.split_recursive import split_problem as split_problem_recursive
 
-warnings.warn("local_runner module is deprecated. This was the legacy method for using QSplit. "
-              "It is now recommended to use StreamFlow to leverage multiple quantum backends. "
-              "For more information on using StreamFlow with QSplit, please refer to the README.md file.",
-              DeprecationWarning, stacklevel=1)
+warnings.warn(
+    "local_runner module is deprecated. This was the legacy method for using QSplit. "
+    "It is now recommended to use StreamFlow to leverage multiple quantum backends. "
+    "For more information on using StreamFlow with QSplit, please refer to the README.md file.",
+    DeprecationWarning,
+    stacklevel=1,
+)
 
 LOGICAL_EXPANSION = False
 

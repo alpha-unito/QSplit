@@ -1,9 +1,11 @@
 import pickle
 from pathlib import Path
-from qsplit.qubo import QUBO
-import numpy as np
 from typing import Dict, Iterable, List, Tuple
+
+import numpy as np
 import pandas as pd
+
+from qsplit.qubo import QUBO
 
 
 def save_qubo(path: str | Path, qubo: QUBO) -> None:
@@ -11,10 +13,12 @@ def save_qubo(path: str | Path, qubo: QUBO) -> None:
     with path.open("wb") as f:
         pickle.dump(qubo, f)
 
+
 def load_qubo(path: str | Path) -> QUBO:
     path = Path(path)
     with path.open("rb") as f:
         return pickle.load(f)
+
 
 def build_qubo_from_matrix(matrix_path: str) -> QUBO:
     mat = np.loadtxt(matrix_path, delimiter=",")
@@ -22,6 +26,7 @@ def build_qubo_from_matrix(matrix_path: str) -> QUBO:
     qubo = QUBO(mat=mat, rows_idx=np.arange(n), cols_idx=np.arange(n))
     save_qubo("initial_qubo.pkl", qubo)
     return qubo
+
 
 def parse_backend_cut_dims(spec: str) -> Dict[str, int]:
     res: Dict[str, int] = {}
@@ -41,6 +46,7 @@ def parse_backend_cut_dims(spec: str) -> Dict[str, int]:
         except ValueError:
             pass
     return res
+
 
 def bitstring_from_row(row: pd.Series, ordered_cols: List[int]) -> str:
     bits: List[str] = []
@@ -67,8 +73,10 @@ def bitstring_from_row(row: pd.Series, ordered_cols: List[int]) -> str:
             bits.append("")
     return "".join(bits)
 
+
 def parse_solved_paths(raw: str) -> List[Path]:
     return [Path(p) for p in (raw.split(",") if raw else []) if p.strip()]
+
 
 def load_solved_qubos(paths: Iterable[Path]) -> Tuple[List[Tuple[Path, str, QUBO]], Dict[str, QUBO]]:
     entries: List[Tuple[Path, str, QUBO]] = []
@@ -85,13 +93,16 @@ def load_solved_qubos(paths: Iterable[Path]) -> Tuple[List[Tuple[Path, str, QUBO
         by_id[node_id] = qubo
     return entries, by_id
 
+
 def build_index_maps(rows_idx: np.ndarray, cols_idx: np.ndarray) -> tuple[dict[int, int], dict[int, int]]:
     row_map = {int(v): i for i, v in enumerate(rows_idx)}
     col_map = {int(v): i for i, v in enumerate(cols_idx)}
     return row_map, col_map
 
+
 def map_indices(idxs: np.ndarray, mapping: Dict[int, int]) -> np.ndarray:
     return np.array([mapping[int(v)] for v in idxs], dtype=int)
+
 
 def child_sort_key(child_id: str) -> tuple[int, str]:
     return int(child_id.rsplit("_", 1)[1]), child_id

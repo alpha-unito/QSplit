@@ -26,7 +26,7 @@ def split_problem(qubo: QUBO) -> list[QUBO]:
     padding_needed = cut_dim - (qubo.problem_size % cut_dim)
 
     if padding_needed > 0:
-        qubo.mat = np.pad(qubo.mat, ((0, padding_needed), (0, padding_needed)), mode='constant', constant_values=0)
+        qubo.mat = np.pad(qubo.mat, ((0, padding_needed), (0, padding_needed)), mode="constant", constant_values=0)
         new_indices = np.arange(-1, -(padding_needed + 1), -1)
         qubo.rows_idx = np.concatenate([qubo.rows_idx, new_indices])
         qubo.cols_idx = np.concatenate([qubo.cols_idx, new_indices])
@@ -36,7 +36,8 @@ def split_problem(qubo: QUBO) -> list[QUBO]:
     for i in range(0, qubo.problem_size, cut_dim):
         end = i + cut_dim
         mat = qubo.mat[i:end, i:end]
-        if np.count_nonzero(mat) == 0: continue
+        if np.count_nonzero(mat) == 0:
+            continue
         sub_qubo = QUBO(mat, qubo.rows_idx[i:end], qubo.cols_idx[i:end])
         res.append(sub_qubo)
 

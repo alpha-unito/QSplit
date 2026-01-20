@@ -36,14 +36,15 @@ class QUBO:
         self.solutions: pd.DataFrame | None = None
 
     def __str__(self) -> str:
-        return f"QUBO(cols: {self.cols_idx}, rows: {self.rows_idx}, offset: {self.offset}, problem_size: {self.problem_size})"
+        return f"QUBO(cols: {self.cols_idx}, rows: {self.rows_idx}, offset: {self.offset}, size: {self.problem_size})"
 
     @staticmethod
     def sanitize(mat: flt_mat, cols_idx: int_arr, rows_idx: int_arr) -> tuple[flt_mat, int_arr, int_arr]:
         if not np.allclose(mat, np.triu(mat)):
             mat = lu(mat, permute_l=True)[1]
 
-        if mat.shape[0] % 2 == 0: return mat, cols_idx, rows_idx
+        if mat.shape[0] % 2 == 0:
+            return mat, cols_idx, rows_idx
 
         if cols_idx[-1] == -1 and rows_idx[-1] == -1:
             mat = mat[:-1, :-1]

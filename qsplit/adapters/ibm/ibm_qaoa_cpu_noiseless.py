@@ -22,4 +22,4 @@ from qsplit.qubo import QUBO
 
 
 def solve(qubo: QUBO) -> pd.DataFrame:
-    return ibm_solve(qubo, AerSimulator(method='matrix_product_state', matrix_product_state_max_bond_dimension=None))
+    return ibm_solve(qubo, AerSimulator(method="matrix_product_state", matrix_product_state_max_bond_dimension=None))

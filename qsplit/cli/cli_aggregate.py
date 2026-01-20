@@ -2,10 +2,21 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, List, Tuple
+
 import numpy as np
+
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions
-from .utils import bitstring_from_row, build_index_maps, child_sort_key, load_qubo, load_solved_qubos, map_indices, parse_solved_paths
 from qsplit.qubo import QUBO
+
+from .utils import (
+    bitstring_from_row,
+    build_index_maps,
+    child_sort_key,
+    load_qubo,
+    load_solved_qubos,
+    map_indices,
+    parse_solved_paths,
+)
 
 
 def build_node_qubo(
@@ -25,6 +36,7 @@ def build_node_qubo(
     mat = full_mat[np.ix_(row_pos, col_pos)]
     offset = float(node.get("offset", 0.0))
     return QUBO(mat, rows_idx=rows, cols_idx=cols, offset=offset)
+
 
 def aggregate_tree_solutions(
     root_id: str,
@@ -94,7 +106,11 @@ def main() -> None:
 
     if solved_by_id:
         aggregated_root = aggregate_tree_solutions(root_id, nodes, solved_by_id, full_qubo.mat, row_map, col_map)
-        if aggregated_root is not None and aggregated_root.solutions is not None and not aggregated_root.solutions.empty:
+        if (
+            aggregated_root is not None
+            and aggregated_root.solutions is not None
+            and not aggregated_root.solutions.empty
+        ):
             full_qubo.solutions = aggregated_root.solutions
             agg_cols = [int(v) for v in full_qubo.cols_idx]
             for i, row in aggregated_root.solutions.reset_index(drop=True).iterrows():

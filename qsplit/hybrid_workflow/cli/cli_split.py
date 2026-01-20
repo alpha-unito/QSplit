@@ -2,10 +2,12 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict, List
-from .utils import build_qubo_from_matrix, parse_backend_cut_dims, save_qubo
+
 from qsplit.halting_heuristic.stop import is_empty, vars_count
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
+
+from .utils import build_qubo_from_matrix, parse_backend_cut_dims, save_qubo
 
 backend_counts: Dict[str, int] = {}
 

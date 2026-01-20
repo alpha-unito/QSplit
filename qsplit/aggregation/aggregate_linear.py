@@ -44,7 +44,7 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
     n = len(all_indices)
     energy = x.T @ qubo.mat[:n, :n] @ x
     sol_dict = {all_indices[i]: [x[i]] for i in range(len(all_indices))}
-    sol_dict['energy'] = [float(energy)]
+    sol_dict["energy"] = [float(energy)]
 
     qubo.solutions = pd.DataFrame(sol_dict)
 

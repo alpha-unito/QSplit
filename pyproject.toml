@@ -22,9 +22,21 @@ ibm-gpu = ["qsplit[ibm]", "qiskit-aer-gpu==0.15.1", ]
 
 iqm = ["iqm-client[qiskit]==33.0.3", ]
 
-dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", ]
+dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["qsplit*"]
 namespaces = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

@@ -8,8 +8,8 @@ from typing import Any, Dict, Optional
 from streamflow.core.deployment import Connector
 from streamflow.core.exception import WorkflowExecutionException
 
-from ..probes.ibm import IBMProbe
 from ..probes.dwave import DWaveProbe
+from ..probes.ibm import IBMProbe
 from ..probes.iqm import IQMProbe
 
 
@@ -51,9 +51,7 @@ class QuantumAvailabilityConnector(Connector):
 
         provider = config.get("provider")
         if provider not in ("ibm", "dwave", "iqm"):
-            raise WorkflowExecutionException(
-                f"Invalid provider={provider}. Expected one of: ibm, dwave, iqm"
-            )
+            raise WorkflowExecutionException(f"Invalid provider={provider}. Expected one of: ibm, dwave, iqm")
         self._provider = provider
 
         # vendor-specific

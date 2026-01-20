@@ -22,4 +22,4 @@ from qsplit.qubo import QUBO
 
 
 def solve(qubo: QUBO) -> pd.DataFrame:
-    return ibm_solve(qubo, AerSimulator(method='tensor_network', device='gpu', use_cuTensorNet_autotuning=True))
+    return ibm_solve(qubo, AerSimulator(method="tensor_network", device="gpu", use_cuTensorNet_autotuning=True))

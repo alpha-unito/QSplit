@@ -102,5 +102,5 @@ class TestQUBO(unittest.TestCase):
         self.assertEqual(str(qubo), expected_str)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

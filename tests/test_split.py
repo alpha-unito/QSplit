@@ -144,5 +144,5 @@ class TestSplitLinear(unittest.TestCase):
         self.assertEqual(res[0].rows_idx.tolist(), [0, 1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

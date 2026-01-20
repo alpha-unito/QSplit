@@ -28,8 +28,7 @@ from qiskit.passmanager import BasePassManager
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import AerSimulator
 from qiskit_algorithms.optimizers import COBYLA
-from qiskit_ibm_runtime import EstimatorV2, IBMBackend
-from qiskit_ibm_runtime import SamplerV2
+from qiskit_ibm_runtime import EstimatorV2, IBMBackend, SamplerV2
 
 from qsplit.qubo import QUBO
 
@@ -72,8 +71,9 @@ def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePau
 __objective_func_vals = []
 
 
-def __optimize_circuit(backend: IBMBackend | AerSimulator, candidate_circuit: QuantumCircuit,
-                       cost_hamiltonian: SparsePauliOp) -> QuantumCircuit:
+def __optimize_circuit(
+    backend: IBMBackend | AerSimulator, candidate_circuit: QuantumCircuit, cost_hamiltonian: SparsePauliOp
+) -> QuantumCircuit:
     initial_gamma = np.pi
     initial_beta = np.pi / 2
     init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
@@ -94,8 +94,9 @@ def __optimize_circuit(backend: IBMBackend | AerSimulator, candidate_circuit: Qu
     return optimized_circuit
 
 
-def __cost_func_estimator(params: list[float], ansatz: QuantumCircuit, hamiltonian: SparsePauliOp,
-                          estimator: EstimatorV2) -> float:
+def __cost_func_estimator(
+    params: list[float], ansatz: QuantumCircuit, hamiltonian: SparsePauliOp, estimator: EstimatorV2
+) -> float:
     isa_hamiltonian = hamiltonian.apply_layout(ansatz.layout)
     pub = (ansatz, isa_hamiltonian, params)
     job = estimator.run([pub])
@@ -105,8 +106,9 @@ def __cost_func_estimator(params: list[float], ansatz: QuantumCircuit, hamiltoni
     return cost
 
 
-def get_qaoa_circuit_optimized(backend: IBMBackend | AerSimulator, pm: BasePassManager, qubo: QUBO) -> tuple[
-    QuantumCircuit, dict[int, int], list[int]]:
+def get_qaoa_circuit_optimized(
+    backend: IBMBackend | AerSimulator, pm: BasePassManager, qubo: QUBO
+) -> tuple[QuantumCircuit, dict[int, int], list[int]]:
     circuit, cost_hamiltonian, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
     candidate_circuit = pm.run(circuit)
     optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian)
@@ -126,8 +128,9 @@ def run_quantum_optimizer(backend: IBMBackend | AerSimulator, optimized_circuit:
     return counts_int
 
 
-def to_dataframe(counts_int: dict[int, int], qubo: QUBO, var_to_qubit: dict[int, int],
-                 all_vars: list[int]) -> pd.DataFrame:
+def to_dataframe(
+    counts_int: dict[int, int], qubo: QUBO, var_to_qubit: dict[int, int], all_vars: list[int]
+) -> pd.DataFrame:
     data = []
     num_qubits = len(all_vars)
 
@@ -139,14 +142,14 @@ def to_dataframe(counts_int: dict[int, int], qubo: QUBO, var_to_qubit: dict[int,
         vec_col = np.array([sol_dict[c] for c in qubo.cols_idx])
         energy = vec_row @ qubo.mat @ vec_col.T
         row = sol_dict.copy()
-        row['energy'] = energy
+        row["energy"] = energy
         data.append(row)
 
     res = pd.DataFrame(data)
-    res = res.sort_values(by='energy', ascending=True)
-    cols = [c for c in res.columns if c not in ['energy']]
+    res = res.sort_values(by="energy", ascending=True)
+    cols = [c for c in res.columns if c not in ["energy"]]
     cols.sort()
-    res = res[cols + ['energy']]
-    best_energy = res['energy'].min()
+    res = res[cols + ["energy"]]
+    best_energy = res["energy"].min()
 
-    return res[res['energy'] == best_energy]
+    return res[res["energy"] == best_energy]

@@ -22,8 +22,9 @@ from qiskit.circuit.library import QAOAAnsatz
 from qiskit.quantum_info import SparsePauliOp
 
 from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as cpu_solve
-from qsplit.adapters.ibm.util import (__get_variables_mapping as get_variables_mapping,
-                                      __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit, to_dataframe)
+from qsplit.adapters.ibm.util import __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
+from qsplit.adapters.ibm.util import __get_variables_mapping as get_variables_mapping
+from qsplit.adapters.ibm.util import to_dataframe
 from qsplit.qubo import QUBO
 
 
@@ -96,7 +97,12 @@ class TestIBMAdapter(unittest.TestCase):
         mat = np.array([[0, 10.0], [0, 0]])
         qubo = QUBO(mat=mat, rows_idx=np.array([10, 11]), cols_idx=np.array([10, 11]))
         circuit, hamiltonian, var_to_qubit, all_vars = from_qubo_matrix_to_circuit(qubo)
-        expected_hamiltonian = SparsePauliOp.from_sparse_list([("ZZ", [0, 1], 10.0), ], len(all_vars))
+        expected_hamiltonian = SparsePauliOp.from_sparse_list(
+            [
+                ("ZZ", [0, 1], 10.0),
+            ],
+            len(all_vars),
+        )
 
         self.assertTrue(expected_hamiltonian.equiv(hamiltonian))
         self.assertEqual(len(hamiltonian.paulis), 1)
@@ -116,7 +122,7 @@ class TestIBMAdapter(unittest.TestCase):
         df = to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
 
         self.assertEqual(len(df), 1)
-        self.assertEqual(df.iloc[0]['energy'], 0.0)
+        self.assertEqual(df.iloc[0]["energy"], 0.0)
         self.assertEqual(df.iloc[0][1], 0)
         self.assertEqual(df.iloc[0][2], 0)
 
@@ -132,7 +138,7 @@ class TestIBMAdapter(unittest.TestCase):
         df = to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
         self.assertEqual(len(df), 1)
         best_row = df.iloc[0]
-        self.assertEqual(best_row['energy'], 1.0)
+        self.assertEqual(best_row["energy"], 1.0)
         self.assertEqual(best_row[10], 0)
         self.assertEqual(best_row[20], 1)
 
@@ -148,7 +154,7 @@ class TestIBMAdapter(unittest.TestCase):
         counts_int = {0: 50, 1: 50}
         df = to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
 
-        self.assertEqual(df.iloc[0]['energy'], 0.0)
+        self.assertEqual(df.iloc[0]["energy"], 0.0)
         self.assertEqual(df.iloc[0][1], 0)
         self.assertIn(-1, df.columns)
 
@@ -161,14 +167,14 @@ class TestIBMAdapter(unittest.TestCase):
         cols_idx = np.array([1, 2])
         mat = np.array([[0, 1], [0, 0]])
         qubo = QUBO(mat=mat, rows_idx=rows_idx, cols_idx=cols_idx)
-        expected_dataframe = pd.DataFrame({1: [1, 0, 0], 2: [0, 1, 0], 'energy': [0, 0, 0]}).reset_index(drop=True)
+        expected_dataframe = pd.DataFrame({1: [1, 0, 0], 2: [0, 1, 0], "energy": [0, 0, 0]}).reset_index(drop=True)
         actual_dataframe = cpu_solve(qubo).reset_index(drop=True)
-        self.assertEqual(expected_dataframe['energy'].min(), actual_dataframe['energy'].min())
-        var_cols = [col for col in expected_dataframe.columns if col not in ['energy']]
+        self.assertEqual(expected_dataframe["energy"].min(), actual_dataframe["energy"].min())
+        var_cols = [col for col in expected_dataframe.columns if col not in ["energy"]]
         expected_solutions = set(expected_dataframe[var_cols].apply(tuple, axis=1))
         actual_solutions = set(actual_dataframe[var_cols].apply(tuple, axis=1))
         self.assertTrue(all(x in expected_solutions for x in actual_solutions))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

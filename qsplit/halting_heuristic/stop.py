@@ -20,6 +20,7 @@ import numpy as np
 
 from qsplit.qubo import QUBO
 
+
 def vars_count(qubo: QUBO) -> int:
     rows_found, cols_found = np.nonzero(qubo.mat)
     variables_in_rows = qubo.rows_idx[rows_found]
