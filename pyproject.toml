@@ -7,20 +7,24 @@ name = "qsplit"
 version = "0.1.0"
 description = "TODO"
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = ["numpy>=2.3.4", "pandas>=2.3.3", "scipy>=1.16.3"]
+requires-python = ">=3.12"
+dependencies = ["numpy==2.3.4", "pandas==2.3.3", "scipy==1.15.3"]
 
 [project.optional-dependencies]
 
-ibm-quantum = ["qiskit>=2.2.3", "qiskit-ibm-runtime>=0.43.1", "qiskit-algorithms>=0.4.0", ]
+ibm = ["qiskit==2.1.2", "qiskit-algorithms==0.4.0", ]
 
-dwave = ["dwave-system>=1.34.0"]
+ibm-quantum = ["qsplit[ibm]", "qiskit-ibm-runtime==0.43.1", ]
 
-ibm-cpu = ["qiskit>=2.2.3", "qiskit-aer>=0.17.2", "qiskit-algorithms>=0.4.0", ]
+dwave = ["dwave-system==1.34.0"]
 
-ibm-gpu = ["qiskit>=2.2.3", "qiskit-aer[gpu]>=0.17.2", "qiskit-algorithms>=0.4.0", ]
+ibm-cpu = ["qsplit[ibm]", "qiskit-aer==0.17.2", ]
 
-dev = ["pytest>=9.0.1", "pytest-cov>=7.0.0"]
+ibm-gpu = ["qsplit[ibm]", "qiskit-aer-gpu==0.15.1", ]
+
+iqm = ["iqm-client[qiskit]==33.0.3", ]
+
+dev = ["pytest==9.0.1", "pytest-cov==7.0.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]
