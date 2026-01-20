@@ -1768,8 +1768,13 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "dwave-system" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "qiskit" },
+    { name = "qiskit-aer" },
+    { name = "qiskit-algorithms" },
+    { name = "qiskit-ibm-runtime" },
 ]
 dwave = [
     { name = "dwave-system" },
@@ -1777,19 +1782,17 @@ dwave = [
 ibm = [
     { name = "qiskit" },
     { name = "qiskit-algorithms" },
+    { name = "qiskit-ibm-runtime" },
 ]
 ibm-cpu = [
     { name = "qiskit" },
     { name = "qiskit-aer" },
     { name = "qiskit-algorithms" },
+    { name = "qiskit-ibm-runtime" },
 ]
 ibm-gpu = [
     { name = "qiskit" },
     { name = "qiskit-aer-gpu" },
-    { name = "qiskit-algorithms" },
-]
-ibm-quantum = [
-    { name = "qiskit" },
     { name = "qiskit-algorithms" },
     { name = "qiskit-ibm-runtime" },
 ]
@@ -1809,13 +1812,13 @@ requires-dist = [
     { name = "qiskit-aer", marker = "extra == 'ibm-cpu'", specifier = "==0.17.2" },
     { name = "qiskit-aer-gpu", marker = "extra == 'ibm-gpu'", specifier = "==0.15.1" },
     { name = "qiskit-algorithms", marker = "extra == 'ibm'", specifier = "==0.4.0" },
-    { name = "qiskit-ibm-runtime", marker = "extra == 'ibm-quantum'", specifier = "==0.43.1" },
+    { name = "qiskit-ibm-runtime", marker = "extra == 'ibm'", specifier = "==0.43.1" },
     { name = "qsplit", extras = ["ibm"], marker = "extra == 'ibm-cpu'" },
     { name = "qsplit", extras = ["ibm"], marker = "extra == 'ibm-gpu'" },
-    { name = "qsplit", extras = ["ibm"], marker = "extra == 'ibm-quantum'" },
+    { name = "qsplit", extras = ["ibm-cpu", "dwave"], marker = "extra == 'dev'" },
     { name = "scipy", specifier = "==1.15.3" },
 ]
-provides-extras = ["ibm", "ibm-quantum", "dwave", "ibm-cpu", "ibm-gpu", "iqm", "dev"]
+provides-extras = ["ibm", "dwave", "ibm-cpu", "ibm-gpu", "iqm", "dev"]
 
 [[package]]
 name = "requests"
