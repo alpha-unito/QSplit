@@ -32,4 +32,4 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run tests
-        run: uv run python -m pytest --cov=qsplit tests/ --cov-report term-missing
+        run: uv run --extra dev python -m pytest --cov=qsplit tests/ --cov-report term-missing
