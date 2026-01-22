@@ -2,13 +2,7 @@ name: Run Tests
 
 on:
   push:
-    branches:
-      - qsplit
-      - main
   pull_request:
-    branches:
-      - qsplit
-      - main
 
 jobs:
   test:
@@ -29,11 +23,10 @@ jobs:
         run: uv python install 3.12
 
       - name: Run linter
-        # Usiamo --no-fix perché in CI vogliamo che fallisca se il codice non è pulito
-        run: uv run ruff check .
+        run: uv run --extra dev ruff check .
 
       - name: Run formatter
-        run: uv run ruff format --check .
+        run: uv run --extra dev ruff format --check .
 
       - name: Run tests
         run: uv run --extra dev python -m pytest --cov=qsplit tests/ --cov-report term-missing
