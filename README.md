@@ -2,7 +2,7 @@
 
 This repository contains a prototype of a **hybrid workflow for combinatorial optimization** formulated as a
 **Quadratic Unconstrained Binary Optimization (QUBO)** problem. In QUBO form, the objective is to find a binary vector
-\( x \in \{0,1\}^n \) that **minimizes a cost function** of the form \( x^\top Q x \).
+$x \in \{0,1\}^n$ that **minimizes a cost function** of the form $x^\top Q x$.
 
 From a quantum computing perspective, the same objective can be interpreted as minimizing the **energy** of an
 **Ising/QUBO cost Hamiltonian**: solvers such as quantum annealers or QAOA-like approaches aim to return bitstrings
