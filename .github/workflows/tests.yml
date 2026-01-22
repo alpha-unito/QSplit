@@ -28,5 +28,12 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
+      - name: Run linter
+        # Usiamo --no-fix perché in CI vogliamo che fallisca se il codice non è pulito
+        run: uv run ruff check .
+
+      - name: Run formatter
+        run: uv run ruff format --check .
+
       - name: Run tests
         run: uv run --extra dev python -m pytest --cov=qsplit tests/ --cov-report term-missing
