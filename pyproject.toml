@@ -22,7 +22,9 @@ ibm-gpu = ["qsplit[ibm]", "qiskit-aer-gpu==0.15.1", ]
 
 iqm = ["iqm-client[qiskit]==33.0.3", ]
 
-dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", ]
+dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", "ruff>=0.14.13", ]
+
+dataset = ["pennylane==0.44.0", "networkx==3.6.1", "tqdm==4.67.1", "h5py>=3.15.1", "aiohttp==3.13.3", "fsspec>=2025.3.0", ]
 
 [tool.setuptools.packages.find]
 where = ["."]
