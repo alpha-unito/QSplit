@@ -2395,6 +2395,7 @@ dependencies = [
 [package.optional-dependencies]
 dataset = [
     { name = "aiohttp" },
+    { name = "dwave-system" },
     { name = "fsspec" },
     { name = "h5py" },
     { name = "networkx" },
@@ -2439,6 +2440,7 @@ iqm = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", marker = "extra == 'dataset'", specifier = "==3.13.3" },
+    { name = "dwave-system", marker = "extra == 'dataset'", specifier = "==1.34.0" },
     { name = "dwave-system", marker = "extra == 'dwave'", specifier = "==1.34.0" },
     { name = "fsspec", marker = "extra == 'dataset'", specifier = ">=2025.3.0" },
     { name = "h5py", marker = "extra == 'dataset'", specifier = ">=3.15.1" },

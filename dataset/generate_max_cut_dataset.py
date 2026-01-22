@@ -4,6 +4,7 @@ import os
 import certifi
 import networkx as nx
 import pennylane as qml
+from dwave.samplers import SimulatedAnnealingSampler
 from networkx.algorithms.approximation.maxcut import one_exchange
 from tqdm import tqdm
 
@@ -11,6 +12,7 @@ from tqdm import tqdm
 def main():
     os.environ["SSL_CERT_FILE"] = certifi.where()
     ds = qml.data.load("other", name="hamlib-maxcut", attributes=["edges", "ids", "ns"])[0]
+    sa = SimulatedAnnealingSampler()
 
     res = []
     for i in tqdm(range(len(ds.ns))):
@@ -40,7 +42,8 @@ def main():
             "dim": int(n_nodes),
             "qubo_mat": qubo_triplets,
             "sparsity": sparsity,
-            "max_cut": one_exchange(g)[0],
+            "max_cut": -one_exchange(g)[0],
+            "sa_max_cut": int(sa.sample_qubo({(x[0], x[1]): x[2] for x in qubo_triplets}).first.energy),
         }
         res.append(instance)
 
