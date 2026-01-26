@@ -26,9 +26,15 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
     for i, row in df.iterrows():
         no_energy = row.drop("energy")
         var_num = len(no_energy)
+        mat = qubo.mat
+        if qubo.mat.shape[0] > var_num:
+            mat = qubo.mat[:var_num, :var_num]
+        elif qubo.mat.shape[0] < var_num:
+            pad_width = var_num - qubo.mat.shape[0]
+            mat = np.pad(qubo.mat, ((0, pad_width), (0, pad_width)), mode="constant")
 
         if not np.any(np.isnan(no_energy.values)):
-            df.loc[i, "energy"] = no_energy.values.T @ qubo.mat[:var_num, :var_num] @ no_energy.values
+            df.loc[i, "energy"] = no_energy.values.T @ mat @ no_energy.values
         else:
             nan_indices = no_energy[no_energy.isna()].index.astype(int)
             nan_rows = [idx for idx in nan_indices if idx in qubo.rows_idx]
@@ -60,6 +66,6 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
                             val = best_sol[target_col]
                         df.at[i, target_col] = val
             full_row_values = df.iloc[i].drop("energy").values
-            df.loc[i, "energy"] = full_row_values.T @ qubo.mat[:var_num, :var_num] @ full_row_values
+            df.loc[i, "energy"] = full_row_values.T @ mat[:var_num, :var_num] @ full_row_values
 
     return df
