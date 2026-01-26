@@ -2,13 +2,7 @@ name: Run Tests
 
 on:
   push:
-    branches:
-      - qsplit
-      - main
   pull_request:
-    branches:
-      - qsplit
-      - main
 
 jobs:
   test:

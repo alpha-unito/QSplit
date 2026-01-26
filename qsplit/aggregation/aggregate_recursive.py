@@ -24,6 +24,8 @@ from qsplit.qubo import QUBO
 def aggregate_solutions(solutions: tuple[QUBO, QUBO, QUBO], qubo: QUBO) -> QUBO:
     # Aggregate upper-left qubo with lower-right
     starting_sols = __combine_ul_lr(solutions[0], solutions[2])
+    if -1 in starting_sols.columns:
+        starting_sols[-1] = 0
     # Set missing columns in upper-right qubo to NaN
     ur_qubo_filled = __fill_with_nan(starting_sols.columns, solutions[1].solutions)
     # Search the closest assignments between upper-right qubo and merged solution (UL and LR qubos)
@@ -80,7 +82,7 @@ def __get_closest_assignments(starting_sols: pd.DataFrame, ur_qubo_filled: pd.Da
     for i, row in starting_sols.iterrows():
         distances = []
         for j, sol_row in ur_qubo_filled.iterrows():
-            distance = __nan_hamming_distance(row.values, sol_row.values)
+            distance = __nan_hamming_distance(row.values[:-1], sol_row.values[:-1])
             distances.append(distance)
         closest_idx = np.argmin(distances)
         to_append = ur_qubo_filled.iloc[closest_idx].copy()
@@ -91,9 +93,10 @@ def __get_closest_assignments(starting_sols: pd.DataFrame, ur_qubo_filled: pd.Da
 
 
 def __fill_with_nan(schema: pd.Index, df_to_fill: pd.DataFrame) -> pd.DataFrame:
-    missing_columns = set(schema) - set(df_to_fill.columns)
-    for col in missing_columns:
-        df_to_fill[col] = np.nan
+    missing_columns = [col for col in schema if col not in df_to_fill.columns]
+    if missing_columns:
+        df_missing = pd.DataFrame(np.nan, index=df_to_fill.index, columns=missing_columns)
+        df_to_fill = pd.concat([df_to_fill, df_missing], axis=1)
     return df_to_fill[schema]
 
 
