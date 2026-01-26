@@ -22,5 +22,11 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
+      - name: Run linter
+        run: uv run --extra dev ruff check .
+
+      - name: Run formatter
+        run: uv run --extra dev ruff format --check .
+
       - name: Run tests
         run: uv run --extra dev python -m pytest --cov=qsplit tests/ --cov-report term-missing

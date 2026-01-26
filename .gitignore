@@ -6,3 +6,5 @@ qsplit.egg-info
 sketch
 aggregate.solutions*
 settings.json
+*.jsonl
+dataset/datasets
