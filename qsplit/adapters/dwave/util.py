@@ -23,11 +23,15 @@ from qsplit.qubo import QUBO
 
 
 def from_qubo_matrix_to_bqm(qubo: QUBO) -> BinaryQuadraticModel:
-    linear = np.diag(qubo.mat).astype(np.float64)
-    q_rows, q_cols = np.triu_indices_from(qubo.mat, k=1)
-    quad = qubo.mat[q_rows, q_cols].astype(np.float64)
-    mask = quad != 0
-    quadratic = (q_rows[mask], q_cols[mask], quad[mask])
+    rows_idx = np.array(qubo.rows_idx)
+    cols_idx = np.array(qubo.cols_idx)
+    mask = (rows_idx != -1) & (cols_idx != -1)
+    filtered_mat = qubo.mat[np.ix_(mask, mask)]
+    linear = np.diag(filtered_mat).astype(np.float64)
+    q_rows, q_cols = np.triu_indices_from(filtered_mat, k=1)
+    quad_values = filtered_mat[q_rows, q_cols].astype(np.float64)
+    mask_quad = quad_values != 0
+    quadratic = (q_rows[mask_quad], q_cols[mask_quad], quad_values[mask_quad])
     return BinaryQuadraticModel.from_numpy_vectors(linear, quadratic, offset=qubo.offset, vartype=dimod.BINARY)
 
 
