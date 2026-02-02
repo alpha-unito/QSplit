@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, -m, qsplit.cli.cli_split]
+baseCommand: [python3, /workspace/qsplit/cwl/cli/split.py]
 
 inputs:
   input_qubo:
@@ -14,10 +14,10 @@ inputs:
   adaptive:
     type: boolean
     inputBinding: { prefix: --adaptive }
-  backend_cut_dims:
-    type: string
-    default: ""
-    inputBinding: { prefix: --backend-cut-dims }
+  cut_dim:
+    type: int
+    default: 10
+    inputBinding: { prefix: --cut-dim }
   out_dir:
     type: string
     default: "subproblems"
@@ -27,7 +27,12 @@ outputs:
   sub_qubos:
     type: File[]
     outputBinding:
-      glob: "subproblems/*/*.pkl"
+      glob: "subproblems/*.pkl"
+
+  solved_qubos:
+    type: File[]?
+    outputBinding:
+      glob: "solved_dummy/*.pkl"
 
   full_qubo:
     type: File

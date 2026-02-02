@@ -10,82 +10,125 @@ workflows:
       - step: /split
         target:
           deployment: qsplit-base
-
       - step: /parallelize
         target:
-          - deployment: qsplit-dwave
-          - deployment: qsplit-ibm
-          - deployment: qsplit-iqm
-          - deployment: qsplit-base
-        filters:
-          - subqubo-routing
-
+          - deployment: qsplit-sdwave
+          - deployment: qsplit-sibm
+          - deployment: qsplit-siqm
+          # - deployment: qsplit-sibm-gpu          TODO: work in progress
       - step: /aggregate
         target:
-          deployment: qsplit-dwave
+          deployment: qsplit-sdwave-agg
 
-bindingFilters:
-  subqubo-routing:
-    type: matching
+scheduling:
+  scheduler:
+    type: qsplit.quantum_dynamic_scheduler
     config:
-      filters:
-        - target:
-            deployment: qsplit-dwave
-          job:
-            - port: backend
-              match: "classic"
-        - target:
-            deployment: qsplit-base
-          job:
-            - port: backend
-              match: "dummy"
-        - target:
-            deployment: qsplit-dwave
-          job:
-            - port: backend
-              match: "dwave"
+      retry_delay: 1
+  policies:
+    qsplit-quantum-dynamic:
+      type: qsplit.quantum_dynamic_policy
+      config:
+        targetProvider:
+          qsplit-sdwave: dwave
+          qsplit-sdwave-agg: dwave
+          qsplit-sibm: ibm
+          qsplit-siqm: iqm
+          # qsplit-sibm-gpu: ibm_gpu            TODO: work in progress
+        fallbackCost: 1000000
+        maxConcurrentJobs: 4
+        usagePenalty: 1
 
-        - target:
-            deployment: qsplit-ibm
-          job:
-            - port: backend
-              match: "ibm"
-
-        - target:
-            deployment: qsplit-iqm
-          job:
-            - port: backend
-              match: "iqm"
+failureManager:
+  type: default
+  enabled: true
+  config:
+    max_retries: 5
+    retry_delay: 10
 
 deployments:
+
+  qsplit-hpc4ai:
+    type: ssh
+    config:
+      nodes:
+        - username: fmedina
+          hostname: c3sfr1.di.unito.it
+
+  qsplit-slurm:
+    type: slurm
+    wraps: qsplit-hpc4ai
+    workdir: /beegfs/home/fmedina/streamflow_workdir
+    config:
+      maxConcurrentJobs: 50
+      services: 
+        hpc4ai_base:
+          file: templates/hpc4ai_base.sh
+          partition: gracehopper
+        hpc4ai_dwave:
+          file: templates/hpc4ai_dwave.sh
+          partition: gracehopper
+        hpc4ai_ibm:
+          file: templates/hpc4ai_ibm.sh
+          partition: gracehopper
+        hpc4ai_iqm:
+          file: templates/hpc4ai_iqm.sh
+          partition: gracehopper
+        # hpc4ai_ibm_gpu:
+        #   file: templates/hpc4ai_ibm_gpu.sh
+        #   partition: cascadelake
+
   qsplit-base:
-    type: docker
+    type: qsplit.quantum_connector
+    wraps: 
+      deployment: qsplit-slurm
+      service: hpc4ai_base
     config:
-      image: qsplit-base:latest
-      workdir: /workspace
-      volume:
-        - .:/workspace
+      provider: classic
 
-  qsplit-dwave:
-    type: docker
+  qsplit-sdwave:
+    type: qsplit.quantum_connector
+    wraps: 
+      deployment: qsplit-slurm
+      service: hpc4ai_dwave
     config:
-      image: qsplit-dwave:latest
-      workdir: /workspace
-      volume:
-        - .:/workspace
+      provider: dwave
+    scheduling_policy: qsplit-quantum-dynamic
 
-  qsplit-ibm:
-    type: docker
+  qsplit-sibm:
+    type: qsplit.quantum_connector
+    wraps: 
+      deployment: qsplit-slurm
+      service: hpc4ai_ibm
     config:
-      image: qsplit-ibm:latest
-      workdir: /workspace
-      volume:
-        - .:/workspace
+      provider: ibm
+    scheduling_policy: qsplit-quantum-dynamic
 
-  qsplit-iqm:
-    type: docker
+  qsplit-siqm:
+    type: qsplit.quantum_connector
+    wraps:
+      deployment: qsplit-slurm
+      service: hpc4ai_iqm
     config:
-      image: qsplit-dwave:latest
-      workdir: /workspace
-      volume:
-        - .:/workspace
+      provider: iqm
+    scheduling_policy: qsplit-quantum-dynamic
+
+  qsplit-sdwave-agg:
+    type: qsplit.quantum_connector
+    wraps: 
+      deployment: qsplit-slurm
+      service: hpc4ai_dwave
+    config:
+      provider: dwave
+      availabilityProbability: 1
+      cacheTTL: 0
+    scheduling_policy: qsplit-quantum-dynamic
+
+  # qsplit-sibm-gpu:
+  #   type: qsplit.quantum_connector
+  #   wraps: 
+  #     deployment: qsplit-slurm
+  #     service: hpc4ai_ibm_gpu
+  #   config:
+  #     provider: ibm_gpu
+  #   scheduling_policy: qsplit-quantum-dynamic

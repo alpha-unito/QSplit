@@ -18,7 +18,7 @@ At a high level, the workflow does the following:
 4. Aggregates partial solutions into a global candidate assignment and reports its **energy**, i.e., the value of the global cost function.
 
 The orchestration is expressed in **CWL** and executed with **Streamflow**, which runs the stages (split, solve, aggregate)
-as separate steps, possibly in parallel, inside Docker containers.
+as separate steps.
 
 ## Why QUBO splitting is useful today
 
@@ -42,23 +42,36 @@ execution strategies in a realistic setting.
 
 On the host machine you need:
 
-- **Docker 4.24.2**, with the daemon running;
-- **Streamflow**, installed in the Python environment:
-- **Python >=3.11**
+- Singularity (requires Lima VM installation: https://lima-vm.io/docs/installation/)
+- Streamflow
+- Python==3.12
 
 ```bash
-python -m pip install "git+https://github.com/alpha-unito/streamflow.git"
+limactl start streamflow/singularity/singularity-ce.yml
+limactl shell singularity-ce
+
+./build.sh
+# python3.12 -m venv ~/venv/streamflow
+# source ~/venvs/streamflow/bin/activate
+# python3.12 -m pip install -e ".[streamflow]"
+
+# singularity build --fakeroot streamflow/singularity/qsplit-base.sif streamflow/singularity/qsplit-base.def
+# singularity build --fakeroot streamflow/singularity/qsplit-sdwave.sif streamflow/singularity/qsplit-sdwave.def
+# singularity build --fakeroot streamflow/singularity/qsplit-sibm.sif streamflow/singularity/qsplit-sibm.def
+# singularity build --fakeroot streamflow/singularity/qsplit-siqm.sif streamflow/singularity/qsplit-siqm.def
 ```
 
 ## Run
 
-### 1. Building the Docker image
+### 1. Building the Singularity images
 
 From the project root:
 
 ```bash
-docker build -f ./docker/qsplit-base.Dockerfile -t qsplit-base:latest .
-docker build -f ./docker/qsplit-dwave.Dockerfile -t qsplit-dwave:latest .
+singularity build --fakeroot streamflow/singularity/qsplit-base.sif streamflow/singularity/qsplit-base.def
+singularity build --fakeroot streamflow/singularity/qsplit-sdwave.sif streamflow/singularity/qsplit-sdwave.def
+singularity build --fakeroot streamflow/singularity/qsplit-sibm.sif streamflow/singularity/qsplit-sibm.def
+singularity build --fakeroot streamflow/singularity/qsplit-siqm.sif streamflow/singularity/qsplit-siqm.def
 ```
 
 All steps in the workflow (split, solve, aggregate) share this image. This
@@ -79,7 +92,7 @@ input_matrix:
   class: File
   path: data/32x32_b.csv
 
-backend_cut_dims: "iqm:4,ibm:4,classic:16,dwave:16"
+cut_dim: 16
 ```
 
 ### 3. Executing the workflow
@@ -87,14 +100,14 @@ backend_cut_dims: "iqm:4,ibm:4,classic:16,dwave:16"
 To run the full hybrid workflow:
 
 ```bash
-streamflow run ./streamflow/streamflow.yml
+streamflow run streamflow/streamflow.yml
 ```
 
-On successful completion, Streamflow will output the `aggregate.solutions.csv` file on the root of the project.
+On successful completion, Streamflow will output the `solutions.csv` file on the root of the project.
 
 ## Output
 
-The file `aggregate.solutions.csv` reports candidate solutions (bitstrings) together with their associated **energy**.
+The file `solutions.csv` reports candidate solutions (bitstrings) together with their associated **energy**.
 In QUBO/Ising terms, the energy is the value of the **global cost function** for the reported bitstring; equivalently, it is
 the energy of the corresponding configuration under the **cost Hamiltonian**.
 

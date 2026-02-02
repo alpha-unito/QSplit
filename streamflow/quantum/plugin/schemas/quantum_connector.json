@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://streamflow.di.unito.it/plugins/schemas/connector/quantum_connector.json",
+  "title": "QSplit Quantum Connector Wrapper",
+  "description": "Connector wrapper that filters available locations based on reported availability and queue length.",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "description": "Logical provider name handled by this connector (classic, dwave, ibm, iqm).",
+      "default": "classic"
+    },
+    "availabilityProbability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "If set to 0, the provider is treated as unavailable. Any positive value keeps the provider enabled."
+    },
+    "maxQueueLength": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "If set, locations are filtered out when the queue length exceeds this value."
+    },
+    "cacheTTL": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Cache TTL (seconds) for availability/queue lookups.",
+      "default": 3
+    },
+    "transferBufferSize": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Buffer size for connector transfers.",
+      "default": 65536
+    }
+  },
+  "additionalProperties": false
+}

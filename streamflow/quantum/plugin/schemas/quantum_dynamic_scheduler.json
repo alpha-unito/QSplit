@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://streamflow.di.unito.it/plugins/schemas/scheduling/quantum_dynamic_scheduler.json",
+  "title": "Quantum Dynamic Scheduler",
+  "description": "Scheduler that applies the quantum dynamic policy across deployments.",
+  "type": "object",
+  "properties": {
+    "retry_delay": {
+      "type": "integer",
+      "title": "Retry delay",
+      "description": "Time (in seconds) to wait before retrying to schedule a task.",
+      "default": 0
+    }
+  },
+  "additionalProperties": false
+}

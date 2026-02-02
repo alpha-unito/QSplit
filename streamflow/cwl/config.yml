@@ -1,5 +1,5 @@
 input_matrix:
   class: File
-  path: data/32x32_b.csv
+  path: data/maxcut_38.csv
 
-backend_cut_dims: "iqm:4,ibm:4,classic:16,dwave:16"
+cut_dim: 10

@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, -m, qsplit.cli.cli_aggregate]
+baseCommand: [python3, /workspace/qsplit/cwl/cli/aggregate.py]
 
 inputs:
   input_qubo:
@@ -17,21 +17,17 @@ inputs:
       separate: true
 
   solved_list:
-    type: File[]
+    type: File[]?
+    default: []
     inputBinding:
       prefix: --solved-list
       separate: true
-      valueFrom: |
-        ${
-          return inputs.solved_list.map(f => f.path).join(",");
-        }
 
 outputs:
   aggregate_solutions:
     type: File
     outputBinding:
-      glob: "aggregate.solutions.csv"
+      glob: "solutions.csv"
 
 arguments:
-requirements:
-  - class: InlineJavascriptRequirement
+requirements: []

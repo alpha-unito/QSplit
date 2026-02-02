@@ -1,0 +1,16 @@
+Bootstrap: localimage
+From: streamflow/singularity/images/qsplit-base-aarch64.sif
+
+%environment
+    export PYTHONDONTWRITEBYTECODE=1
+    export PYTHONUNBUFFERED=1
+    export PIP_NO_CACHE_DIR=1
+    export QSPLIT_BACKEND=ibm
+    export PYTHONPATH=/workspace
+
+%post
+    set -e
+    python3 -m pip install "/workspace[ibm-cpu]"
+
+%runscript
+    exec python3 "$@"
