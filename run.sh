@@ -5,10 +5,11 @@ PYTHON_BIN="${PYTHON_BIN:-python3.12}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./run.sh [-n N] [-f PATH] [--from-id ID] [--to-id ID]
+Usage: ./run.sh [-n N] [-f PATH] [--id ID] [--from-id ID] [--to-id ID]
 
   -n, --limit N   Process only the first N valid rows in the JSONL file (default: all)
   -f, --file PATH JSONL input file (default: qubo_max_cut.jsonl or qubo_mac_cut.jsonl)
+  --id ID         Process only the row with originale_index == ID
   --from-id ID    Process only rows with originale_index >= ID (inclusive)
   --to-id ID      Process only rows with originale_index <= ID (inclusive)
 USAGE
@@ -24,6 +25,7 @@ LIMIT=0
 JSONL_PATH="qubo_max_cut.jsonl"
 FROM_ID=""
 TO_ID=""
+ONLY_ID=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -51,6 +53,11 @@ while [[ $# -gt 0 ]]; do
       TO_ID="$2"
       shift 2
       ;;
+    --id)
+      [[ $# -ge 2 ]] || die "Missing value for $1"
+      ONLY_ID="$2"
+      shift 2
+      ;;
     *)
       die "Unknown argument: $1"
       ;;
@@ -58,6 +65,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$LIMIT" =~ ^[0-9]+$ ]] || die "Invalid limit: $LIMIT"
+if [[ -n "$ONLY_ID" && ! "$ONLY_ID" =~ ^-?[0-9]+$ ]]; then
+  die "Invalid --id: $ONLY_ID"
+fi
 if [[ -n "$FROM_ID" && ! "$FROM_ID" =~ ^-?[0-9]+$ ]]; then
   die "Invalid --from-id: $FROM_ID"
 fi
@@ -78,7 +88,7 @@ CONFIG_PATH="streamflow/cwl/config.yml"
 
 mkdir -p "$OUTPUT_DIR"
 
-"$PYTHON_BIN" - "$JSONL_PATH" "$LIMIT" "$OUTPUT_DIR" "$CONFIG_PATH" "$FROM_ID" "$TO_ID" <<'PY'
+"$PYTHON_BIN" - "$JSONL_PATH" "$LIMIT" "$OUTPUT_DIR" "$CONFIG_PATH" "$FROM_ID" "$TO_ID" "$ONLY_ID" <<'PY'
 import json
 import shutil
 import subprocess
@@ -91,8 +101,10 @@ output_dir = Path(sys.argv[3])
 config_path = Path(sys.argv[4])
 from_id_raw = sys.argv[5]
 to_id_raw = sys.argv[6]
+only_id_raw = sys.argv[7]
 from_id = int(from_id_raw) if from_id_raw else None
 to_id = int(to_id_raw) if to_id_raw else None
+only_id = int(only_id_raw) if only_id_raw else None
 
 def write_matrix(record, fallback_idx):
     idx = record.get("originale_index", fallback_idx)
@@ -148,7 +160,14 @@ with jsonl_path.open("r", encoding="utf-8") as f:
             record = json.loads(line)
         except Exception:
             continue
-        if from_id is not None or to_id is not None:
+        if only_id is not None:
+            try:
+                rec_id = int(record.get("originale_index"))
+            except Exception:
+                continue
+            if rec_id != only_id:
+                continue
+        elif from_id is not None or to_id is not None:
             try:
                 rec_id = int(record.get("originale_index"))
             except Exception:
