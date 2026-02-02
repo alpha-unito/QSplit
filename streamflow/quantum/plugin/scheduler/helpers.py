@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from dataclasses import dataclass
-from typing import Any, MutableMapping, Optional
-
-from streamflow.core.config import BindingConfig
+from typing import Any, MutableMapping
 from streamflow.core.scheduling import Hardware
 from streamflow.core.workflow import Job
-from streamflow.log_handler import logger
 from streamflow.scheduling.scheduler import JobContext, _get_connector_stack
 
 
@@ -24,74 +20,23 @@ async def wait_for_targets(scheduler, targets) -> None:
     if scheduler.retry_interval is not None:
         await asyncio.sleep(scheduler.retry_interval)
         return
-    wait_tasks = []
-    for target in targets:
-        condition = scheduler.wait_queues[target.deployment.name]
-
-        async def _wait(cond=condition):
-            async with cond:
-                await cond.wait()
-
-        wait_tasks.append(asyncio.create_task(_wait()))
-    done, pending = await asyncio.wait(wait_tasks, return_when=asyncio.FIRST_COMPLETED)
+    async def _wait(cond):
+        async with cond:
+            await cond.wait()
+    tasks = [
+        asyncio.create_task(_wait(scheduler.wait_queues[target.deployment.name]))
+        for target in targets
+    ]
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
     await asyncio.gather(*pending, return_exceptions=True)
 
 
-def extract_backend(job: Job) -> Optional[str]:
-    if not hasattr(job, "inputs"):
-        return None
-    try:
-        backend_token = job.inputs.get("backend")
-    except Exception:
-        return None
-    if backend_token is None:
-        return None
-    value = getattr(backend_token, "value", backend_token)
-    if not isinstance(value, str):
-        return None
-    return value.strip().lower()
-
-
-def is_classic_backend(backend: Optional[str]) -> bool:
-    return backend in {"classic", "classical", "dummy"}
-
-
-def is_classic_target(target) -> bool:
-    policy = getattr(target.deployment, "scheduling_policy", None)
-    policy_type = getattr(policy, "type", None)
-    if policy_type is None:
-        return False
-    return str(policy_type).strip().lower() == "data_locality"
-
-
-def classic_binding(
-    scheduler, job_context: JobContext, targets: list[Any]
-) -> Optional[BindingConfig]:
-    job_backend = extract_backend(job_context.job)
-    if not is_classic_backend(job_backend):
-        return None
-    classic_targets = [t for t in targets if is_classic_target(t)]
-    if classic_targets:
-        return BindingConfig(targets=classic_targets, filters=[])
-    if logger.isEnabledFor(logging.WARNING):
-        deployments = ", ".join(sorted({target.deployment.name for target in targets}))
-        logger.warning(
-            "QuantumDynamicScheduler job %s backend %s requested classic policy but no classic targets were found. Falling back to custom scheduling across deployments: %s",
-            job_context.job.name,
-            job_backend,
-            deployments,
-        )
-    return None
-
-
 async def load_target_state(scheduler, target) -> TargetState:
     deployment = target.deployment.name
     connector = scheduler.context.deployment_manager.get_connector(deployment)
-    available_locations = dict(
-        await connector.get_available_locations(service=target.service)
-    )
+    available_locations = dict(await connector.get_available_locations(service=target.service))
     return TargetState(
         target=target,
         deployment=deployment,
@@ -101,11 +46,9 @@ async def load_target_state(scheduler, target) -> TargetState:
 
 
 async def load_target_states(scheduler, targets: list[Any]) -> list[TargetState]:
-    return list(
-        await asyncio.gather(
-            *(asyncio.create_task(load_target_state(scheduler, t)) for t in targets)
-        )
-    )
+    return list(await asyncio.gather(
+        *(asyncio.create_task(load_target_state(scheduler, t)) for t in targets)
+    ))
 
 
 def collect_connectors(target_states: list[TargetState]) -> dict[str, Any]:
@@ -118,9 +61,9 @@ def collect_connectors(target_states: list[TargetState]) -> dict[str, Any]:
 
 async def lock_connectors(scheduler, connectors: dict[str, Any], exit_stack) -> None:
     for deployment_name in sorted(connectors):
-        if deployment_name not in scheduler.locks:
-            scheduler.locks[deployment_name] = asyncio.Lock()
-        await exit_stack.enter_async_context(scheduler.locks[deployment_name])
+        await exit_stack.enter_async_context(
+            scheduler.locks.setdefault(deployment_name, asyncio.Lock())
+        )
 
 
 async def build_candidates(
@@ -146,15 +89,11 @@ async def build_candidates(
             output_directory=job_context.job.output_directory or target.workdir,
             tmp_directory=job_context.job.tmp_directory or target.workdir,
         )
-        job_hardware = (
-            hardware_requirement.eval(job_instance) if hardware_requirement else Hardware()
-        )
+        job_hardware = hardware_requirement.eval(job_instance) if hardware_requirement else Hardware()
         hardware_requirements: dict[str, Any] = {}
         for requirements in await asyncio.gather(
             *(
-                asyncio.create_task(
-                    scheduler._resolve_hardware_requirement(connector, location, job_hardware)
-                )
+                asyncio.create_task(scheduler._resolve_hardware_requirement(connector, location, job_hardware))
                 for location in available_locations.values()
             )
         ):

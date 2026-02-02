@@ -28,26 +28,6 @@ def build_qubo_from_matrix(matrix_path: str) -> QUBO:
     return qubo
 
 
-def parse_backend_cut_dims(spec: str) -> Dict[str, int]:
-    res: Dict[str, int] = {}
-    if not spec:
-        return res
-    for part in spec.split(","):
-        part = part.strip()
-        if ":" not in part:
-            continue
-        k, v = part.split(":", 1)
-        k = k.strip()
-        v = v.strip()
-        if not k:
-            continue
-        try:
-            res[k] = int(v)
-        except ValueError:
-            pass
-    return res
-
-
 def bitstring_from_row(row: pd.Series, ordered_cols: List[int]) -> str:
     bits: List[str] = []
     idx = row.index

@@ -9,12 +9,6 @@ inputs:
     inputBinding:
       prefix: --input-qubo
 
-  backend:
-    type: string
-    default: "auto"
-    inputBinding:
-      prefix: --backend
-
 outputs:
   solved_qubo:
     type: File?

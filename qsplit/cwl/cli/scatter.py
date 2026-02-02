@@ -51,17 +51,16 @@ def load_solver(backend: str) -> Callable:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Solve a sub-QUBO on a specified backend")
+    parser = argparse.ArgumentParser(description="Solve a sub-QUBO on the selected backend")
     parser.add_argument("--input-qubo", required=True)
     parser.add_argument("--output-qubo", required=True)
-    parser.add_argument("--backend", default="auto")
     args = parser.parse_args()
 
     qubo = load_qubo(args.input_qubo)
     if not isinstance(qubo, QUBO):
         raise TypeError(f"Expected QUBO object in {args.input_qubo}, got {type(qubo)}")
 
-    backend = resolve_backend(args.backend)
+    backend = resolve_backend(os.getenv("QSPLIT_BACKEND", ""))
     solver_fn = load_solver(backend)
     df = solver_fn(qubo)
     df = df.nsmallest(1, "energy")
