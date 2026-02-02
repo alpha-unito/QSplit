@@ -2,10 +2,17 @@
 set -Eeuo pipefail
 
 PYTHON_BIN="${PYTHON_BIN:-python3.12}"
-VENV_DIR="${VENV_DIR:-$HOME/venv/streamflow}"
 
-SINGULARITY_CACHEDIR="${SINGULARITY_CACHEDIR:-$HOME/.cache/singularity}"
-SINGULARITY_TMPROOT="${SINGULARITY_TMPROOT:-/tmp}"
+usage() {
+  cat <<'USAGE'
+Usage: ./run.sh [-n N] [-f PATH] [--from-id ID] [--to-id ID]
+
+  -n, --limit N   Process only the first N valid rows in the JSONL file (default: all)
+  -f, --file PATH JSONL input file (default: qubo_max_cut.jsonl or qubo_mac_cut.jsonl)
+  --from-id ID    Process only rows with originale_index >= ID (inclusive)
+  --to-id ID      Process only rows with originale_index <= ID (inclusive)
+USAGE
+}
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -13,260 +20,158 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
 }
 
-require_python_312() {
-  local ver
-  ver="$("$PYTHON_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)" \
-    || die "Unable to run '$PYTHON_BIN' to check version."
-  [[ "$ver" == "3.12" ]] || die "Python must be 3.12.x. Found: $ver (via $PYTHON_BIN)"
-}
-
-run_py_quiet() {
-  local tmp rc
-  tmp="$(mktemp)"
-  set +e
-  "$@" >"$tmp" 2>&1
-  rc=$?
-  set -e
-  if (( rc != 0 )); then
-    cat "$tmp" >&2
-    rm -f "$tmp"
-    exit "$rc"
-  fi
-  rm -f "$tmp"
-}
-
-run_quiet_return() {
-  local tmp rc
-  tmp="$(mktemp)"
-  set +e
-  "$@" >"$tmp" 2>&1
-  rc=$?
-  set -e
-  if (( rc != 0 )); then
-    cat "$tmp" >&2
-  fi
-  rm -f "$tmp"
-  return "$rc"
-}
-
-declare -a PIDS=()
-declare -A PID_TO_NAME=()
-declare -A PID_TO_LOG=()
-
-cleanup_on_exit() {
-  local ec=$?
-  if (( ec != 0 )); then
-  if (( ${#PIDS[@]} > 0 )); then
-      echo "A failure occurred. Stopping remaining parallel builds..." >&2
-      for pid in "${PIDS[@]}"; do
-        kill "$pid" 2>/dev/null || true
-      done
-    fi
-  fi
-}
-trap cleanup_on_exit EXIT
-
-build_one() {
-  local sif="$1"
-  local def="$2"
-  local tmpdir
-
-  [[ -f "$def" ]] || die "Definition file not found: $def"
-  rm -f "$sif"
-
-  tmpdir="$(mktemp -d -p "$SINGULARITY_TMPROOT" "singularity_tmp_$(basename "$sif").XXXXXX")"
-  trap 'rm -rf "$tmpdir"' RETURN
-
-  echo "==> Building... $sif"
-  
-  SINGULARITY_CACHEDIR="$SINGULARITY_CACHEDIR" \
-  SINGULARITY_TMPDIR="$tmpdir" \
-    singularity build --fakeroot "$sif" "$def"
-}
-
-build_one_quiet_on_success() {
-  local sif="$1"
-  local def="$2"
-  local tmpdir
-
-  [[ -f "$def" ]] || die "Definition file not found: $def"
-  rm -f "$sif"
-
-  tmpdir="$(mktemp -d -p "$SINGULARITY_TMPROOT" "singularity_tmp_$(basename "$sif").XXXXXX")"
-  trap 'rm -rf "$tmpdir"' RETURN
-
-  echo "==> Building... $sif"
-  if ! run_quiet_return \
-      env SINGULARITY_CACHEDIR="$SINGULARITY_CACHEDIR" SINGULARITY_TMPDIR="$tmpdir" \
-      singularity build --fakeroot "$sif" "$def"
-  then
-    die "Build failed: $(basename "$sif")"
-  fi
-}
-
-require_cmd "$PYTHON_BIN"
-require_python_312
-require_cmd singularity
-require_cmd streamflow
-
-read -r -p "Enter originale_index from qubo_max_cut.jsonl: " ORIGINAL_INDEX
-[[ "$ORIGINAL_INDEX" =~ ^[0-9]+$ ]] || die "Invalid originale_index: $ORIGINAL_INDEX"
-
+LIMIT=0
 JSONL_PATH="qubo_max_cut.jsonl"
+FROM_ID=""
+TO_ID=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -n|--limit)
+      [[ $# -ge 2 ]] || die "Missing value for $1"
+      LIMIT="$2"
+      shift 2
+      ;;
+    -f|--file)
+      [[ $# -ge 2 ]] || die "Missing value for $1"
+      JSONL_PATH="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --from-id)
+      [[ $# -ge 2 ]] || die "Missing value for $1"
+      FROM_ID="$2"
+      shift 2
+      ;;
+    --to-id)
+      [[ $# -ge 2 ]] || die "Missing value for $1"
+      TO_ID="$2"
+      shift 2
+      ;;
+    *)
+      die "Unknown argument: $1"
+      ;;
+  esac
+done
+
+[[ "$LIMIT" =~ ^[0-9]+$ ]] || die "Invalid limit: $LIMIT"
+if [[ -n "$FROM_ID" && ! "$FROM_ID" =~ ^-?[0-9]+$ ]]; then
+  die "Invalid --from-id: $FROM_ID"
+fi
+if [[ -n "$TO_ID" && ! "$TO_ID" =~ ^-?[0-9]+$ ]]; then
+  die "Invalid --to-id: $TO_ID"
+fi
+
 if [[ ! -f "$JSONL_PATH" && -f "qubo_mac_cut.jsonl" ]]; then
   JSONL_PATH="qubo_mac_cut.jsonl"
 fi
 [[ -f "$JSONL_PATH" ]] || die "JSONL file not found: $JSONL_PATH"
 
-OUTPUT_DIR="streamflow/cwl/data"
-mkdir -p "$OUTPUT_DIR"
-OUTPUT_CSV="$OUTPUT_DIR/maxcut_${ORIGINAL_INDEX}.csv"
+require_cmd "$PYTHON_BIN"
+require_cmd streamflow
 
-echo "==> Building matrix for originale_index=$ORIGINAL_INDEX from $JSONL_PATH"
-run_py_quiet "$PYTHON_BIN" - "$ORIGINAL_INDEX" "$JSONL_PATH" "$OUTPUT_CSV" "streamflow/cwl/config.yml" <<'PY'
+OUTPUT_DIR="streamflow/cwl/data"
+CONFIG_PATH="streamflow/cwl/config.yml"
+
+mkdir -p "$OUTPUT_DIR"
+
+"$PYTHON_BIN" - "$JSONL_PATH" "$LIMIT" "$OUTPUT_DIR" "$CONFIG_PATH" "$FROM_ID" "$TO_ID" <<'PY'
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
-idx = int(sys.argv[1])
-jsonl_path = Path(sys.argv[2])
-output_csv = Path(sys.argv[3])
+jsonl_path = Path(sys.argv[1])
+limit = int(sys.argv[2])
+output_dir = Path(sys.argv[3])
 config_path = Path(sys.argv[4])
+from_id_raw = sys.argv[5]
+to_id_raw = sys.argv[6]
+from_id = int(from_id_raw) if from_id_raw else None
+to_id = int(to_id_raw) if to_id_raw else None
 
-record = None
+def write_matrix(record, fallback_idx):
+    idx = record.get("originale_index", fallback_idx)
+    try:
+        idx = int(idx)
+    except Exception:
+        idx = fallback_idx
+
+    dim = int(record.get("dim", 0))
+    if dim <= 0:
+        return None
+
+    mat = [[0.0 for _ in range(dim)] for _ in range(dim)]
+    for i, j, v in record.get("qubo_mat", []):
+        i = int(i)
+        j = int(j)
+        val = float(v)
+        if i <= j:
+            mat[i][j] = val
+        else:
+            mat[j][i] = val
+
+    output_csv = output_dir / f"maxcut_{idx}.csv"
+    with output_csv.open("w", encoding="utf-8") as f:
+        for row in mat:
+            f.write(",".join(f"{x:g}" for x in row) + "\n")
+
+    lines = config_path.read_text(encoding="utf-8").splitlines()
+    updated = []
+    replaced = False
+    for line in lines:
+        if line.strip().startswith("path:"):
+            updated.append("  path: data/" + output_csv.name)
+            replaced = True
+        else:
+            updated.append(line)
+    if not replaced:
+        updated.append("input_matrix:")
+        updated.append("  class: File")
+        updated.append("  path: data/" + output_csv.name)
+    config_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+    return output_csv, idx
+
+count = 0
 with jsonl_path.open("r", encoding="utf-8") as f:
     for line in f:
+        if limit and count >= limit:
+            break
         line = line.strip()
         if not line:
             continue
         try:
-            obj = json.loads(line)
+            record = json.loads(line)
         except Exception:
             continue
-        if obj.get("originale_index") == idx:
-            record = obj
-            break
+        if from_id is not None or to_id is not None:
+            try:
+                rec_id = int(record.get("originale_index"))
+            except Exception:
+                continue
+            if from_id is not None and rec_id < from_id:
+                continue
+            if to_id is not None and rec_id > to_id:
+                continue
+        result = write_matrix(record, count)
+        if result is None:
+            continue
+        output_csv, original_idx = result
+        count += 1
+        print(f"==> [{count}] Wrote matrix: {output_csv}")
+        subprocess.check_call(["streamflow", "run", "streamflow/streamflow.yml"])
+        solutions_path = Path("solutions.csv")
+        if solutions_path.exists():
+            tagged = solutions_path.with_name(f"solutions_{original_idx}.csv")
+            shutil.copy2(solutions_path, tagged)
+            print(f"==> [{count}] Saved: {tagged}")
+        else:
+            print(f"WARNING: solutions.csv not found after run #{count}", file=sys.stderr)
 
-if record is None:
-    raise SystemExit(f"originale_index {idx} not found in {jsonl_path}")
-
-dim = int(record.get("dim", 0))
-if dim <= 0:
-    raise SystemExit(f"Invalid dim for originale_index {idx}: {dim}")
-
-mat = [[0.0 for _ in range(dim)] for _ in range(dim)]
-for i, j, v in record.get("qubo_mat", []):
-    i = int(i)
-    j = int(j)
-    val = float(v)
-    if i <= j:
-        mat[i][j] = val
-    else:
-        mat[j][i] = val
-
-output_csv.parent.mkdir(parents=True, exist_ok=True)
-with output_csv.open("w", encoding="utf-8") as f:
-    for row in mat:
-        f.write(",".join(f"{x:g}" for x in row) + "\n")
-
-lines = config_path.read_text(encoding="utf-8").splitlines()
-updated = []
-replaced = False
-for line in lines:
-    if line.strip().startswith("path:"):
-        updated.append("  path: data/" + output_csv.name)
-        replaced = True
-    else:
-        updated.append(line)
-if not replaced:
-    updated.append("input_matrix:")
-    updated.append("  class: File")
-    updated.append("  path: data/" + output_csv.name)
-config_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+if count == 0:
+    raise SystemExit("No valid records processed.")
 PY
-
-echo "==> Wrote matrix: $OUTPUT_CSV"
-echo "==> Updated config: streamflow/cwl/config.yml"
-
-mkdir -p "$SINGULARITY_CACHEDIR"
-echo "==> Singularity cache dir: $SINGULARITY_CACHEDIR"
-
-echo "==> Using python: $PYTHON_BIN"
-echo "==> Venv dir:     $VENV_DIR"
-
-if [[ ! -d "$VENV_DIR" ]]; then
-  echo "==> Creating venv..."
-  run_py_quiet "$PYTHON_BIN" -m venv "$VENV_DIR"
-else
-  echo "==> Venv already exists (reusing)."
-fi
-
-echo "==> Activating venv..."
-source "$VENV_DIR/bin/activate"
-
-echo "==> Upgrading pip..."
-run_py_quiet "$PYTHON_BIN" -m pip install --upgrade pip
-
-echo "==> Installing project (editable) with extra [streamflow]..."
-run_py_quiet "$PYTHON_BIN" -m pip install -e ".[streamflow]"
-
-command -v streamflow >/dev/null 2>&1 || die "'streamflow' command not found after installation/activation. Aborting."
-
-build_one_quiet_on_success \
-  "streamflow/singularity/images/qsplit-base.sif" \
-  "streamflow/singularity/defs/qsplit-base.def"
-
-echo "==> Base image built. Launching remaining builds in parallel..."
-
-start_build_bg() {
-  local sif="$1"
-  local def="$2"
-  local name logfile
-
-  name="$(basename "$sif")"
-  logfile="$(mktemp -t "singularity_${name}.XXXXXX.log")"
-
-  (
-    build_one "$sif" "$def"
-  ) >"$logfile" 2>&1 &
-
-  local pid=$!
-  PIDS+=("$pid")
-  PID_TO_NAME["$pid"]="$name"
-  PID_TO_LOG["$pid"]="$logfile"
-  echo "   - Bulding... $name (pid=$pid)"
-}
-
-start_build_bg "streamflow/singularity/images/qsplit-sdwave.sif" "streamflow/singularity/defs/qsplit-sdwave.def"
-start_build_bg "streamflow/singularity/images/qsplit-sibm.sif"   "streamflow/singularity/defs/qsplit-sibm.def"
-start_build_bg "streamflow/singularity/images/qsplit-siqm.sif"   "streamflow/singularity/defs/qsplit-siqm.def"
-
-failed=0
-for pid in "${PIDS[@]}"; do
-  if ! wait "$pid"; then
-    echo "ERROR: Build failed: ${PID_TO_NAME[$pid]}" >&2
-    echo "----- Begin log: ${PID_TO_NAME[$pid]} -----" >&2
-    cat "${PID_TO_LOG[$pid]}" >&2 || true
-    echo "----- End log: ${PID_TO_NAME[$pid]} -----" >&2
-    failed=1
-
-    for other in "${PIDS[@]}"; do
-      if [[ "$other" != "$pid" ]]; then
-        kill "$other" 2>/dev/null || true
-      fi
-    done
-    break
-  else
-    echo "==> Completed: ${PID_TO_NAME[$pid]}"
-  fi
-done
-
-for pid in "${PIDS[@]}"; do
-  rm -f "${PID_TO_LOG[$pid]:-}" 2>/dev/null || true
-done
-
-(( failed == 0 )) || exit 1
-
-echo "==> All Singularity builds completed successfully."
-
-streamflow run streamflow/streamflow.yml
