@@ -63,7 +63,6 @@ def main() -> None:
     backend = resolve_backend(os.getenv("QSPLIT_BACKEND", ""))
     solver_fn = load_solver(backend)
     df = solver_fn(qubo)
-    df = df.nsmallest(1, "energy")
     qubo.solutions = df
     qubo.backend = backend
     save_qubo(args.output_qubo, qubo)

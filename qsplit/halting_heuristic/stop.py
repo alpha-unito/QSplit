@@ -33,5 +33,7 @@ def is_empty(qubo: QUBO) -> bool:
     return np.count_nonzero(qubo.mat) == 0 or qubo.problem_size == 0
 
 
-def is_sparse(qubo: QUBO) -> bool:
+def is_sparse(qubo: QUBO, cut_dim=None) -> bool:
+    if cut_dim:
+        return vars_count(qubo) <= int(cut_dim)
     return vars_count(qubo) <= int(os.environ["CUT_DIM"])

@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict
-from qsplit.halting_heuristic.stop import is_empty
+from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
@@ -32,8 +32,7 @@ def recursively_split(
         save_qubo(solved_dir / f"{node_id}.pkl", qubo)
         return
 
-    size = int(qubo.problem_size)
-    if size <= cut_dim:
+    if (int(qubo.problem_size) <= cut_dim) or is_sparse(qubo, cut_dim):
         save_qubo(out_dir / f"{node_id}.pkl", qubo)
         return
 

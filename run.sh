@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PYTHON_BIN="${PYTHON_BIN:-python3.12}"
+PYTHON_BIN="${PYTHON_BIN:-python}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./run.sh [-n N] [-f PATH] [--id ID] [--from-id ID] [--to-id ID]
+Usage: ./run.sh [-n N] [-f PATH] [-r N] [--id ID] [--from-id ID] [--to-id ID]
 
   -n, --limit N   Process only the first N valid rows in the JSONL file (default: all)
   -f, --file PATH JSONL input file (default: qubo_max_cut.jsonl or qubo_mac_cut.jsonl)
+  -r, --runs N    Number of workflow iterations per JSONL row (default: 1)
   --id ID         Process only the row with originale_index == ID
   --from-id ID    Process only rows with originale_index >= ID (inclusive)
   --to-id ID      Process only rows with originale_index <= ID (inclusive)
@@ -26,6 +27,7 @@ JSONL_PATH="qubo_max_cut.jsonl"
 FROM_ID=""
 TO_ID=""
 ONLY_ID=""
+RUNS=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,6 +39,11 @@ while [[ $# -gt 0 ]]; do
     -f|--file)
       [[ $# -ge 2 ]] || die "Missing value for $1"
       JSONL_PATH="$2"
+      shift 2
+      ;;
+    -r|--runs)
+      [[ $# -ge 2 ]] || die "Missing value for $1"
+      RUNS="$2"
       shift 2
       ;;
     -h|--help)
@@ -65,6 +72,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "$LIMIT" =~ ^[0-9]+$ ]] || die "Invalid limit: $LIMIT"
+[[ "$RUNS" =~ ^[0-9]+$ ]] || die "Invalid runs: $RUNS"
 if [[ -n "$ONLY_ID" && ! "$ONLY_ID" =~ ^-?[0-9]+$ ]]; then
   die "Invalid --id: $ONLY_ID"
 fi
@@ -84,11 +92,12 @@ require_cmd "$PYTHON_BIN"
 require_cmd streamflow
 
 OUTPUT_DIR="streamflow/cwl/data"
+SOLUTIONS_DIR="solutions"
 CONFIG_PATH="streamflow/cwl/config.yml"
 
-mkdir -p "$OUTPUT_DIR"
+mkdir -p "$OUTPUT_DIR" "$SOLUTIONS_DIR"
 
-"$PYTHON_BIN" - "$JSONL_PATH" "$LIMIT" "$OUTPUT_DIR" "$CONFIG_PATH" "$FROM_ID" "$TO_ID" "$ONLY_ID" <<'PY'
+"$PYTHON_BIN" - "$JSONL_PATH" "$LIMIT" "$OUTPUT_DIR" "$CONFIG_PATH" "$FROM_ID" "$TO_ID" "$ONLY_ID" "$RUNS" "$SOLUTIONS_DIR" <<'PY'
 import json
 import shutil
 import subprocess
@@ -102,6 +111,8 @@ config_path = Path(sys.argv[4])
 from_id_raw = sys.argv[5]
 to_id_raw = sys.argv[6]
 only_id_raw = sys.argv[7]
+run_count = int(sys.argv[8])
+solutions_dir = Path(sys.argv[9])
 from_id = int(from_id_raw) if from_id_raw else None
 to_id = int(to_id_raw) if to_id_raw else None
 only_id = int(only_id_raw) if only_id_raw else None
@@ -182,14 +193,15 @@ with jsonl_path.open("r", encoding="utf-8") as f:
         output_csv, original_idx = result
         count += 1
         print(f"==> [{count}] Wrote matrix: {output_csv}")
-        subprocess.check_call(["streamflow", "run", "streamflow/streamflow.yml"])
-        solutions_path = Path("solutions.csv")
-        if solutions_path.exists():
-            tagged = solutions_path.with_name(f"solutions_{original_idx}.csv")
-            shutil.copy2(solutions_path, tagged)
-            print(f"==> [{count}] Saved: {tagged}")
-        else:
-            print(f"WARNING: solutions.csv not found after run #{count}", file=sys.stderr)
+        for run_idx in range(1, run_count + 1):
+            subprocess.check_call(["streamflow", "run", "streamflow/streamflow.yml"])
+            solutions_path = Path("solutions.csv")
+            if solutions_path.exists():
+                tagged = solutions_dir / f"solutions_{original_idx}_run{run_idx}.csv"
+                shutil.copy2(solutions_path, tagged)
+                print(f"==> [{count}.{run_idx}] Saved: {tagged}")
+            else:
+                print(f"WARNING: solutions.csv not found after run #{count}.{run_idx}", file=sys.stderr)
 
 if count == 0:
     raise SystemExit("No valid records processed.")

@@ -12,3 +12,4 @@ solutions*.csv
 streamflow/singularity/images/*
 .vscode
 build
+maxcut_*
