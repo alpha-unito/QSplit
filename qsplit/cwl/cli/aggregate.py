@@ -108,7 +108,7 @@ def main() -> None:
     solved_entries, solved_by_id = load_solved_qubos(solved_paths)
 
     rows: List[Tuple[str, str, str, str]] = []
-    best_by_backend: Dict[str, List[Tuple[float, str, str]]] = {}
+    best_by_node_backend: Dict[Tuple[str, str], List[Tuple[float, str]]] = {}
 
     for _, node_id, qubo in solved_entries:
         backend = str(getattr(qubo, "backend", "") or "")
@@ -127,13 +127,13 @@ def main() -> None:
                 energy = float(row["energy"])
             except Exception:
                 energy = float("nan")
-            if np.isnan(energy):
+            if np.isnan(energy) and backend != "dummy":
                 continue
-            best_by_backend.setdefault(backend, []).append((energy, node_id, bits))
+            best_by_node_backend.setdefault((node_id, backend), []).append((energy, bits))
 
-    for backend, entries in best_by_backend.items():
+    for (node_id, backend), entries in best_by_node_backend.items():
         entries.sort(key=lambda e: e[0])
-        for energy, node_id, bits in entries[:3]:
+        for energy, bits in entries[:3]:
             rows.append((node_id, backend, bits, f"{energy:.12g}"))
 
     if solved_by_id:
