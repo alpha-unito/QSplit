@@ -16,7 +16,7 @@
 
 import pandas as pd
 from qiskit import generate_preset_pass_manager
-from qiskit_aer import AerSimulator
+
 try:
     from qiskit_ibm_runtime import IBMBackend
 except Exception:

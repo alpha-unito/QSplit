@@ -9,7 +9,6 @@ from .helpers import count_running_jobs, get_location_jobs, resolve_provider
 
 
 class QuantumDynamicPolicy(Policy):
-
     @classmethod
     def get_schema(cls) -> str:
         return (
@@ -64,20 +63,14 @@ class QuantumDynamicPolicy(Policy):
                     return []
             return []
 
-        provider_running_jobs: Dict[str, int] = {
-            provider: 0 for provider in set(self._target_provider.values())
-        }
+        provider_running_jobs: Dict[str, int] = {provider: 0 for provider in set(self._target_provider.values())}
         for deployment_name, loc_allocs in locations.items():
             for location_name, loc_alloc in loc_allocs.items():
-                provider = (
-                    self._target_provider.get(location_name)
-                    or self._target_provider.get(deployment_name)
-                )
+                provider = self._target_provider.get(location_name) or self._target_provider.get(deployment_name)
                 if provider is None:
                     continue
-                provider_running_jobs[provider] = (
-                    provider_running_jobs.get(provider, 0)
-                    + count_running_jobs(_alloc_jobs(loc_alloc), jobs)
+                provider_running_jobs[provider] = provider_running_jobs.get(provider, 0) + count_running_jobs(
+                    _alloc_jobs(loc_alloc), jobs
                 )
 
         providers_in_scope: set[str] = set()
@@ -88,18 +81,12 @@ class QuantumDynamicPolicy(Policy):
         location_running_jobs: Dict[str, int] = {}
         if self._max_concurrent is not None:
             for loc_name, loc in available_locations.items():
-                location_running_jobs[loc_name] = count_running_jobs(
-                    get_location_jobs(loc_name, loc, locations), jobs
-                )
+                location_running_jobs[loc_name] = count_running_jobs(get_location_jobs(loc_name, loc, locations), jobs)
         allowed_providers = providers_in_scope
 
         for loc_name, loc in available_locations.items():
             provider = resolve_provider(self._target_provider, loc_name, loc)
-            job_count = (
-                location_running_jobs.get(loc_name, 0)
-                if self._max_concurrent is not None
-                else 0
-            )
+            job_count = location_running_jobs.get(loc_name, 0) if self._max_concurrent is not None else 0
             if provider is None:
                 if self._max_concurrent is not None and job_count >= self._max_concurrent:
                     continue
@@ -117,9 +104,7 @@ class QuantumDynamicPolicy(Policy):
             if self._max_concurrent is not None and job_count >= self._max_concurrent:
                 capacity_penalty = float(job_count - self._max_concurrent + 1)
 
-            usage_penalty = self._usage_penalty * float(
-                self._provider_usage.get(provider, 0)
-            )
+            usage_penalty = self._usage_penalty * float(self._provider_usage.get(provider, 0))
             cost = float(running_jobs) + capacity_penalty + usage_penalty
             if best_cost is None or cost < best_cost:
                 best_cost = cost
@@ -128,8 +113,6 @@ class QuantumDynamicPolicy(Policy):
 
         if best_location is not None:
             if best_provider:
-                self._provider_usage[best_provider] = (
-                    self._provider_usage.get(best_provider, 0) + 1
-                )
+                self._provider_usage[best_provider] = self._provider_usage.get(best_provider, 0) + 1
 
         return best_location

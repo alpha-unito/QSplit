@@ -1,26 +1,25 @@
+import os
 from enum import Enum, auto
-from math import sqrt, pi
+from math import pi, sqrt
 
-TOKEN_IBM = "Pv9tmBSc9kt65jBmawNJdNsAhrkLAMgje-Wktsrvk1iD"
-CRN_IBM = "crn:v1:bluemix:public:quantum-computing:us-east:a/b8009a2acdb6407c8d86042f8caf3448:2576aaaa-1af4-4bfd-9f4f-fd12b60d3476::"
-TOKEN_IQM = "HBbk3+3OkEV+M7As4QqBTb97kVVG9A2OL8zqkgdwxbgGiHntAb10woAA0a3E+ECn"
 SERVER_IQM = "https://resonance.meetiqm.com/"
-
 # SERVER_IQM = "https://cocos.resonance.meetiqm.com/garnet"
 
 
 def get_ibm_quantum_backend():
     from qiskit_ibm_runtime import QiskitRuntimeService
+
     backend = QiskitRuntimeService(
         channel="ibm_cloud",
-        token=TOKEN_IBM,
-        instance=CRN_IBM,
+        token=os.environ["TOKEN_IBM"],
+        instance=os.environ["CRN_IBM"],
     ).least_busy()
     return get_quantum_metrics(backend, BackendType.IBM_QPU)
 
 
 def get_ibm_classical_backend():
     from qiskit_aer import AerSimulator
+
     backend = AerSimulator(method="matrix_product_state")
     return backend
 
@@ -35,7 +34,7 @@ def get_iqm_quantum_backend():
     # Se ti serve forzare una QPU specifica:
     # backend = IQMClient(SERVER_IQM, quantum_computer="garnet", token=TOKEN_IQM)
 
-    backend = IQMClient(SERVER_IQM, token=TOKEN_IQM)
+    backend = IQMClient(SERVER_IQM, token=os.environ["TOKEN_IQM"])
     return backend
 
 
@@ -130,12 +129,14 @@ def iqm_qpu_metrics(client):
 
 
 def get_dwave_quantum_backend():
-    from dwave.system import EmbeddingComposite, DWaveSampler
+    from dwave.system import DWaveSampler, EmbeddingComposite
+
     return EmbeddingComposite(DWaveSampler())
 
 
 def get_dwave_classical_backend():
     from dwave.samplers import SimulatedAnnealingSampler
+
     return SimulatedAnnealingSampler()
 
 
@@ -148,8 +149,13 @@ class BackendType(Enum):
 
 
 def ibm_simulator_metrics(backend):
-    return {"name": backend.name.lower().replace(" ", "_"), "active": True, "qubits": backend.num_qubits,
-            "fidelity": 1.0, "queue": 0}
+    return {
+        "name": backend.name.lower().replace(" ", "_"),
+        "active": True,
+        "qubits": backend.num_qubits,
+        "fidelity": 1.0,
+        "queue": 0,
+    }
 
 
 def ibm_qpu_metrics(backend):
@@ -160,8 +166,13 @@ def ibm_qpu_metrics(backend):
     readout_errors = [props.readout_error(q_idx) for q_idx in range(backend.num_qubits)]
     avg_readout = sum(readout_errors) / len(readout_errors) if readout_errors else 0.0
     fidelity = 1.0 - ((avg_readout / 2) + (avg_two_q / 2))
-    return {"name": backend.name.lower().replace(" ", "_"), "active": backend.status().operational,
-            "qubits": backend.num_qubits, "fidelity": fidelity, "queue": getattr(backend.status(), 'pending_jobs')}
+    return {
+        "name": backend.name.lower().replace(" ", "_"),
+        "active": backend.status().operational,
+        "qubits": backend.num_qubits,
+        "fidelity": fidelity,
+        "queue": getattr(backend.status(), "pending_jobs"),
+    }
 
 
 def dwave_qpu_metrics(backend):
@@ -175,8 +186,13 @@ def dwave_qpu_metrics(backend):
     num_couplers = len(backend.properties["couplers"])
     avg_degree = (2 * num_couplers) / n_phys
 
-    return {"name": name.lower().replace(" ", "_"), "active": True, "qubits": int(sqrt((n_phys * avg_degree) / pi)),
-            "fidelity": 1.0, "queue": len(backend.client.get_jobs(status='pending', solver=name))}
+    return {
+        "name": name.lower().replace(" ", "_"),
+        "active": True,
+        "qubits": int(sqrt((n_phys * avg_degree) / pi)),
+        "fidelity": 1.0,
+        "queue": len(backend.client.get_jobs(status="pending", solver=name)),
+    }
 
 
 def dwave_simulator_metrics(_):
@@ -209,10 +225,3 @@ def get_quantum_metrics(backend, backend_type: BackendType):
 if __name__ == "__main__":
     backend2 = get_ibm_quantum_backend()
     print(backend2)
-
-"""
-- Come contiamo i qubit di DWave?
-    - Nelle QPU reali i numeri sono tra i 4000 e i 5000, ma nella pratica il problema che si codifica è da 150. Facciamo un brutale /30 sapendo che dipende dall'architettura?
-    - Per SA invece? Non c'è un vero limite di qubit, però non mi sembra il caso di metterlo a infinito
--
-"""

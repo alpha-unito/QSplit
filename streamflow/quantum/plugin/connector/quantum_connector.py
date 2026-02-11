@@ -4,7 +4,9 @@ import asyncio
 import logging
 from importlib.resources import files
 from typing import MutableMapping, MutableSequence, Optional
+
 from cachetools import TTLCache
+
 from streamflow.core.asyncache import cachedmethod
 from streamflow.core.deployment import Connector, ExecutionLocation
 from streamflow.core.scheduling import AvailableLocation
@@ -13,7 +15,6 @@ from streamflow.log_handler import logger
 
 
 class QuantumConnectorWrapper(ConnectorWrapper):
-
     def __init__(
         self,
         deployment_name: str,
@@ -61,17 +62,14 @@ class QuantumConnectorWrapper(ConnectorWrapper):
     @classmethod
     def get_schema(cls) -> str:
         return (
-            files("streamflow.quantum.plugin")
-            .joinpath("schemas")
-            .joinpath("quantum_connector.json")
-            .read_text("utf-8")
+            files("streamflow.quantum.plugin").joinpath("schemas").joinpath("quantum_connector.json").read_text("utf-8")
         )
 
     def _is_quantum_provider(self) -> bool:
         return self._provider not in {"classic", "classical", "dummy"}
 
     def _resolve_service(self, service: str | None, loc_service: str | None) -> str | None:
-        return (service or self.service or loc_service)
+        return service or self.service or loc_service
 
     def _cache_key(self, service: str | None) -> str:
         key = service or self.service or ""
@@ -80,9 +78,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
     def _inner_location(self, location: ExecutionLocation) -> ExecutionLocation:
         return location.wraps if getattr(location, "wraps", None) is not None else location
 
-    def _inner_locations(
-        self, locations: MutableSequence[ExecutionLocation]
-    ) -> MutableSequence[ExecutionLocation]:
+    def _inner_locations(self, locations: MutableSequence[ExecutionLocation]) -> MutableSequence[ExecutionLocation]:
         return [self._inner_location(loc) for loc in locations]
 
     def _fetch_provider_state(self) -> tuple[bool, int]:
@@ -108,12 +104,13 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             queue_length = 0
         return active, queue_length
 
-    @cachedmethod(lambda self: self._locations_cache, key=lambda service=None: str(service or "").strip().lower(),)
+    @cachedmethod(
+        lambda self: self._locations_cache,
+        key=lambda service=None: str(service or "").strip().lower(),
+    )
     async def _get_quantum_locations_cached(self, service: str | None = None) -> MutableMapping[str, AvailableLocation]:
-        
         inner_locations = await self.connector.get_available_locations(service=service)
         available, queue_length = self._fetch_provider_state()
-
 
         if not available:
             if logger.isEnabledFor(logging.WARNING):
@@ -122,10 +119,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                     self._provider,
                 )
             return {}
-        if (
-            self._availability_probability is not None
-            and self._availability_probability <= 0
-        ):
+        if self._availability_probability is not None and self._availability_probability <= 0:
             if logger.isEnabledFor(logging.WARNING):
                 logger.warning(
                     "QuantumConnectorWrapper provider %s availabilityProbability=%s disables locations",
@@ -163,18 +157,14 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             wrapped_locations[name] = wrapped
         return wrapped_locations
 
-    async def get_available_locations(
-        self, service: str | None = None
-    ) -> MutableMapping[str, AvailableLocation]:
+    async def get_available_locations(self, service: str | None = None) -> MutableMapping[str, AvailableLocation]:
         if self._is_quantum_provider():
             resolved_service = service or self.service
             cache_key = self._cache_key(resolved_service)
             cache_key in self._locations_cache
             return await self._get_quantum_locations_cached(resolved_service)
 
-        inner_locations = await self.connector.get_available_locations(
-            service=service or self.service
-        )
+        inner_locations = await self.connector.get_available_locations(service=service or self.service)
         return {
             name: AvailableLocation(
                 name=loc.name,
@@ -266,16 +256,8 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             read_only=read_only,
         )
 
-    async def get_stream_reader(
-        self, command: MutableSequence[str], location: ExecutionLocation
-    ):
-        return await self.connector.get_stream_reader(
-            command, self._inner_location(location)
-        )
+    async def get_stream_reader(self, command: MutableSequence[str], location: ExecutionLocation):
+        return await self.connector.get_stream_reader(command, self._inner_location(location))
 
-    async def get_stream_writer(
-        self, command: MutableSequence[str], location: ExecutionLocation
-    ):
-        return await self.connector.get_stream_writer(
-            command, self._inner_location(location)
-        )
+    async def get_stream_writer(self, command: MutableSequence[str], location: ExecutionLocation):
+        return await self.connector.get_stream_writer(command, self._inner_location(location))

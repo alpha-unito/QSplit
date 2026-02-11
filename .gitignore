@@ -6,8 +6,8 @@ qsplit.egg-info
 sketch
 aggregate.solutions*
 settings.json
-dataset
-datasets
+*.jsonl
+dataset/datasets
 solutions*.csv
 streamflow/singularity/images/*
 .vscode

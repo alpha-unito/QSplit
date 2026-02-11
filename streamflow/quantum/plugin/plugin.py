@@ -6,7 +6,6 @@ from .scheduler.quantum_dynamic import QuantumDynamicScheduler
 
 
 class QSplitStreamFlowPlugin(StreamFlowPlugin):
-
     def register(self) -> None:
         self.register_connector("qsplit.quantum_connector", QuantumConnectorWrapper)
         self.register_policy("qsplit.quantum_dynamic_policy", QuantumDynamicPolicy)

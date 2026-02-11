@@ -13,13 +13,12 @@ from .helpers import (
     build_candidates,
     collect_connectors,
     load_target_states,
-    wait_for_targets,
     lock_connectors,
+    wait_for_targets,
 )
 
 
 class QuantumDynamicScheduler(DefaultScheduler):
-
     @classmethod
     def get_schema(cls) -> str:
         return (

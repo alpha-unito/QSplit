@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from typing import Any, MutableMapping
+
 from streamflow.core.scheduling import Hardware
 from streamflow.core.workflow import Job
 from streamflow.scheduling.scheduler import JobContext, _get_connector_stack
@@ -20,13 +21,12 @@ async def wait_for_targets(scheduler, targets) -> None:
     if scheduler.retry_interval is not None:
         await asyncio.sleep(scheduler.retry_interval)
         return
+
     async def _wait(cond):
         async with cond:
             await cond.wait()
-    tasks = [
-        asyncio.create_task(_wait(scheduler.wait_queues[target.deployment.name]))
-        for target in targets
-    ]
+
+    tasks = [asyncio.create_task(_wait(scheduler.wait_queues[target.deployment.name])) for target in targets]
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
     for task in pending:
         task.cancel()
@@ -46,9 +46,7 @@ async def load_target_state(scheduler, target) -> TargetState:
 
 
 async def load_target_states(scheduler, targets: list[Any]) -> list[TargetState]:
-    return list(await asyncio.gather(
-        *(asyncio.create_task(load_target_state(scheduler, t)) for t in targets)
-    ))
+    return list(await asyncio.gather(*(asyncio.create_task(load_target_state(scheduler, t)) for t in targets)))
 
 
 def collect_connectors(target_states: list[TargetState]) -> dict[str, Any]:
@@ -61,9 +59,7 @@ def collect_connectors(target_states: list[TargetState]) -> dict[str, Any]:
 
 async def lock_connectors(scheduler, connectors: dict[str, Any], exit_stack) -> None:
     for deployment_name in sorted(connectors):
-        await exit_stack.enter_async_context(
-            scheduler.locks.setdefault(deployment_name, asyncio.Lock())
-        )
+        await exit_stack.enter_async_context(scheduler.locks.setdefault(deployment_name, asyncio.Lock()))
 
 
 async def build_candidates(

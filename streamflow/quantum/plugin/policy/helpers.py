@@ -20,9 +20,7 @@ def get_deployment_name(loc: Any) -> Optional[str]:
     return None
 
 
-def resolve_provider(
-    target_provider: dict[str, str], loc_name: str, loc: Any
-) -> Optional[str]:
+def resolve_provider(target_provider: dict[str, str], loc_name: str, loc: Any) -> Optional[str]:
     provider = target_provider.get(loc_name)
     if provider is not None:
         return provider

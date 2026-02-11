@@ -1,8 +1,9 @@
 import argparse
 import os
 from typing import Callable
-from qsplit.qubo import QUBO
+
 from qsplit.cwl.cli.utils import load_qubo, save_qubo
+from qsplit.qubo import QUBO
 
 
 def resolve_backend(raw: str) -> str:
@@ -22,31 +23,38 @@ def load_solver(backend: str) -> Callable:
 
     if b == "dummy":
         from qsplit.adapters.dummy import solve as dummy_solve
+
         return dummy_solve
 
     if b == "classic":
         from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
+
         return solver_fn
 
     if b == "dwave":
         from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
+
         return solver_fn
 
     if b == "ibm":
         from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as solver_fn
+
         # from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
         return solver_fn
-    
-    if b == "ibm_gpu":
-        from qsplit.adapters.ibm.ibm_qaoa_gpu_noiseless import solve as solver_fn
+
+    if b == "cudaq":
+        from qsplit.adapters.nvidia.cudaq_qaoa import solve as solver_fn
+
         # from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
         return solver_fn
 
     if b == "iqm":
         from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
+
         return solver_fn
 
     from qsplit.adapters.all_zero import solve as solver_fn
+
     return solver_fn
 
 

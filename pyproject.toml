@@ -18,9 +18,9 @@ dwave = ["dwave-system==1.34.0"]
 
 ibm-cpu = ["qsplit[ibm]", "qiskit-aer==0.17.2", ]
 
-ibm-gpu = ["qiskit>=1.4.1,<2", "qiskit-algorithms==0.4.0", "qiskit-aer-gpu-cu11==0.17.2", "qiskit-ibm-runtime==0.43.1", ]
+cudaq = ["cudaq>=0.13.0", ]
 
-iqm = ["iqm-client[qiskit]==33.0.3", ]
+# iqm = ["iqm-client[qiskit]==33.0.3", ]
 
 dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", "ruff>=0.14.13", ]
 
@@ -47,6 +47,9 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 fixable = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"./adapters/nvidia/cudaq_qaoa" = ["F821"]
 
 [tool.ruff.format]
 quote-style = "double"
