@@ -48,9 +48,6 @@ line-length = 120
 select = ["E", "F", "W", "I"]
 fixable = ["ALL"]
 
-[tool.ruff.lint.per-file-ignores]
-"./adapters/nvidia/cudaq_qaoa" = ["F821"]
-
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
