@@ -43,6 +43,9 @@ class QUBO:
         if not np.allclose(mat, np.triu(mat)):
             mat = lu(mat, permute_l=True)[1]
 
+        mat = np.round(mat, decimals=9)
+        mat[np.abs(mat) < 1e-12] = 0.0
+
         if mat.shape[0] % 2 == 0:
             return mat, cols_idx, rows_idx
 

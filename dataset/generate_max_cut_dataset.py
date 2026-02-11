@@ -36,17 +36,20 @@ def main():
 
         total_elements = (n_nodes * (n_nodes + 1)) / 2
         sparsity = float(1 - len(qubo_triplets) / total_elements)
+        sa_sol = int(sa.sample_qubo({(x[0], x[1]): x[2] for x in qubo_triplets}).first.energy)
         instance = {
-            "originale_index": i,
-            "original_id": ds.ids[i],
+            "id": f"{i}-{ds.ids[i]}",
             "dim": int(n_nodes),
             "qubo_mat": qubo_triplets,
+            "offset": 0,
+            "sa": sa_sol,
+            "min": -one_exchange(g)[0],
+            "max": 0,
             "sparsity": sparsity,
-            "max_cut": -one_exchange(g)[0],
-            "sa_max_cut": int(sa.sample_qubo({(x[0], x[1]): x[2] for x in qubo_triplets}).first.energy),
         }
         res.append(instance)
 
+    res.sort(key=lambda x: x["dim"])
     file_path = "qubo_max_cut.jsonl"
 
     with open(file_path, "w", encoding="utf-8") as f:
