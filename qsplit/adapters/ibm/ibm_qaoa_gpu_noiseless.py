@@ -15,19 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
-from qiskit import generate_preset_pass_manager
 from qiskit_aer import AerSimulator
-try:
-    from qiskit_ibm_runtime import IBMBackend
-except Exception:
-    IBMBackend = None
 
-from qsplit.adapters.ibm.util import get_qaoa_circuit_optimized, run_quantum_optimizer, to_dataframe
+from qsplit.adapters.ibm.__ibm_qaoa import ibm_solve
 from qsplit.qubo import QUBO
 
 
-def ibm_solve(qubo: QUBO, backend) -> pd.DataFrame:
-    pm = generate_preset_pass_manager(backend=backend, optimization_level=2)
-    circuit, var_to_qubit, all_vars = get_qaoa_circuit_optimized(backend, pm, qubo)
-    counts_int = run_quantum_optimizer(backend, circuit)
-    return to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
+def solve(qubo: QUBO) -> pd.DataFrame:
+    return ibm_solve(qubo, AerSimulator(method="tensor_network", device="GPU", use_cuTensorNet_autotuning=True))

@@ -1,5 +1,5 @@
 input_matrix:
   class: File
-  path: data/maxcut_24.csv
+  path: data/32x32_b.csv
 
 cut_dim: 10

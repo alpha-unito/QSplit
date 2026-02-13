@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, /workspace/qsplit/cwl/cli/split.py]
+baseCommand: [cli_split]
 
 inputs:
   input_qubo:
@@ -30,7 +30,7 @@ outputs:
       glob: "subproblems/*.pkl"
 
   solved_qubos:
-    type: File[]?
+    type: File[]
     outputBinding:
       glob: "solved_dummy/*.pkl"
 

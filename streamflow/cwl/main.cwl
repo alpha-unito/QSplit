@@ -3,8 +3,6 @@ class: Workflow
 
 requirements:
   - class: ScatterFeatureRequirement
-  - class: StepInputExpressionRequirement
-  - class: InlineJavascriptRequirement
   - class: MultipleInputFeatureRequirement
 
 inputs:
@@ -39,23 +37,5 @@ steps:
       tree_file: split/tree_meta
       solved_list:
         source: [parallelize/solved_qubo, split/solved_qubos]
-        valueFrom: |-
-          ${
-            var out = [];
-            if (self != null) {
-              if (self.length && (self[0] instanceof Array || self[1] instanceof Array)) {
-                for (var i = 0; i < self.length; i++) {
-                  var arr = self[i] || [];
-                  for (var j = 0; j < arr.length; j++) {
-                    if (arr[j] != null) out.push(arr[j]);
-                  }
-                }
-              } else {
-                for (var k = 0; k < self.length; k++) {
-                  if (self[k] != null) out.push(self[k]);
-                }
-              }
-            }
-            return out;
-          }
+        linkMerge: merge_flattened
     out: [aggregate_solutions]

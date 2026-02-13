@@ -20,17 +20,22 @@
 # Source: https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm
 # Modifications have been made to tailor the implementation to local requirements.
 
+import logging
+
 import numpy as np
 import pandas as pd
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, generate_preset_pass_manager
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.passmanager import BasePassManager
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer import AerSimulator
 from qiskit_algorithms.optimizers import COBYLA
 from qiskit_ibm_runtime import EstimatorV2, IBMBackend, SamplerV2
+from qiskit.transpiler.exceptions import TranspilerError
 
 from qsplit.qubo import QUBO
+
+logger = logging.getLogger(__name__)
 
 
 def __get_variables_mapping(qubo: QUBO) -> tuple[dict[int, int], list[int]]:
@@ -63,7 +68,6 @@ def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePau
     cost_hamiltonian = cost_hamiltonian.simplify()
 
     circuit = QAOAAnsatz(cost_operator=cost_hamiltonian, reps=2)
-    circuit.measure_all()
 
     return circuit, cost_hamiltonian, var_to_qubit, all_vars
 
@@ -110,9 +114,31 @@ def get_qaoa_circuit_optimized(
     backend: IBMBackend | AerSimulator, pm: BasePassManager, qubo: QUBO
 ) -> tuple[QuantumCircuit, dict[int, int], list[int]]:
     circuit, cost_hamiltonian, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
-    candidate_circuit = pm.run(circuit)
+    try:
+        candidate_circuit = pm.run(circuit)
+    except TranspilerError as exc:
+        if isinstance(backend, AerSimulator) and "not in Target" in str(exc):
+            logger.warning("PassManager target mismatch on Aer (%s). Retrying with optimization_level=1.", exc)
+            try:
+                candidate_circuit = generate_preset_pass_manager(optimization_level=1).run(circuit)
+            except TranspilerError as exc2:
+                logger.warning(
+                    "Fallback pass manager failed (%s). Falling back to decompose(reps=10).",
+                    exc2,
+                )
+                candidate_circuit = circuit.decompose(reps=10)
+        else:
+            raise
+    if isinstance(backend, AerSimulator) and any(
+        str(inst.operation.name).lower() == "qaoa" for inst in candidate_circuit.data
+    ):
+        logger.warning("Aer circuit still contains QAOA. Falling back to decompose(reps=10).")
+        candidate_circuit = candidate_circuit.decompose(reps=10)
     optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian)
-    return optimized_circ, var_to_qubit, all_vars
+    measured_circ = optimized_circ.copy()
+    if measured_circ.num_clbits == 0:
+        measured_circ.measure_all()
+    return measured_circ, var_to_qubit, all_vars
 
 
 def run_quantum_optimizer(backend: IBMBackend | AerSimulator, optimized_circuit: QuantumCircuit) -> dict[int, int]:
@@ -124,8 +150,23 @@ def run_quantum_optimizer(backend: IBMBackend | AerSimulator, optimized_circuit:
         sampler.options.twirling.num_randomizations = "auto"
     pub = (optimized_circuit,)
     job = sampler.run([pub], shots=500)
-    counts_int = job.result()[0].data.meas.get_int_counts()
-    return counts_int
+    data_bin = job.result()[0].data
+    keys_method = getattr(data_bin, "keys", None)
+    available_keys = list(keys_method()) if callable(keys_method) else []
+    if hasattr(data_bin, "meas") and hasattr(data_bin.meas, "get_int_counts"):
+        logger.warning("SamplerV2 counts register selected: meas (available keys: %s)", available_keys)
+        return data_bin.meas.get_int_counts()
+    if hasattr(data_bin, "c") and hasattr(data_bin.c, "get_int_counts"):
+        logger.warning("SamplerV2 counts register selected: c (available keys: %s)", available_keys)
+        return data_bin.c.get_int_counts()
+    if available_keys:
+        for key in available_keys:
+            reg = getattr(data_bin, key, None)
+            if reg is not None and hasattr(reg, "get_int_counts"):
+                logger.warning("SamplerV2 counts register selected: %s (available keys: %s)", key, available_keys)
+                return reg.get_int_counts()
+    logger.error("No readable classical register found in SamplerV2 result (available keys: %s)", available_keys)
+    raise RuntimeError("No readable classical register found in SamplerV2 result")
 
 
 def to_dataframe(

@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, /workspace/qsplit/cwl/cli/scatter.py]
+baseCommand: [cli_scatter]
 
 inputs:
   input_qubo:
@@ -11,7 +11,7 @@ inputs:
 
 outputs:
   solved_qubo:
-    type: File?
+    type: File
     outputBinding:
       glob: "solved.pkl"
 

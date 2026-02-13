@@ -42,41 +42,29 @@ execution strategies in a realistic setting.
 
 On the host machine you need:
 
-- Singularity (requires Lima VM installation: https://lima-vm.io/docs/installation/)
 - Streamflow
-- Python==3.12
+- Python 3.12
+- Access to the target SLURM partitions (Broadwell/Cascadelake in the provided config)
 
-```bash
-limactl start streamflow/singularity/singularity-ce.yml
-limactl shell singularity-ce
-
-./build.sh
-# python3.12 -m venv ~/venv/streamflow
-# source ~/venvs/streamflow/bin/activate
-# python3.12 -m pip install -e ".[streamflow]"
-
-# singularity build --fakeroot streamflow/singularity/qsplit-base.sif streamflow/singularity/qsplit-base.def
-# singularity build --fakeroot streamflow/singularity/qsplit-sdwave.sif streamflow/singularity/qsplit-sdwave.def
-# singularity build --fakeroot streamflow/singularity/qsplit-sibm.sif streamflow/singularity/qsplit-sibm.def
-# singularity build --fakeroot streamflow/singularity/qsplit-siqm.sif streamflow/singularity/qsplit-siqm.def
-```
+The runtime no longer depends on Singularity images. Each SLURM template uses
+the requested Python virtual environment (`qsplit-cpu` and `qsplit-gpu`) and
+fails fast if it is missing.
 
 ## Run
 
-### 1. Building the Singularity images
+### 1. Preparing Python environments (optional pre-warm)
 
-From the project root:
+Create environments on the cluster login node before running Streamflow:
 
 ```bash
-singularity build --fakeroot streamflow/singularity/qsplit-base.sif streamflow/singularity/qsplit-base.def
-singularity build --fakeroot streamflow/singularity/qsplit-sdwave.sif streamflow/singularity/qsplit-sdwave.def
-singularity build --fakeroot streamflow/singularity/qsplit-sibm.sif streamflow/singularity/qsplit-sibm.def
-singularity build --fakeroot streamflow/singularity/qsplit-siqm.sif streamflow/singularity/qsplit-siqm.def
-```
+python3 -m venv /beegfs/home/fmedina/.venvs/qsplit-cpu
+/beegfs/home/fmedina/.venvs/qsplit-cpu/bin/pip install -U pip setuptools wheel
+/beegfs/home/fmedina/.venvs/qsplit-cpu/bin/pip install -e "/beegfs/home/fmedina/QSplit[dwave,iqm]"
 
-All steps in the workflow (split, solve, aggregate) share this image. This
-choice emphasises reproducibility and makes the workflow easier to move across
-machines or clusters.
+python3 -m venv /beegfs/home/fmedina/.venvs/qsplit-gpu
+/beegfs/home/fmedina/.venvs/qsplit-gpu/bin/pip install -U pip setuptools wheel
+/beegfs/home/fmedina/.venvs/qsplit-gpu/bin/pip install -e "/beegfs/home/fmedina/QSplit[ibm-gpu]"
+```
 
 
 ### 2. Preparing the input QUBO

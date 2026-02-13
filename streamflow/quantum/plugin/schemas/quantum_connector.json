@@ -2,24 +2,57 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://streamflow.di.unito.it/plugins/schemas/connector/quantum_connector.json",
   "title": "QSplit Quantum Connector Wrapper",
-  "description": "Connector wrapper that filters available locations based on reported availability and queue length.",
+  "description": "Connector wrapper that selects a quantum provider at runtime and forwards commands to the wrapped connector.",
   "type": "object",
   "properties": {
     "provider": {
       "type": "string",
-      "description": "Logical provider name handled by this connector (classic, dwave, ibm, iqm).",
-      "default": "classic"
+      "description": "Fallback provider used when auto-selection cannot pick an active backend.",
+      "default": "dwave"
     },
-    "availabilityProbability": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1,
-      "description": "If set to 0, the provider is treated as unavailable. Any positive value keeps the provider enabled."
+    "providerPool": {
+      "type": ["array", "string"],
+      "description": "List (or comma-separated string) of providers considered by auto-selection.",
+      "items": {
+        "type": "string"
+      }
     },
-    "maxQueueLength": {
+    "providerServiceMap": {
+      "type": "object",
+      "description": "Optional mapping provider -> service name, used to route providers to different SLURM services.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "providerServiceFallbackMap": {
+      "type": "object",
+      "description": "Optional mapping provider -> fallback service list (or comma-separated string), used when a submission is cancelled by the scheduler.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "providerMaxJobs": {
+      "type": "object",
+      "description": "Optional mapping provider -> max concurrent jobs. Overrides maxProviderJobs for the given provider.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "maxProviderJobs": {
       "type": "integer",
-      "minimum": 0,
-      "description": "If set, locations are filtered out when the queue length exceeds this value."
+      "minimum": 1,
+      "description": "If set, limit concurrent jobs per provider (best-effort, within the current StreamFlow process)."
     },
     "cacheTTL": {
       "type": "integer",

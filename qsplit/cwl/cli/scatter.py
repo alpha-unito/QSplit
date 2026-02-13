@@ -1,9 +1,12 @@
 import argparse
+import importlib
 import os
 from typing import Callable
 
-from qsplit.cwl.cli.utils import load_qubo, save_qubo
+import pandas as pd
+
 from qsplit.qubo import QUBO
+from qsplit.cwl.cli.utils import load_qubo, save_qubo
 
 
 def resolve_backend(raw: str) -> str:
@@ -12,7 +15,7 @@ def resolve_backend(raw: str) -> str:
         env_backend = os.getenv("QSPLIT_BACKEND", "").strip().lower()
         if env_backend:
             return env_backend
-        return "classic"
+        return "dwave"
     if b in {"dummy_solver", "dummy-solver"}:
         return "dummy"
     return b
@@ -21,40 +24,39 @@ def resolve_backend(raw: str) -> str:
 def load_solver(backend: str) -> Callable:
     b = (backend or "").strip().lower()
 
+    module_override = os.getenv("QSPLIT_SOLVER_MODULE", "").strip()
+    if module_override:
+        mod = importlib.import_module(module_override)
+        solver_fn = getattr(mod, "solve", None)
+        if callable(solver_fn):
+            return solver_fn
+        raise AttributeError(f"{module_override}.solve is not callable")
+
     if b == "dummy":
         from qsplit.adapters.dummy import solve as dummy_solve
-
         return dummy_solve
-
-    if b == "classic":
-        from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
-
-        return solver_fn
 
     if b == "dwave":
         from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
-
         return solver_fn
 
     if b == "ibm":
         from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as solver_fn
-
-        # from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
         return solver_fn
-
+    
     if b == "cudaq":
         from qsplit.adapters.nvidia.cudaq_qaoa import solve as solver_fn
+        return solver_fn
 
-        # from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
+    if b == "ibm_gpu":
+        from qsplit.adapters.ibm.ibm_qaoa_gpu_noiseless import solve as solver_fn
         return solver_fn
 
     if b == "iqm":
         from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
-
         return solver_fn
 
     from qsplit.adapters.all_zero import solve as solver_fn
-
     return solver_fn
 
 
@@ -71,6 +73,19 @@ def main() -> None:
     backend = resolve_backend(os.getenv("QSPLIT_BACKEND", ""))
     solver_fn = load_solver(backend)
     df = solver_fn(qubo)
+    if df is None:
+        raise RuntimeError(f"Solver returned no result for backend {backend}")
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(
+            f"Solver for backend {backend} must return pandas.DataFrame, got {type(df)}"
+        )
+    if df.empty:
+        raise RuntimeError(f"Solver returned empty DataFrame for backend {backend}")
+    if backend != "dummy":
+        if "energy" not in df.columns:
+            raise RuntimeError(f"Missing 'energy' column in solver output for backend {backend}")
+        if bool(df["energy"].isna().all()):
+            raise RuntimeError(f"All energies are NaN for backend {backend}")
     qubo.solutions = df
     qubo.backend = backend
     save_qubo(args.output_qubo, qubo)

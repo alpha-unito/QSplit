@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions
+from qsplit.qubo import QUBO
 from qsplit.cwl.cli.utils import (
     bitstring_from_row,
     build_index_maps,
@@ -15,7 +16,6 @@ from qsplit.cwl.cli.utils import (
     map_indices,
     parse_solved_paths,
 )
-from qsplit.qubo import QUBO
 
 
 def build_node_qubo(node: Dict, full_mat: np.ndarray, row_map: Dict[int, int], col_map: Dict[int, int]) -> QUBO | None:
@@ -40,6 +40,7 @@ def aggregate_tree_solutions(
     row_map: Dict[int, int],
     col_map: Dict[int, int],
 ) -> QUBO | None:
+    
     order: List[str] = []
     stack: List[str] = [root_id]
     seen: set[str] = set()
@@ -63,7 +64,10 @@ def aggregate_tree_solutions(
             results[node_id] = solved_qubos.get(node_id)
             continue
         child_qubos = [results.get(cid) for cid in sorted(children, key=child_sort_key)]
-        if any(q is None or q.solutions is None or getattr(q.solutions, "empty", True) for q in child_qubos):
+        if any(
+            q is None or q.solutions is None or getattr(q.solutions, "empty", True)
+            for q in child_qubos
+        ):
             results[node_id] = None
             continue
         node_qubo = build_node_qubo(node, full_mat, row_map, col_map)

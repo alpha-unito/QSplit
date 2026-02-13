@@ -9,35 +9,13 @@ workflows:
     bindings:
       - step: /split
         target:
-          deployment: qsplit-base
+          deployment: qsplit-cpu
       - step: /parallelize
         target:
-          - deployment: qsplit-sdwave
-          - deployment: qsplit-sibm
-          - deployment: qsplit-siqm
-          # - deployment: qsplit-sibm-gpu          TODO: work in progress
+          deployment: qsplit-base
       - step: /aggregate
         target:
-          deployment: qsplit-sdwave-agg
-
-scheduling:
-  scheduler:
-    type: qsplit.quantum_dynamic_scheduler
-    config:
-      retry_delay: 1
-  policies:
-    qsplit-quantum-dynamic:
-      type: qsplit.quantum_dynamic_policy
-      config:
-        targetProvider:
-          qsplit-sdwave: dwave
-          qsplit-sdwave-agg: dwave
-          qsplit-sibm: ibm
-          qsplit-siqm: iqm
-          # qsplit-sibm-gpu: ibm_gpu            TODO: work in progress
-        fallbackCost: 1000000
-        maxConcurrentJobs: 4
-        usagePenalty: 1
+          deployment: qsplit-cpu
 
 failureManager:
   type: default
@@ -60,75 +38,52 @@ deployments:
     wraps: qsplit-hpc4ai
     workdir: /beegfs/home/fmedina/streamflow_workdir
     config:
-      maxConcurrentJobs: 50
+      maxConcurrentJobs: 12
       services: 
-        hpc4ai_base:
-          file: templates/hpc4ai_base.sh
-          partition: gracehopper
-        hpc4ai_dwave:
-          file: templates/hpc4ai_dwave.sh
-          partition: gracehopper
-        hpc4ai_ibm:
-          file: templates/hpc4ai_ibm.sh
-          partition: gracehopper
-        hpc4ai_iqm:
-          file: templates/hpc4ai_iqm.sh
-          partition: gracehopper
-        # hpc4ai_ibm_gpu:
-        #   file: templates/hpc4ai_ibm_gpu.sh
-        #   partition: cascadelake
+        hpc4ai_gpu:
+          file: templates/hpc4ai_gpu.sh
+          partition: epito
+        hpc4ai_cpu:
+          file: templates/hpc4ai_cpu.sh
+          partition: mirri
+        hpc4ai_fallback:
+          file: templates/hpc4ai_cpu.sh
+          partition: broadwell
 
   qsplit-base:
     type: qsplit.quantum_connector
-    wraps: 
+    wraps:
       deployment: qsplit-slurm
-      service: hpc4ai_base
+      service: hpc4ai_cpu
     config:
-      provider: classic
+      provider: cudaq
+      providerPool: ["cudaq"]
+      providerServiceMap:
+        dwave: hpc4ai_cpu
+        ibm: hpc4ai_cpu
+        ibm_gpu: hpc4ai_gpu
+        cudaq: hpc4ai_gpu
+      providerServiceFallbackMap:
+        dwave: [hpc4ai_fallback]
+        ibm: [hpc4ai_fallback]
+      providerMaxJobs:
+        dwave: 8
+        ibm: 8
+        ibm_gpu: 8
+      cacheTTL: 60
 
-  qsplit-sdwave:
-    type: qsplit.quantum_connector
-    wraps: 
-      deployment: qsplit-slurm
-      service: hpc4ai_dwave
-    config:
-      provider: dwave
-    scheduling_policy: qsplit-quantum-dynamic
-
-  qsplit-sibm:
-    type: qsplit.quantum_connector
-    wraps: 
-      deployment: qsplit-slurm
-      service: hpc4ai_ibm
-    config:
-      provider: ibm
-    scheduling_policy: qsplit-quantum-dynamic
-
-  qsplit-siqm:
+  qsplit-cpu:
     type: qsplit.quantum_connector
     wraps:
       deployment: qsplit-slurm
-      service: hpc4ai_iqm
-    config:
-      provider: iqm
-    scheduling_policy: qsplit-quantum-dynamic
-
-  qsplit-sdwave-agg:
-    type: qsplit.quantum_connector
-    wraps: 
-      deployment: qsplit-slurm
-      service: hpc4ai_dwave
+      service: hpc4ai_cpu
     config:
       provider: dwave
-      availabilityProbability: 1
-      cacheTTL: 0
-    scheduling_policy: qsplit-quantum-dynamic
-
-  # qsplit-sibm-gpu:
-  #   type: qsplit.quantum_connector
-  #   wraps: 
-  #     deployment: qsplit-slurm
-  #     service: hpc4ai_ibm_gpu
-  #   config:
-  #     provider: ibm_gpu
-  #   scheduling_policy: qsplit-quantum-dynamic
+      providerPool: ["dwave"]
+      providerServiceMap:
+        dwave: hpc4ai_cpu
+      providerServiceFallbackMap:
+        dwave: [hpc4ai_fallback]
+      providerMaxJobs:
+        dwave: 12
+      cacheTTL: 60

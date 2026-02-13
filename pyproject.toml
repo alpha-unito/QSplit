@@ -12,21 +12,29 @@ dependencies = ["numpy==2.3.4", "pandas==2.3.3", "scipy==1.15.3"]
 
 [project.optional-dependencies]
 
+#ibm = ["qiskit>=1.4.1,<2", "qiskit-algorithms==0.4.0", "qiskit-ibm-runtime==0.43.1", ]
 ibm = ["qiskit==2.1.2", "qiskit-algorithms==0.4.0", "qiskit-ibm-runtime==0.43.1", ]
 
 dwave = ["dwave-system==1.34.0"]
 
 ibm-cpu = ["qsplit[ibm]", "qiskit-aer==0.17.2", ]
 
-cudaq = ["cudaq>=0.13.0", ]
+#ibm-gpu = ["qsplit[ibm]", "qiskit-aer-gpu-cu11==0.17.2", ]
 
-# iqm = ["iqm-client[qiskit]==33.0.3", ]
+#iqm = ["iqm-client[qiskit]==33.0.3", ]
+
+cudaq = ["cudaq>=0.13.0", ]
 
 dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", "ruff>=0.14.13", ]
 
 dataset = ["pennylane==0.44.0", "networkx==3.6.1", "tqdm==4.67.1", "h5py>=3.15.1", "aiohttp==3.13.3", "fsspec>=2025.3.0", "dwave-system==1.34.0", ]
 
 streamflow = ["streamflow>=0.2.0dev13"]
+
+[project.scripts]
+cli_split = "qsplit.cwl.cli.split:main"
+cli_scatter = "qsplit.cwl.cli.scatter:main"
+cli_aggregate = "qsplit.cwl.cli.aggregate:main"
 
 [project.entry-points."unito.streamflow.plugin"]
 qsplit = "streamflow.quantum.plugin.plugin:QSplitStreamFlowPlugin"

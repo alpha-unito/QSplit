@@ -1,7 +1,7 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: [python3, /workspace/qsplit/cwl/cli/aggregate.py]
+baseCommand: [cli_aggregate]
 
 inputs:
   input_qubo:
@@ -17,7 +17,7 @@ inputs:
       separate: true
 
   solved_list:
-    type: File[]?
+    type: File[]
     default: []
     inputBinding:
       prefix: --solved-list
