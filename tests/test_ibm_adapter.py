@@ -79,7 +79,7 @@ class TestIBMAdapter(unittest.TestCase):
         self.assertTrue(expected_hamiltonian.equiv(hamiltonian))
         self.assertIsInstance(circuit, QAOAAnsatz)
         self.assertEqual(circuit.num_qubits, 2)
-        self.assertTrue(circuit.clbits)
+        self.assertEqual(circuit.clbits, [])
 
     def test_bipartite_mapping(self):
         mat = np.array([[1.5, 0.0], [0.0, 2.0]])
