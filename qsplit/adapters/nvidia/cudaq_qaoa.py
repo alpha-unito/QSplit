@@ -13,8 +13,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import logging
-import os
 
 import cudaq
 import pandas as pd
@@ -26,7 +24,6 @@ from qsplit.adapters.nvidia.util import (
     to_dataframe,
 )
 from qsplit.qubo import QUBO
-
 
 TARGET_SEQUENCE: list[tuple[str, str]] = [
     ("nvidia", "fp64"),

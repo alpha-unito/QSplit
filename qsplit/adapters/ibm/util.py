@@ -28,10 +28,10 @@ from qiskit import QuantumCircuit, generate_preset_pass_manager
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.passmanager import BasePassManager
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit_aer import AerSimulator
 from qiskit_algorithms.optimizers import COBYLA
 from qiskit_ibm_runtime import EstimatorV2, IBMBackend, SamplerV2
-from qiskit.transpiler.exceptions import TranspilerError
 
 from qsplit.qubo import QUBO
 

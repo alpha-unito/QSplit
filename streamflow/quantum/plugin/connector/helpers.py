@@ -145,9 +145,7 @@ def fetchProviderStateFor(
             for candidate in provider_pool:
                 if not has_capacity(candidate):
                     continue
-                active, queue = fetchProviderStateFor(
-                    candidate, provider_pool, provider_state_cache, has_capacity
-                )
+                active, queue = fetchProviderStateFor(candidate, provider_pool, provider_state_cache, has_capacity)
                 if not active:
                     continue
                 any_active = True
@@ -165,14 +163,10 @@ def fetchProviderStateFor(
                     metrics = qmetrics.get_ibm_quantum_backend()
                 case "dwave":
                     backend = qmetrics.get_dwave_quantum_backend()
-                    metrics = qmetrics.get_quantum_metrics(
-                        backend, qmetrics.BackendType.DWAVE_QPU
-                    )
+                    metrics = qmetrics.get_quantum_metrics(backend, qmetrics.BackendType.DWAVE_QPU)
                 case "iqm":
                     backend = qmetrics.get_iqm_quantum_backend()
-                    metrics = qmetrics.get_quantum_metrics(
-                        backend, qmetrics.BackendType.IQM_QPU
-                    )
+                    metrics = qmetrics.get_quantum_metrics(backend, qmetrics.BackendType.IQM_QPU)
                 case _:
                     metrics = None
             if isinstance(metrics, dict):

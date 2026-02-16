@@ -147,9 +147,7 @@ def optimize_circuit(circuit_bundle: tuple, cost_hamiltonian: cudaq.SpinOperator
                 options={"maxiter": 120},
             )
             if not scipy_result.success:
-                raise RuntimeError(
-                    f"CUDA-Q and scipy optimizers failed: {scipy_result.message}"
-                ) from exc2
+                raise RuntimeError(f"CUDA-Q and scipy optimizers failed: {scipy_result.message}") from exc2
             return scipy_result.x.tolist()
     return result[1]
 

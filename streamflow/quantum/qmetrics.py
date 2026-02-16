@@ -225,3 +225,14 @@ def get_quantum_metrics(backend, backend_type: BackendType):
 if __name__ == "__main__":
     backend2 = get_ibm_quantum_backend()
     print(backend2)
+
+"""
+Quantinuum calculate cost:
+
+HQC = 5 + (N1 + 10 * N2 + 5 * Nm)*C / 5000
+
+N1: Number of one qubit operations
+N2: Number of two qubit operations
+Nm: Number of measurements
+C: Number of shots
+"""

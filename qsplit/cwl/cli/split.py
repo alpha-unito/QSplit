@@ -2,11 +2,12 @@ import argparse
 import json
 from pathlib import Path
 from typing import Dict
-from qsplit.halting_heuristic.stop import is_empty, is_sparse
+
 from qsplit.adapters.dummy import solve as dummy_solve
+from qsplit.cwl.cli.utils import build_qubo_from_matrix, save_qubo
+from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
-from qsplit.cwl.cli.utils import build_qubo_from_matrix, save_qubo
 
 
 def recursively_split(

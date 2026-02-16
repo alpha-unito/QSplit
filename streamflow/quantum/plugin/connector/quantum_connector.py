@@ -7,6 +7,7 @@ from importlib.resources import files
 from typing import MutableMapping, MutableSequence, Optional
 
 from cachetools import TTLCache
+
 from streamflow.core.asyncache import cachedmethod
 from streamflow.core.deployment import Connector, ExecutionLocation
 from streamflow.core.scheduling import AvailableLocation
@@ -124,10 +125,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
     @classmethod
     def get_schema(cls) -> str:
         return (
-            files("streamflow.quantum.plugin")
-            .joinpath("schemas")
-            .joinpath("quantum_connector.json")
-            .read_text("utf-8")
+            files("streamflow.quantum.plugin").joinpath("schemas").joinpath("quantum_connector.json").read_text("utf-8")
         )
 
     def _fetch_provider_state_for(self, provider: str | None) -> tuple[bool, int]:
@@ -184,23 +182,17 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             return {}
         return inner_locations
 
-    async def get_available_locations(
-        self, service: str | None = None
-    ) -> MutableMapping[str, AvailableLocation]:
+    async def get_available_locations(self, service: str | None = None) -> MutableMapping[str, AvailableLocation]:
         resolved_service = service or self.service
         providers = [self._pick_auto_provider()]
 
         wrapped_locations: MutableMapping[str, AvailableLocation] = {}
         for provider in providers:
             provider_service = self._provider_service_map.get(provider, resolved_service)
-            inner_locations = await self._get_quantum_locations_cached(
-                provider_service, provider
-            )
+            inner_locations = await self._get_quantum_locations_cached(provider_service, provider)
             for name, loc in inner_locations.items():
                 location_name = (
-                    f"{provider}:{loc.name}"
-                    if self._provider_service_map or len(self._provider_pool) > 1
-                    else loc.name
+                    f"{provider}:{loc.name}" if self._provider_service_map or len(self._provider_pool) > 1 else loc.name
                 )
                 wrapped_locations[location_name] = AvailableLocation(
                     name=location_name,
@@ -218,9 +210,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                 if provider in providers:
                     continue
                 provider_service = self._provider_service_map.get(provider, resolved_service)
-                inner_locations = await self._get_quantum_locations_cached(
-                    provider_service, provider
-                )
+                inner_locations = await self._get_quantum_locations_cached(provider_service, provider)
                 for name, loc in inner_locations.items():
                     location_name = (
                         f"{provider}:{loc.name}"
@@ -275,9 +265,8 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             self._provider_usage[backend] = self._provider_usage.get(backend, 0) + 1
         await self._acquire_provider_slot(backend)
         try:
-            async def _resolve_target_location(
-                service_index: int, target_service: str
-            ) -> ExecutionLocation | None:
+
+            async def _resolve_target_location(service_index: int, target_service: str) -> ExecutionLocation | None:
                 if service_index == 0:
                     return get_inner_location(location)
                 available_locations = await self.connector.get_available_locations(service=target_service)
