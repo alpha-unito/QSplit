@@ -30,7 +30,7 @@ from qiskit.passmanager import BasePassManager
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit_aer import AerSimulator
-from qiskit_algorithms.optimizers import COBYLA
+from qiskit_algorithms.optimizers import SPSA
 from qiskit_ibm_runtime import EstimatorV2, IBMBackend, SamplerV2
 
 from qsplit.qubo import QUBO
@@ -92,7 +92,7 @@ def __optimize_circuit(
     def objective_function(params: list[float]) -> float:
         return __cost_func_estimator(params, candidate_circuit, cost_hamiltonian, estimator)
 
-    optimizer = COBYLA()
+    optimizer = SPSA()
     result = optimizer.minimize(fun=objective_function, x0=init_params)
     optimized_circuit = candidate_circuit.assign_parameters(result.x)
     return optimized_circuit
