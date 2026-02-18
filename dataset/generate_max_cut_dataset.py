@@ -14,10 +14,10 @@ def main():
     ds = qml.data.load("other", name="hamlib-maxcut", attributes=["edges", "ids", "ns"])[0]
     sa = SimulatedAnnealingSampler()
 
-    res = []
+    unique_instances = {}
     for i in tqdm(range(len(ds.ns))):
         n_nodes = ds.ns[i]
-        if n_nodes > 300:
+        if n_nodes > 100 or n_nodes in unique_instances:
             continue
 
         clean_edges = list(tuple((int(u), int(v))) for u, v in ds.edges[i] if u != v)
@@ -47,9 +47,9 @@ def main():
             "max": 0,
             "sparsity": sparsity,
         }
-        res.append(instance)
+        unique_instances[n_nodes] = instance
 
-    res.sort(key=lambda x: x["dim"])
+    res = sorted(unique_instances.values(), key=lambda x: x["dim"])
     file_path = "qubo_max_cut.jsonl"
 
     with open(file_path, "w", encoding="utf-8") as f:
