@@ -23,14 +23,40 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def _looks_like_project_root(path: Path) -> bool:
+    return (path / "qsplit").is_dir() and (path / "streamflow").is_dir()
+
+
+def _candidate_launch_dirs() -> list[Path]:
+    candidates: list[Path] = []
+    for env_name in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT", "PWD", "OLDPWD", "INIT_CWD"):
+        raw = os.getenv(env_name, "").strip()
+        if not raw:
+            continue
+        candidates.append(Path(raw).expanduser())
+    return candidates
+
+
 def _resolve_solutions_dir(raw: str) -> Path:
     base = Path(raw).expanduser()
     if base.is_absolute():
         return base
-    launch_dir = os.getenv("QSPLIT_LAUNCH_DIR", "").strip()
-    if launch_dir:
-        return Path(launch_dir).expanduser() / base
-    return _repo_root() / base
+
+    for candidate in _candidate_launch_dirs():
+        resolved = candidate.resolve()
+        if _looks_like_project_root(resolved):
+            return resolved / base
+
+    repo_root = _repo_root().resolve()
+    if _looks_like_project_root(repo_root):
+        return repo_root / base
+
+    for candidate in _candidate_launch_dirs():
+        resolved = candidate.resolve()
+        if resolved.exists():
+            return resolved / base
+
+    return Path.cwd().resolve() / base
 
 
 def _expected_solution_name(safe_id: str) -> str:
@@ -109,6 +135,7 @@ def main() -> None:
         stale.unlink()
     solutions_dir = _resolve_solutions_dir(args.solutions_dir)
     solutions_dir.mkdir(parents=True, exist_ok=True)
+    print(f"QSPLIT DATASET PREPARE solutions_dir={solutions_dir}", flush=True)
 
     manifest_items: list[dict] = []
     scheduled_count = 0
@@ -173,6 +200,10 @@ def main() -> None:
         )
         + "\n",
         encoding="utf-8",
+    )
+    print(
+        f"QSPLIT DATASET PREPARE processed={len(manifest_items)} scheduled={scheduled_count}",
+        flush=True,
     )
 
 
