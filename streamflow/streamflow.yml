@@ -33,8 +33,8 @@ failureManager:
   type: default
   enabled: true
   config:
-    max_retries: 5
-    retry_delay: 10
+    max_retries: 7
+    retry_delay: 12
 
 deployments:
 
@@ -61,10 +61,10 @@ deployments:
           partition: epito
         hpc4ai_cpu:
           file: templates/hpc4ai_cpu.sh
-          partition: broadwell
+          partition: cascadelake
         hpc4ai_fallback:
           file: templates/hpc4ai_cpu.sh
-          partition: cascadelake
+          partition: broadwell
 
   qsplit-base:
     type: qsplit.quantum_connector
@@ -83,10 +83,10 @@ deployments:
         dwave: [hpc4ai_fallback]
         ibm: [hpc4ai_fallback]
       maxConcurrentJobs:
-        dwave: 8
-        ibm: 8
+        dwave: 4
+        ibm: 4
         cudaq: 4
-        ibm_gpu: 8
+        ibm_gpu: 4
 
   qsplit-cpu:
     type: qsplit.quantum_connector
@@ -101,7 +101,7 @@ deployments:
       providerServiceFallbackMap:
         dwave: [hpc4ai_fallback]
       maxConcurrentJobs:
-        dwave: 12
+        dwave: 4
 
   qsplit-iqm-local:
     type: qsplit.quantum_connector
@@ -121,7 +121,7 @@ deployments:
           QSPLIT_IQM_BACKEND: ${QSPLIT_IQM_BACKEND}
           QSPLIT_IQM_FALLBACK_TIMEOUT_SEC: "0"
 
-# database:
-#   type: sqlite
-#   config:
-#     connection: kp/streamflow_kp.db
+database:
+  type: sqlite
+  config:
+    connection: max_cut/streamflow_max_cut.db

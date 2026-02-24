@@ -138,20 +138,26 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         if "iqm" not in self._provider_pool:
             return
         env = self._provider_env_map.get("iqm", {})
+        logger.warning("IQM WMS init start for deployment '%s'.", self.deployment_name)
         install_supervisor_cleanup_handlers(env=env)
-        try:
-            cleanup_active_iqm_jobs(
-                "connector_init_cleanup",
-                env=env,
-                include_all_pids=True,
-            )
-        except Exception as exc:
-            logger.warning("IQM init cleanup failed: %s", exc)
+        init_cleanup = os.getenv("QSPLIT_IQM_INIT_CLEANUP", "").strip().lower() in {"1", "true", "yes"}
+        if init_cleanup:
+            try:
+                cleanup_active_iqm_jobs(
+                    "connector_init_cleanup",
+                    env=env,
+                    include_all_pids=True,
+                )
+            except Exception as exc:
+                logger.warning("IQM init cleanup failed: %s", exc)
+        else:
+            logger.warning("IQM init cleanup skipped (QSPLIT_IQM_INIT_CLEANUP not enabled).")
         try:
             reset_iqm_runtime_state(env=env)
             logger.warning("IQM WMS state reset for deployment '%s'.", self.deployment_name)
         except Exception as exc:
             logger.warning("IQM state reset failed: %s", exc)
+        logger.warning("IQM WMS init done for deployment '%s'.", self.deployment_name)
 
     @staticmethod
     def _is_iqm_transient_failure(return_code: int, output: str) -> bool:
