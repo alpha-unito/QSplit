@@ -54,7 +54,7 @@ deployments:
     wraps: qsplit-hpc4ai
     workdir: /beegfs/home/fmedina/streamflow_workdir
     config:
-      maxConcurrentJobs: 12
+      maxConcurrentJobs: &instance_window 8
       services: 
         hpc4ai_gpu:
           file: templates/hpc4ai_gpu.sh
@@ -83,10 +83,10 @@ deployments:
         dwave: [hpc4ai_fallback]
         ibm: [hpc4ai_fallback]
       maxConcurrentJobs:
-        dwave: 4
-        ibm: 4
-        cudaq: 4
-        ibm_gpu: 4
+        dwave: *instance_window
+        ibm: *instance_window
+        cudaq: *instance_window
+        ibm_gpu: *instance_window
 
   qsplit-cpu:
     type: qsplit.quantum_connector
@@ -101,7 +101,7 @@ deployments:
       providerServiceFallbackMap:
         dwave: [hpc4ai_fallback]
       maxConcurrentJobs:
-        dwave: 4
+        dwave: *instance_window
 
   qsplit-iqm-local:
     type: qsplit.quantum_connector

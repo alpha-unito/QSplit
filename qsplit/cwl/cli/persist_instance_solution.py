@@ -23,6 +23,11 @@ def _candidate_launch_dirs() -> list[Path]:
     return candidates
 
 
+def _is_ephemeral_solutions_dir(path: Path) -> bool:
+    normalized = str(path.resolve())
+    return "/tmp/streamflow/" in normalized or "/private/tmp/streamflow/" in normalized
+
+
 def _resolve_solutions_dir(raw: str) -> Path:
     base = Path(raw).expanduser()
     if base.is_absolute():
@@ -71,6 +76,12 @@ def main() -> None:
 
     solutions_dir = _resolve_solutions_dir(args.solutions_dir)
     solutions_dir.mkdir(parents=True, exist_ok=True)
+    if _is_ephemeral_solutions_dir(solutions_dir):
+        print(
+            "QSPLIT WARNING solutions_dir points to a temporary StreamFlow directory. "
+            "Use an absolute path in cwl/config.yml (solutions_store_dir).",
+            flush=True,
+        )
     persisted_target = solutions_dir / output_name
     shutil.copy2(input_solution, persisted_target)
     print(f"QSPLIT PERSIST solution={persisted_target}", flush=True)
