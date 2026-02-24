@@ -22,7 +22,7 @@ ibm-gpu = ["qiskit==1.4.1", "qsplit[ibm-core]", "qiskit-aer-gpu-cu11==0.17.2"]
 
 iqm = ["iqm-client[qiskit]==33.0.4; python_version < '3.13'", "qiskit-algorithms==0.4.0"]
 
-quantinuum = ["qnexus>=0.40.1", "pytket>=2.13.0", "pytket-qiskit>=0.77.0", "qiskit-algorithms==0.4.0"]
+quantinuum = ["qnexus>=0.40.1", "pytket>=2.13.0", "pytket-qiskit>=0.77.0"]
 
 cudaq = ["cudaq>=0.13.0"]
 

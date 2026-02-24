@@ -13,3 +13,4 @@ streamflow/singularity/images/*
 build
 maxcut_*
 .venv*
+*.jsonl

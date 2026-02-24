@@ -209,8 +209,8 @@ name = "astunparse"
 version = "1.6.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "six", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "six", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "six", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "six", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "wheel" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/af/4182184d3c338792894f34a62672919db7ca008c89abee9b564dd34d8029/astunparse-1.6.3.tar.gz", hash = "sha256:5ad93a8456f0d084c3456d059fd9a92cce667963232cbf763eac3bc5b7940872", size = 18290, upload-time = "2019-12-22T18:12:13.129Z" }
@@ -741,7 +741,7 @@ name = "deprecated"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "wrapt" },
+    { name = "wrapt", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/49/85/12f0a49a7c4ffb70572b6c2ef13c90c88fd190debda93b23f026b25f9634/deprecated-1.3.1.tar.gz", hash = "sha256:b1b50e0ff0c1fddaa5708a2c6b0a6588bb09b892825ab2b214ac9ea9d92a5223", size = 2932523, upload-time = "2025-10-30T08:19:02.757Z" }
 wheels = [
@@ -830,16 +830,16 @@ dependencies = [
     { name = "diskcache" },
     { name = "homebase" },
     { name = "http-sf" },
-    { name = "importlib-metadata", version = "8.4.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "importlib-metadata", version = "8.7.1", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "importlib-metadata", version = "8.4.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "importlib-metadata", version = "8.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "orjson" },
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "plucky" },
     { name = "pydantic" },
     { name = "python-dateutil" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, extra = ["socks"], marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, extra = ["socks"], marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, extra = ["socks"], marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, extra = ["socks"], marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "typing-extensions" },
     { name = "urllib3" },
     { name = "werkzeug" },
@@ -1100,7 +1100,7 @@ name = "googleapis-common-protos"
 version = "1.72.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "protobuf" },
+    { name = "protobuf", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e5/7b/adfd75544c415c487b33061fe7ae526165241c1ea133f9a9125a56b39fd8/googleapis_common_protos-1.72.0.tar.gz", hash = "sha256:e55a601c1b32b52d7a3e65f43563e2aa61bcd737998ee672ac9b951cd49319f5", size = 147433, upload-time = "2025-11-06T18:29:24.087Z" }
 wheels = [
@@ -1121,7 +1121,7 @@ name = "grpcio"
 version = "1.78.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1f/de/de568532d9907552700f80dcec38219d8d298ad9e71f5e0a095abaf2761e/grpcio-1.78.1.tar.gz", hash = "sha256:27c625532d33ace45d57e775edf1982e183ff8641c72e4e91ef7ba667a149d72", size = 12835760, upload-time = "2026-02-20T01:16:10.869Z" }
 wheels = [
@@ -1296,14 +1296,13 @@ name = "ibm-cloud-sdk-core"
 version = "3.24.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 dependencies = [
-    { name = "pyjwt", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "python-dateutil", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "urllib3", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
+    { name = "pyjwt", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "python-dateutil", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "urllib3", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5e/e5/5de9646a57209bd59ee504ea11b9d83fab0e273c648d5cb9ec529c2dfb21/ibm_cloud_sdk_core-3.24.1.tar.gz", hash = "sha256:96b4b4deefc7b72874ef44545362e63ee3a7d6a4c82e68f36c482c8033683ab3", size = 76252, upload-time = "2025-05-30T15:47:12.802Z" }
 wheels = [
@@ -1314,11 +1313,36 @@ wheels = [
 name = "ibm-cloud-sdk-core"
 version = "3.24.4"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 dependencies = [
-    { name = "pyjwt" },
-    { name = "python-dateutil" },
-    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" } },
-    { name = "urllib3" },
+    { name = "pyjwt", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "python-dateutil", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "urllib3", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4a/0c/965f4f4b34f1a9a2210bec224ac489c631153f18ef75c6e694750efda654/ibm_cloud_sdk_core-3.24.4.tar.gz", hash = "sha256:20498959ce0177a58938e1855ee09f08b9712e43cc3209e95010c046e8c6d2a6", size = 81778, upload-time = "2026-02-03T08:44:42.217Z" }
 wheels = [
@@ -1330,11 +1354,10 @@ name = "ibm-platform-services"
 version = "0.66.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 dependencies = [
-    { name = "ibm-cloud-sdk-core", version = "3.24.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
+    { name = "ibm-cloud-sdk-core", version = "3.24.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/17/17/198f881da6cd8ba9091079b8931e4b8da553425053989422d4f747d830bf/ibm_platform_services-0.66.1.tar.gz", hash = "sha256:fc35ab5bc93d5a9ad3ce42e2c44210b6fa146a243a3acc18b3ad1be417f66557", size = 347004, upload-time = "2025-05-30T19:04:54.585Z" }
 wheels = [
@@ -1345,8 +1368,33 @@ wheels = [
 name = "ibm-platform-services"
 version = "0.73.3"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 dependencies = [
-    { name = "ibm-cloud-sdk-core", version = "3.24.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "ibm-cloud-sdk-core", version = "3.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/96/d8/fecda74020bea99ee392155f12cdaf679a51c860ac2f441e505028aba966/ibm_platform_services-0.73.3.tar.gz", hash = "sha256:5b11d9291c8598175d2a57d2509eddb7899ee1a67a96b0d939dce3d2d6001c19", size = 361560, upload-time = "2026-02-19T13:21:51.052Z" }
 wheels = [
@@ -1376,11 +1424,10 @@ name = "importlib-metadata"
 version = "8.4.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 dependencies = [
-    { name = "zipp", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
+    { name = "zipp", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c0/bd/fa8ce65b0a7d4b6d143ec23b0f5fd3f7ab80121078c465bc02baeaab22dc/importlib_metadata-8.4.0.tar.gz", hash = "sha256:9a547d3bc3608b025f93d403fdd1aae741c24fbb8314df4b155675742ce303c5", size = 54320, upload-time = "2024-08-20T17:11:42.348Z" }
 wheels = [
@@ -1391,8 +1438,33 @@ wheels = [
 name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
@@ -1413,12 +1485,12 @@ name = "iqm-client"
 version = "33.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "iqm-pulse" },
-    { name = "iqm-station-control-client" },
-    { name = "numpy" },
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" } },
-    { name = "pydantic" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" } },
+    { name = "iqm-pulse", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "iqm-station-control-client", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "pydantic", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/74/5e/de724d55387aabe11a986617fc38d7037566d26b90e9df7eb99fe0151964/iqm_client-33.0.4.tar.gz", hash = "sha256:fd735ed7848d4c813700b8400316b54644dd2f40f55e746c21df32fbb88ce40d", size = 316441, upload-time = "2026-02-04T07:46:12.07Z" }
 wheels = [
@@ -1427,9 +1499,9 @@ wheels = [
 
 [package.optional-dependencies]
 qiskit = [
-    { name = "qiskit", version = "1.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit-aer" },
+    { name = "qiskit", version = "1.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit-aer", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 
 [[package]]
@@ -1437,11 +1509,11 @@ name = "iqm-data-definitions"
 version = "2.22"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "protobuf" },
-    { name = "scipy" },
-    { name = "scipy-stubs" },
-    { name = "types-protobuf" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "protobuf", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "scipy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "scipy-stubs", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "types-protobuf", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/bf/8b/51297d9b6ac96bc77b623f370ab29a849d079b33a51fcbc2e5fd22793920/iqm_data_definitions-2.22.tar.gz", hash = "sha256:101d6eb041dd63187271b1dd098a637cf5535dac73de60d143244a0f39385241", size = 230280, upload-time = "2026-01-15T13:11:06.177Z" }
 wheels = [
@@ -1453,18 +1525,18 @@ name = "iqm-exa-common"
 version = "27.4.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "iqm-data-definitions" },
-    { name = "jinja2" },
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "python-dotenv", version = "0.21.1", source = { registry = "https://pypi.org/simple" } },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "ruamel-yaml", version = "0.17.32", source = { registry = "https://pypi.org/simple" } },
-    { name = "ruamel-yaml-clib", version = "0.2.8", source = { registry = "https://pypi.org/simple" } },
-    { name = "six", version = "1.16.0", source = { registry = "https://pypi.org/simple" } },
-    { name = "types-requests" },
-    { name = "types-six" },
-    { name = "xarray" },
+    { name = "iqm-data-definitions", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "jinja2", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "pydantic", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "python-dotenv", version = "0.21.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "ruamel-yaml", version = "0.17.32", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "ruamel-yaml-clib", version = "0.2.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "six", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "types-requests", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "types-six", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "xarray", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/66/56/98827160372a1ab149ab626afe334da59aed1309b64d1dde27e9de8b2e30/iqm_exa_common-27.4.5.tar.gz", hash = "sha256:42caa485bcdb8ea833adf2f03c0f8e36dc4cfa606acaa44ccba89637a496b253", size = 239597, upload-time = "2026-02-18T17:20:50.988Z" }
 wheels = [
@@ -1476,12 +1548,12 @@ name = "iqm-pulse"
 version = "12.7.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "iqm-data-definitions" },
-    { name = "jinja2" },
-    { name = "numpy" },
-    { name = "python-rapidjson" },
-    { name = "scipy" },
-    { name = "scipy-stubs" },
+    { name = "iqm-data-definitions", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "jinja2", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "python-rapidjson", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "scipy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "scipy-stubs", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/46/3c/ef3d257a094d361c51936f28e0e6289c1d04fca3363abe96a14c6c24c0d5/iqm_pulse-12.7.5.tar.gz", hash = "sha256:cea114947b2680292356e99b07d164b18b32760cdef7f1f2b590cb40f5829301", size = 628694, upload-time = "2026-02-18T17:21:00.879Z" }
 wheels = [
@@ -1493,18 +1565,18 @@ name = "iqm-station-control-client"
 version = "12.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "grpcio" },
-    { name = "iqm-data-definitions" },
-    { name = "iqm-exa-common" },
-    { name = "opentelemetry-exporter-otlp" },
-    { name = "protobuf" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "tqdm" },
-    { name = "types-protobuf" },
-    { name = "types-requests" },
-    { name = "types-tqdm" },
+    { name = "grpcio", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "iqm-data-definitions", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "iqm-exa-common", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-exporter-otlp", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "protobuf", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "pydantic", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "pyyaml", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "tqdm", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "types-protobuf", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "types-requests", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "types-tqdm", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/18/f1/7b00ecf3500c88d071461ede05af151e559f19ce112a00f50644742d4898/iqm_station_control_client-12.0.5.tar.gz", hash = "sha256:390c50cbcaf9d5ab77122b5ffa206cde2b304ef15995aedfffd47f62f3f59b2e", size = 233923, upload-time = "2026-02-18T17:20:54.94Z" }
 wheels = [
@@ -1516,7 +1588,7 @@ name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "markupsafe" },
+    { name = "markupsafe", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-quantinuum') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
@@ -1961,7 +2033,7 @@ name = "numpy-typing-compat"
 version = "20251206.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/77/83/dd90774d6685664cbe5525645a50c4e6c7454207aee552918790e879137f/numpy_typing_compat-20251206.2.3.tar.gz", hash = "sha256:18e00e0f4f2040fe98574890248848c7c6831a975562794da186cf4f3c90b935", size = 5009, upload-time = "2025-12-06T20:02:04.177Z" }
 wheels = [
@@ -2020,8 +2092,8 @@ name = "opentelemetry-api"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "deprecated" },
-    { name = "importlib-metadata", version = "8.4.0", source = { registry = "https://pypi.org/simple" } },
+    { name = "deprecated", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "importlib-metadata", version = "8.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c9/83/93114b6de85a98963aec218a51509a52ed3f8de918fe91eb0f7299805c3f/opentelemetry_api-1.27.0.tar.gz", hash = "sha256:ed673583eaa5f81b5ce5e86ef7cdaf622f88ef65f0b9aab40b843dcae5bef342", size = 62693, upload-time = "2024-08-28T21:35:31.445Z" }
 wheels = [
@@ -2033,8 +2105,8 @@ name = "opentelemetry-exporter-otlp"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "opentelemetry-exporter-otlp-proto-grpc" },
-    { name = "opentelemetry-exporter-otlp-proto-http" },
+    { name = "opentelemetry-exporter-otlp-proto-grpc", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-exporter-otlp-proto-http", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fc/d3/8156cc14e8f4573a3572ee7f30badc7aabd02961a09acc72ab5f2c789ef1/opentelemetry_exporter_otlp-1.27.0.tar.gz", hash = "sha256:4a599459e623868cc95d933c301199c2367e530f089750e115599fccd67cb2a1", size = 6166, upload-time = "2024-08-28T21:35:33.746Z" }
 wheels = [
@@ -2046,7 +2118,7 @@ name = "opentelemetry-exporter-otlp-proto-common"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "opentelemetry-proto" },
+    { name = "opentelemetry-proto", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cd/2e/7eaf4ba595fb5213cf639c9158dfb64aacb2e4c7d74bfa664af89fa111f4/opentelemetry_exporter_otlp_proto_common-1.27.0.tar.gz", hash = "sha256:159d27cf49f359e3798c4c3eb8da6ef4020e292571bd8c5604a2a573231dd5c8", size = 17860, upload-time = "2024-08-28T21:35:34.896Z" }
 wheels = [
@@ -2058,13 +2130,13 @@ name = "opentelemetry-exporter-otlp-proto-grpc"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "deprecated" },
-    { name = "googleapis-common-protos" },
-    { name = "grpcio" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp-proto-common" },
-    { name = "opentelemetry-proto" },
-    { name = "opentelemetry-sdk" },
+    { name = "deprecated", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "googleapis-common-protos", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "grpcio", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-api", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-exporter-otlp-proto-common", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-proto", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-sdk", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a1/d0/c1e375b292df26e0ffebf194e82cd197e4c26cc298582bda626ce3ce74c5/opentelemetry_exporter_otlp_proto_grpc-1.27.0.tar.gz", hash = "sha256:af6f72f76bcf425dfb5ad11c1a6d6eca2863b91e63575f89bb7b4b55099d968f", size = 26244, upload-time = "2024-08-28T21:35:36.314Z" }
 wheels = [
@@ -2076,13 +2148,13 @@ name = "opentelemetry-exporter-otlp-proto-http"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "deprecated" },
-    { name = "googleapis-common-protos" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-otlp-proto-common" },
-    { name = "opentelemetry-proto" },
-    { name = "opentelemetry-sdk" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" } },
+    { name = "deprecated", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "googleapis-common-protos", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-api", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-exporter-otlp-proto-common", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-proto", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-sdk", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/31/0a/f05c55e8913bf58a033583f2580a0ec31a5f4cf2beacc9e286dcb74d6979/opentelemetry_exporter_otlp_proto_http-1.27.0.tar.gz", hash = "sha256:2103479092d8eb18f61f3fbff084f67cc7f2d4a7d37e75304b8b56c1d09ebef5", size = 15059, upload-time = "2024-08-28T21:35:37.079Z" }
 wheels = [
@@ -2094,7 +2166,7 @@ name = "opentelemetry-proto"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "protobuf" },
+    { name = "protobuf", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9a/59/959f0beea798ae0ee9c979b90f220736fbec924eedbefc60ca581232e659/opentelemetry_proto-1.27.0.tar.gz", hash = "sha256:33c9345d91dafd8a74fc3d7576c5a38f18b7fdf8d02983ac67485386132aedd6", size = 34749, upload-time = "2024-08-28T21:35:45.839Z" }
 wheels = [
@@ -2106,9 +2178,9 @@ name = "opentelemetry-sdk"
 version = "1.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-semantic-conventions" },
-    { name = "typing-extensions" },
+    { name = "opentelemetry-api", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-semantic-conventions", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0d/9a/82a6ac0f06590f3d72241a587cb8b0b751bd98728e896cc4cbd4847248e6/opentelemetry_sdk-1.27.0.tar.gz", hash = "sha256:d525017dea0ccce9ba4e0245100ec46ecdc043f2d7b8315d56b19aff0904fa6f", size = 145019, upload-time = "2024-08-28T21:35:46.708Z" }
 wheels = [
@@ -2120,8 +2192,8 @@ name = "opentelemetry-semantic-conventions"
 version = "0.48b0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "deprecated" },
-    { name = "opentelemetry-api" },
+    { name = "deprecated", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "opentelemetry-api", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0a/89/1724ad69f7411772446067cdfa73b598694c8c91f7f8c922e344d96d81f9/opentelemetry_semantic_conventions-0.48b0.tar.gz", hash = "sha256:12d74983783b6878162208be57c9effcb89dc88691c64992d70bb89dc00daa1a", size = 89445, upload-time = "2024-08-28T21:35:47.673Z" }
 wheels = [
@@ -2142,8 +2214,8 @@ wheels = [
 
 [package.optional-dependencies]
 numpy = [
-    { name = "numpy" },
-    { name = "numpy-typing-compat" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "numpy-typing-compat", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 
 [[package]]
@@ -2204,7 +2276,6 @@ name = "packaging"
 version = "24.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/51/65/50db4dda066951078f0a96cf12f4b9ada6e4b811516bf0262c0f4f7064d4/packaging-24.1.tar.gz", hash = "sha256:026ed72c8ed3fcce5bf8950572258698927fd1dbda10a5e981cdf0ac37f4f002", size = 148788, upload-time = "2024-06-09T23:19:24.956Z" }
@@ -2216,6 +2287,31 @@ wheels = [
 name = "packaging"
 version = "26.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/65/ee/299d360cdc32edc7d2cf530f3accf79c4fca01e96ffc950d8a52213bd8e4/packaging-26.0.tar.gz", hash = "sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4", size = 143416, upload-time = "2026-01-21T20:50:39.064Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl", hash = "sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529", size = 74366, upload-time = "2026-01-21T20:50:37.788Z" },
@@ -2280,11 +2376,11 @@ dependencies = [
     { name = "diastatic-malt" },
     { name = "networkx" },
     { name = "numpy" },
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "pennylane-lightning" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "rustworkx" },
     { name = "scipy" },
     { name = "tomlkit" },
@@ -2666,8 +2762,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "iniconfig" },
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "pluggy" },
     { name = "pygments" },
 ]
@@ -2695,8 +2791,8 @@ name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "six", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "six", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "six", version = "1.16.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "six", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
 wheels = [
@@ -2889,16 +2985,15 @@ name = "qiskit"
 version = "2.1.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 dependencies = [
-    { name = "dill", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "numpy", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "rustworkx", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "scipy", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "stevedore", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "typing-extensions", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "dill", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "numpy", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "rustworkx", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "scipy", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "stevedore", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "typing-extensions", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/99/02/1bad2e34a2d2b4a03abed72e110f1d89f80757dd9e95b30f44a5bc2700f3/qiskit-2.1.2.tar.gz", hash = "sha256:fd3fe5b212053e18aea66b3903face62e25d7ba0aebd0aa68ea1fb4f14b220e3", size = 3603245, upload-time = "2025-08-19T13:24:01.954Z" }
 wheels = [
@@ -2915,13 +3010,35 @@ wheels = [
 name = "qiskit"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 dependencies = [
-    { name = "dill", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
-    { name = "numpy", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
-    { name = "rustworkx", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
-    { name = "scipy", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
-    { name = "stevedore", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
-    { name = "typing-extensions", marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
+    { name = "dill", marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "numpy", marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "rustworkx", marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "scipy", marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "stevedore", marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "typing-extensions", marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/13/8e/d5279454717d780f32eec4dfa6a7ef256ea7382b2f8fef2c715fc6f1180e/qiskit-2.3.0.tar.gz", hash = "sha256:e0a00c6681b8d04171c5cdb928837d992676f8aa4a07c390d446e54babaf6c1e", size = 3903621, upload-time = "2026-01-08T19:36:33.691Z" }
 wheels = [
@@ -2939,13 +3056,13 @@ name = "qiskit-aer"
 version = "0.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "psutil" },
-    { name = "python-dateutil" },
-    { name = "qiskit", version = "1.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "scipy" },
+    { name = "numpy", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or extra == 'extra-6-qsplit-dev' or extra == 'extra-6-qsplit-ibm-cpu' or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "psutil", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or extra == 'extra-6-qsplit-dev' or extra == 'extra-6-qsplit-ibm-cpu' or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "python-dateutil", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or extra == 'extra-6-qsplit-dev' or extra == 'extra-6-qsplit-ibm-cpu' or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "1.4.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "scipy", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or extra == 'extra-6-qsplit-dev' or extra == 'extra-6-qsplit-ibm-cpu' or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/07/6c/6b8b35f67159401580665c59ae64d676bef9e85aac4d2a50831cbe32f652/qiskit_aer-0.17.2.tar.gz", hash = "sha256:134eef8e509311955a15be543d2ba368f988f3583a2bc1f548af3196da820eb4", size = 6551618, upload-time = "2025-09-17T13:55:25.165Z" }
 wheels = [
@@ -2998,8 +3115,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "qiskit", version = "1.4.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-ibm-gpu' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
+    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "scipy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e5/86/d0f8ccae25281d49ebb0e2b59076c2d815389c16a4f7a379936f21065e94/qiskit_algorithms-0.4.0.tar.gz", hash = "sha256:b945e807c9b94ba2e0d2e02898b1f1e1a33efd3b4a6dc5a45bb787c6832d4093", size = 259556, upload-time = "2025-08-29T18:32:24.076Z" }
@@ -3012,18 +3129,18 @@ name = "qiskit-ibm-runtime"
 version = "0.43.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ibm-platform-services", version = "0.66.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "ibm-platform-services", version = "0.73.3", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "ibm-platform-services", version = "0.66.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "ibm-platform-services", version = "0.73.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "numpy" },
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "qiskit", version = "1.4.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-ibm-gpu' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm')" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version < '3.13' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (python_full_version >= '3.13' and extra != 'extra-6-qsplit-ibm-gpu') or extra == 'extra-6-qsplit-quantinuum' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "requests-ntlm" },
     { name = "urllib3" },
 ]
@@ -3084,8 +3201,8 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "qiskit-aer" },
     { name = "qiskit-algorithms", marker = "extra == 'extra-6-qsplit-ibm-cpu' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "qiskit-ibm-runtime", marker = "extra == 'extra-6-qsplit-ibm-cpu' or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
@@ -3099,8 +3216,8 @@ ibm-core = [
     { name = "qiskit-ibm-runtime" },
 ]
 ibm-cpu = [
-    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
-    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow') or (extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "qiskit", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-6-qsplit-ibm-cpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
     { name = "qiskit-aer" },
     { name = "qiskit-algorithms" },
     { name = "qiskit-ibm-runtime" },
@@ -3118,7 +3235,6 @@ iqm = [
 quantinuum = [
     { name = "pytket" },
     { name = "pytket-qiskit" },
-    { name = "qiskit-algorithms" },
     { name = "qnexus" },
 ]
 streamflow = [
@@ -3149,7 +3265,6 @@ requires-dist = [
     { name = "qiskit-aer-gpu-cu11", marker = "extra == 'ibm-gpu'", specifier = "==0.17.2" },
     { name = "qiskit-algorithms", marker = "extra == 'ibm-core'", specifier = "==0.4.0" },
     { name = "qiskit-algorithms", marker = "extra == 'iqm'", specifier = "==0.4.0" },
-    { name = "qiskit-algorithms", marker = "extra == 'quantinuum'", specifier = "==0.4.0" },
     { name = "qiskit-ibm-runtime", marker = "extra == 'ibm-core'", specifier = "==0.43.1" },
     { name = "qnexus", marker = "extra == 'quantinuum'", specifier = ">=0.40.1" },
     { name = "qsplit", extras = ["ibm-core"], marker = "extra == 'ibm-cpu'" },
@@ -3219,14 +3334,13 @@ name = "requests"
 version = "2.32.3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 dependencies = [
-    { name = "certifi", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "charset-normalizer", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "idna", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "urllib3", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
+    { name = "certifi", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "charset-normalizer", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "idna", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "urllib3", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760", size = 131218, upload-time = "2024-05-29T15:37:49.536Z" }
 wheels = [
@@ -3235,18 +3349,43 @@ wheels = [
 
 [package.optional-dependencies]
 socks = [
-    { name = "pysocks", marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
+    { name = "pysocks", marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 
 [[package]]
 name = "requests"
 version = "2.32.5"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 dependencies = [
-    { name = "certifi" },
-    { name = "charset-normalizer" },
-    { name = "idna" },
-    { name = "urllib3" },
+    { name = "certifi", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "charset-normalizer", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "idna", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "urllib3", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf", size = 134517, upload-time = "2025-08-18T20:46:02.573Z" }
 wheels = [
@@ -3255,7 +3394,7 @@ wheels = [
 
 [package.optional-dependencies]
 socks = [
-    { name = "pysocks", marker = "extra == 'extra-6-qsplit-quantinuum' or extra == 'extra-6-qsplit-streamflow' or extra != 'extra-6-qsplit-iqm'" },
+    { name = "pysocks", marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 
 [[package]]
@@ -3265,8 +3404,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pyspnego" },
-    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/15/74/5d4e1815107e9d78c44c3ad04740b00efd1189e5a9ec11e5275b60864e54/requests_ntlm-1.3.0.tar.gz", hash = "sha256:b29cc2462623dffdf9b88c43e180ccb735b4007228a542220e882c58ae56c668", size = 16112, upload-time = "2024-06-09T23:52:04.854Z" }
 wheels = [
@@ -3599,7 +3738,7 @@ name = "scipy-stubs"
 version = "1.17.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "optype", extra = ["numpy"], marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
+    { name = "optype", extra = ["numpy"], marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d9/ad/413b0d18efca7bb48574d28e91253409d91ee6121e7937022d0d380dfc6a/scipy_stubs-1.17.1.0.tar.gz", hash = "sha256:5dc51c21765b145c2d132b96b63ff4f835dd5fb768006876d1554e7a59c61571", size = 381420, upload-time = "2026-02-23T10:33:04.742Z" }
 wheels = [
@@ -3629,7 +3768,6 @@ name = "six"
 version = "1.16.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
     "python_full_version < '3.13'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/71/39/171f1c67cd00715f190ba0b100d606d440a28c93c7714febeca8b79af85e/six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926", size = 34041, upload-time = "2021-05-05T14:18:18.379Z" }
@@ -3641,6 +3779,31 @@ wheels = [
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra == 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra == 'extra-6-qsplit-streamflow'",
+    "python_full_version >= '3.13' and extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+    "extra != 'extra-6-qsplit-dev' and extra != 'extra-6-qsplit-ibm-cpu' and extra != 'extra-6-qsplit-ibm-gpu' and extra != 'extra-6-qsplit-iqm' and extra != 'extra-6-qsplit-quantinuum' and extra != 'extra-6-qsplit-streamflow'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
@@ -3828,7 +3991,7 @@ name = "types-requests"
 version = "2.32.4.20260107"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "urllib3" },
+    { name = "urllib3", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0f/f3/a0663907082280664d745929205a89d41dffb29e89a50f753af7d57d0a96/types_requests-2.32.4.20260107.tar.gz", hash = "sha256:018a11ac158f801bfa84857ddec1650750e393df8a004a8a9ae2a9bec6fcb24f", size = 23165, upload-time = "2026-01-07T03:20:54.091Z" }
 wheels = [
@@ -3849,7 +4012,7 @@ name = "types-tqdm"
 version = "4.67.3.20260205"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "types-requests" },
+    { name = "types-requests", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/53/46/790b9872523a48163bdda87d47849b4466017640e5259d06eed539340afd/types_tqdm-4.67.3.20260205.tar.gz", hash = "sha256:f3023682d4aa3bbbf908c8c6bb35f35692d319460d9bbd3e646e8852f3dd9f85", size = 17597, upload-time = "2026-02-05T04:03:19.721Z" }
 wheels = [
@@ -3957,8 +4120,8 @@ name = "wheel"
 version = "0.46.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum')" },
-    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-6-qsplit-iqm') or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-gpu' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
+    { name = "packaging", version = "26.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or extra != 'extra-6-qsplit-iqm' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-quantinuum') or (extra == 'extra-6-qsplit-iqm' and extra == 'extra-6-qsplit-streamflow')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/89/24/a2eb353a6edac9a0303977c4cb048134959dd2a51b48a269dfc9dde00c8a/wheel-0.46.3.tar.gz", hash = "sha256:e3e79874b07d776c40bd6033f8ddf76a7dad46a7b8aa1b2787a83083519a1803", size = 60605, upload-time = "2026-01-22T12:39:49.136Z" }
 wheels = [
@@ -4024,9 +4187,9 @@ name = "xarray"
 version = "2026.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" } },
-    { name = "pandas" },
+    { name = "numpy", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "packaging", version = "24.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
+    { name = "pandas", marker = "python_full_version < '3.13' or (extra == 'extra-6-qsplit-dev' and extra == 'extra-6-qsplit-ibm-gpu') or (extra == 'extra-6-qsplit-ibm-cpu' and extra == 'extra-6-qsplit-ibm-gpu')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0f/03/e3353b72e518574b32993989d8f696277bf878e9d508c7dd22e86c0dab5b/xarray-2026.2.0.tar.gz", hash = "sha256:978b6acb018770554f8fd964af4eb02f9bcc165d4085dbb7326190d92aa74bcf", size = 3111388, upload-time = "2026-02-13T22:20:50.18Z" }
 wheels = [
