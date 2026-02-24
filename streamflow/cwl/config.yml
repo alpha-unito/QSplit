@@ -8,6 +8,6 @@ enable_iqm: true
 enable_quantinuum_h2: false
 enable_quantinuum_h2e: false
 iqm_real_jobs: "1"
-solutions_dir: solutions
+solutions_store_dir: solutions
 # quantinuum_h2_real_jobs: "1"
 # quantinuum_h2e_real_jobs: "1"

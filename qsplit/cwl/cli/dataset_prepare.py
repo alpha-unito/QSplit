@@ -90,14 +90,14 @@ def _matrix_from_record(record: dict) -> list[list[float]] | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare per-instance matrix CSV files from a JSONL dataset.")
     parser.add_argument("--dataset-jsonl", required=True)
-    parser.add_argument("--max-instances", type=int, default=None)
+    parser.add_argument("--max-instances", type=int, default=0)
     parser.add_argument("--output-dir", default="dataset_matrices")
     parser.add_argument("--manifest", default="dataset_manifest.json")
     parser.add_argument("--solutions-dir", default="solutions")
     args = parser.parse_args()
 
-    if args.max_instances is not None and args.max_instances <= 0:
-        raise ValueError("--max-instances must be > 0 when provided.")
+    if args.max_instances < 0:
+        raise ValueError("--max-instances must be >= 0.")
 
     dataset_path = Path(args.dataset_jsonl).resolve()
     if not dataset_path.exists():
@@ -114,7 +114,7 @@ def main() -> None:
     scheduled_count = 0
     with dataset_path.open("r", encoding="utf-8") as stream:
         for line_no, line in enumerate(stream, start=1):
-            if args.max_instances is not None and len(manifest_items) >= args.max_instances:
+            if args.max_instances > 0 and len(manifest_items) >= args.max_instances:
                 break
             raw = line.strip()
             if not raw:

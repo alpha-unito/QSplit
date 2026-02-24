@@ -9,10 +9,8 @@ inputs:
     inputBinding:
       prefix: --dataset-jsonl
   max_instances:
-    type:
-      - "null"
-      - int
-    default: null
+    type: int
+    default: 0
     inputBinding:
       prefix: --max-instances
   solutions_dir:
