@@ -85,7 +85,7 @@ deployments:
       maxConcurrentJobs:
         dwave: 8
         ibm: 8
-        cudaq: 8
+        cudaq: 4
         ibm_gpu: 8
 
   qsplit-cpu:

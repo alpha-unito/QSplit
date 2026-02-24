@@ -5,8 +5,6 @@
 #SBATCH --requeue
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --partition=epito
-#SBATCH --nodelist=epito02
 
 
 REPO_DIR=/beegfs/home/fmedina/QSplit
