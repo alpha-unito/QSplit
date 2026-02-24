@@ -71,6 +71,7 @@ cli_scatter = "qsplit.cwl.cli.scatter:main"
 cli_aggregate = "qsplit.cwl.cli.aggregate:main"
 cli_dataset_prepare = "qsplit.cwl.cli.dataset_prepare:main"
 cli_collect_dataset_results = "qsplit.cwl.cli.collect_dataset_results:main"
+cli_persist_instance_solution = "qsplit.cwl.cli.persist_instance_solution:main"
 
 [project.entry-points."unito.streamflow.plugin"]
 qsplit = "streamflow.quantum.plugin.plugin:QSplitStreamFlowPlugin"

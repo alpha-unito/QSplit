@@ -29,11 +29,14 @@ inputs:
   quantinuum_h2e_real_jobs:
     type: string
     default: "1"
+  solutions_dir:
+    type: string
+    default: solutions
 
 outputs:
   final_solutions:
     type: File
-    outputSource: aggregate/aggregate_solutions
+    outputSource: persist_solution/persisted_solution
 
 steps:
   split:
@@ -105,3 +108,11 @@ steps:
           ]
         linkMerge: merge_flattened
     out: [aggregate_solutions]
+
+  persist_solution:
+    run: clt/persist_solution.cwl
+    in:
+      input_solution: aggregate/aggregate_solutions
+      input_matrix: input_matrix
+      solutions_dir: solutions_dir
+    out: [persisted_solution]

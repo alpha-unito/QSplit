@@ -330,7 +330,10 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         provider_candidates: list[str] = []
         if preferred_backend:
             provider_candidates.append(preferred_backend)
-        provider_candidates.extend([p for p in self._provider_pool if p not in provider_candidates])
+        if preferred_backend == "iqm":
+            provider_candidates = ["iqm"]
+        else:
+            provider_candidates.extend([p for p in self._provider_pool if p not in provider_candidates])
         if not provider_candidates:
             raise RuntimeError("No provider configured in providerPool.")
 
@@ -401,7 +404,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                 except Exception as exc:
                     if backend == "iqm" and isinstance(exc, TimeoutError):
                         logger.warning(
-                            "IQM command timeout reached (%s s). Falling back to next provider.",
+                            "IQM command timeout reached (%s s). Failing current QSplit instance.",
                             effective_timeout,
                         )
                         cleanup_active_iqm_jobs(
@@ -409,17 +412,15 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                             env=env,
                             include_all_pids=True,
                         )
-                        self._disable_provider("iqm", "timeout")
-                        continue
+                        raise
                     if backend == "iqm" and self._is_iqm_transient_failure(1, str(exc)):
-                        logger.warning("IQM internal server error/timeout detected. Falling back to next provider.")
+                        logger.warning("IQM internal server error/timeout detected. Failing current QSplit instance.")
                         cleanup_active_iqm_jobs(
                             "connector_transient_failure",
                             env=env,
                             include_all_pids=True,
                         )
-                        self._disable_provider("iqm", "transient failure")
-                        continue
+                        raise
                     raise
                 if (
                     backend == "iqm"
@@ -432,14 +433,13 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                     if isinstance(output, bytes):
                         output = output.decode(errors="replace")
                     if self._is_iqm_transient_failure(result[1], str(output)):
-                        logger.warning("IQM internal server error/timeout detected. Falling back to next provider.")
+                        logger.warning("IQM internal server error/timeout detected. Failing current QSplit instance.")
                         cleanup_active_iqm_jobs(
                             "connector_transient_failure",
                             env=env,
                             include_all_pids=True,
                         )
-                        self._disable_provider("iqm", "transient failure")
-                        continue
+                        return result
                 return result
             finally:
                 await self._release_provider_slot(backend)

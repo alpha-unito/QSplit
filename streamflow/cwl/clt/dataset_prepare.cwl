@@ -15,6 +15,11 @@ inputs:
     default: null
     inputBinding:
       prefix: --max-instances
+  solutions_dir:
+    type: string
+    default: solutions
+    inputBinding:
+      prefix: --solutions-dir
 
 outputs:
   matrix_files:

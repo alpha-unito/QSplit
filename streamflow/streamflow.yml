@@ -19,6 +19,9 @@ workflows:
       - step: /qsplit_instances/iqm
         target:
           deployment: qsplit-iqm-local
+      - step: /qsplit_instances/persist_solution
+        target:
+          deployment: qsplit-maintenance-local
       - step: /qsplit_instances/aggregate
         target:
           deployment: qsplit-cpu

@@ -8,6 +8,11 @@ inputs:
     type: File
     inputBinding:
       prefix: --dataset-manifest
+  solutions_dir:
+    type: string
+    default: solutions
+    inputBinding:
+      prefix: --solutions-dir
   solution_csv_list:
     type: File[]
     default: []

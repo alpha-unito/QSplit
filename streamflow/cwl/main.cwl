@@ -35,6 +35,9 @@ inputs:
   quantinuum_h2e_real_jobs:
     type: string
     default: "1"
+  solutions_dir:
+    type: string
+    default: solutions
 
 outputs:
   dataset_manifest:
@@ -56,6 +59,7 @@ steps:
     in:
       dataset_jsonl: dataset
       max_instances: max_instances
+      solutions_dir: solutions_dir
     out: [matrix_files, dataset_manifest]
 
   qsplit_instances:
@@ -70,6 +74,7 @@ steps:
       iqm_real_jobs: iqm_real_jobs
       quantinuum_h2_real_jobs: quantinuum_h2_real_jobs
       quantinuum_h2e_real_jobs: quantinuum_h2e_real_jobs
+      solutions_dir: solutions_dir
     out: [final_solutions]
     scatter: [input_matrix]
 
@@ -77,5 +82,6 @@ steps:
     run: clt/collect_dataset_results.cwl
     in:
       dataset_manifest: prepare_dataset/dataset_manifest
+      solutions_dir: solutions_dir
       solution_csv_list: qsplit_instances/final_solutions
     out: [results_dir, results_manifest]

@@ -1,5 +1,7 @@
 import argparse
+import csv
 import json
+import os
 import re
 from pathlib import Path
 
@@ -15,6 +17,47 @@ def _record_id(record: dict, line_no: int) -> str:
 def _safe_id(value: str, fallback: int) -> str:
     safe = re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-")
     return safe if safe else f"row_{fallback}"
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _resolve_solutions_dir(raw: str) -> Path:
+    base = Path(raw).expanduser()
+    if base.is_absolute():
+        return base
+    launch_dir = os.getenv("QSPLIT_LAUNCH_DIR", "").strip()
+    if launch_dir:
+        return Path(launch_dir).expanduser() / base
+    return _repo_root() / base
+
+
+def _expected_solution_name(safe_id: str) -> str:
+    return f"solutions_{safe_id}.csv"
+
+
+def _is_valid_solution_file(path: Path) -> bool:
+    if not path.exists() or not path.is_file():
+        return False
+    if path.stat().st_size <= 0:
+        return False
+    try:
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.reader(handle)
+            header = next(reader, None)
+            first_row = next(reader, None)
+    except Exception:
+        return False
+    if header != ["node_id", "backend", "bitstring", "energy"]:
+        return False
+    if not first_row or len(first_row) != 4:
+        return False
+    try:
+        float(first_row[3])
+    except Exception:
+        return False
+    return True
 
 
 def _matrix_from_record(record: dict) -> list[list[float]] | None:
@@ -50,6 +93,7 @@ def main() -> None:
     parser.add_argument("--max-instances", type=int, default=None)
     parser.add_argument("--output-dir", default="dataset_matrices")
     parser.add_argument("--manifest", default="dataset_manifest.json")
+    parser.add_argument("--solutions-dir", default="solutions")
     args = parser.parse_args()
 
     if args.max_instances is not None and args.max_instances <= 0:
@@ -63,8 +107,11 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for stale in output_dir.glob("*.csv"):
         stale.unlink()
+    solutions_dir = _resolve_solutions_dir(args.solutions_dir)
+    solutions_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_items: list[dict] = []
+    scheduled_count = 0
     with dataset_path.open("r", encoding="utf-8") as stream:
         for line_no, line in enumerate(stream, start=1):
             if args.max_instances is not None and len(manifest_items) >= args.max_instances:
@@ -83,20 +130,28 @@ def main() -> None:
 
             rec_id = _record_id(record, line_no)
             safe_id = _safe_id(rec_id, line_no)
-            file_index = len(manifest_items)
-            matrix_name = f"{file_index:06d}_{safe_id}.csv"
-            matrix_path = output_dir / matrix_name
-            matrix_path.write_text(
-                "\n".join(",".join(f"{value:g}" for value in row) for row in matrix) + "\n",
-                encoding="utf-8",
-            )
+            solution_name = _expected_solution_name(safe_id)
+            solution_path = solutions_dir / solution_name
+            already_solved = _is_valid_solution_file(solution_path)
+            matrix_name = None
+
+            if not already_solved:
+                matrix_name = f"{scheduled_count:06d}_{safe_id}.csv"
+                matrix_path = output_dir / matrix_name
+                matrix_path.write_text(
+                    "\n".join(",".join(f"{value:g}" for value in row) for row in matrix) + "\n",
+                    encoding="utf-8",
+                )
+                scheduled_count += 1
 
             manifest_items.append(
                 {
-                    "index": file_index,
+                    "index": len(manifest_items),
                     "line": line_no,
                     "id": rec_id,
                     "safe_id": safe_id,
+                    "solution_csv": solution_name,
+                    "already_solved": already_solved,
                     "matrix_csv": matrix_name,
                 }
             )
@@ -110,6 +165,8 @@ def main() -> None:
             {
                 "dataset": str(dataset_path),
                 "count": len(manifest_items),
+                "scheduled_count": scheduled_count,
+                "solutions_dir": str(solutions_dir),
                 "items": manifest_items,
             },
             indent=2,
