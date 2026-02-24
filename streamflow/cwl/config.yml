@@ -1,5 +1,13 @@
-input_matrix:
+dataset:
   class: File
-  path: data/32x32_b.csv
+  path: ../../qubo_max_cut.jsonl
 
+max_instances: 3
 cut_dim: 10
+enable_sparse_check: false
+enable_iqm: true
+enable_quantinuum_h2: false
+enable_quantinuum_h2e: false
+iqm_real_jobs: "1"
+# quantinuum_h2_real_jobs: "1"
+# quantinuum_h2e_real_jobs: "1"

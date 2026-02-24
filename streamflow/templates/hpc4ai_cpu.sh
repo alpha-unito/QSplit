@@ -8,7 +8,7 @@
 
 REPO_DIR=/beegfs/home/fmedina/QSplit
 
-source "$REPO_DIR/.venvs/qsplit-cpu/bin/activate"
+source "$REPO_DIR/.venvs/qsplit-cpu-x86_64-qpus/bin/activate"
 
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONUNBUFFERED=1

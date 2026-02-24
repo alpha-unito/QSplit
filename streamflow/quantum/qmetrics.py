@@ -1,9 +1,108 @@
+import json
 import os
+from collections.abc import Mapping, Sequence
 from enum import Enum, auto
 from math import pi, sqrt
+from typing import Any
 
-SERVER_IQM = "https://resonance.meetiqm.com/"
-# SERVER_IQM = "https://cocos.resonance.meetiqm.com/garnet"
+IQM_DEFAULT_SERVER_URL = "https://resonance.meetiqm.com/"
+
+_ACTIVE_STATES = {"healthy", "ok", "up", "ready", "active", "online", "operational"}
+_INACTIVE_STATES = {"unhealthy", "down", "offline", "error", "maintenance", "disabled", "inactive"}
+_QUEUE_KEYS = (
+    "queue_length",
+    "pending_jobs",
+    "jobs_in_queue",
+    "queued_jobs",
+    "pending",
+    "waiting",
+    "queue_size",
+    "depth",
+    "queue",
+)
+
+
+def _as_non_negative_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return max(0, value)
+    if isinstance(value, float):
+        if value.is_integer():
+            return max(0, int(value))
+        return None
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        if raw.startswith("+"):
+            raw = raw[1:]
+        if raw.isdigit():
+            return int(raw)
+    return None
+
+
+def _extract_queue_length(payload: Any, depth: int = 0) -> int | None:
+    if depth > 4:
+        return None
+    direct = _as_non_negative_int(payload)
+    if direct is not None:
+        return direct
+    if isinstance(payload, Mapping):
+        for key in _QUEUE_KEYS:
+            if key in payload:
+                value = _extract_queue_length(payload[key], depth + 1)
+                if value is not None:
+                    return value
+        for value in payload.values():
+            if isinstance(value, (Mapping, list, tuple)):
+                nested = _extract_queue_length(value, depth + 1)
+                if nested is not None:
+                    return nested
+    elif isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+        for item in payload:
+            nested = _extract_queue_length(item, depth + 1)
+            if nested is not None:
+                return nested
+    return None
+
+
+def _extract_active(*payloads: Any) -> bool:
+    for payload in payloads:
+        if not isinstance(payload, Mapping):
+            continue
+        for key in ("healthy", "active", "operational", "online", "ready"):
+            value = payload.get(key)
+            if isinstance(value, bool):
+                return value
+        status = payload.get("status") or payload.get("state")
+        if isinstance(status, str):
+            normalized = status.strip().lower()
+            if normalized in _ACTIVE_STATES:
+                return True
+            if normalized in _INACTIVE_STATES:
+                return False
+    return True
+
+
+def _resolve_iqm_auth() -> str:
+    token = os.getenv("IQM_TOKEN", "").strip() or os.getenv("QSPLIT_IQM_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("IQM auth is missing: set IQM_TOKEN.")
+    return token
+
+
+def _resolve_iqm_url() -> str:
+    return (
+        os.getenv("IQM_SERVER_URL", "").strip()
+        or os.getenv("QSPLIT_IQM_SERVER_URL", "").strip()
+        or IQM_DEFAULT_SERVER_URL
+    )
+
+
+def _resolve_iqm_quantum_computer() -> str | None:
+    qc = os.getenv("IQM_QUANTUM_COMPUTER", "").strip() or os.getenv("QSPLIT_IQM_QUANTUM_COMPUTER", "").strip()
+    return qc or None
 
 
 def get_ibm_quantum_backend():
@@ -25,106 +124,74 @@ def get_ibm_classical_backend():
 
 
 def get_iqm_quantum_backend():
-    """
-    iqm-client==33.0.3: usa IQMClient.
-    Se il server gestisce più QPU puoi passare quantum_computer="garnet".
-    """
     from iqm.iqm_client import IQMClient
 
-    # Se ti serve forzare una QPU specifica:
-    # backend = IQMClient(SERVER_IQM, quantum_computer="garnet", token=TOKEN_IQM)
+    _resolve_iqm_auth()
+    iqm_url = _resolve_iqm_url()
+    quantum_computer = _resolve_iqm_quantum_computer()
 
-    backend = IQMClient(SERVER_IQM, token=os.environ["TOKEN_IQM"])
-    return backend
+    auth_kwargs: dict[str, str] = {}
+    if quantum_computer:
+        auth_kwargs["quantum_computer"] = quantum_computer
 
-
-def _mean(values: list[float]) -> float | None:
-    vals = [v for v in values if isinstance(v, (int, float))]
-    return (sum(vals) / len(vals)) if vals else None
+    return IQMClient(iqm_url, **auth_kwargs)
 
 
 def iqm_qpu_metrics(client):
-    """
-    Stima automatica di qubits/health/fidelity usando:
-      - SQA (qubits + connectivity)
-      - ObservationFinder (gate fidelities + readout errors)
+    health: dict[str, Any] = {}
+    about: dict[str, Any] = {}
+    try:
+        fetched_health = client.get_health()
+        if isinstance(fetched_health, dict):
+            health = fetched_health
+    except Exception:
+        health = {}
+    try:
+        fetched_about = client.get_about()
+        if isinstance(fetched_about, dict):
+            about = fetched_about
+    except Exception:
+        about = {}
 
-    Riferimenti API:
-      - IQMClient.get_health / get_static_quantum_architecture / get_calibration_quality_metrics  [oai_citation:6‡docs.meetiqm.com](https://docs.meetiqm.com/iqm-client/api/iqm.iqm_client.iqm_client.IQMClient.html)
-      - StaticQuantumArchitecture.{dut_label, qubits, connectivity}  [oai_citation:7‡docs.meetiqm.com](https://docs.meetiqm.com/iqm-client/api/iqm.iqm_client.models.StaticQuantumArchitecture.html)
-      - ObservationFinder.get_gate_fidelity / get_measure_errors  [oai_citation:8‡docs.meetiqm.com](https://docs.meetiqm.com/iqm-station-control-client/api/iqm.station_control.client.qon.ObservationFinder.html)
-    """
-    # 1) Info “statiche” QPU
-    sqa = client.get_dynamic_quantum_architecture()  # StaticQuantumArchitecture
-    qubits = list(getattr(sqa, "qubits", []))
-    connectivity = list(getattr(sqa, "connectivity", []))  # lista di tuple tipo ("QB1","QB2",...)
+    active = _extract_active(health, about)
 
-    # name: meglio dut_label se presente
-    name = getattr(sqa, "dut_label", None) or "iqm_qpu"
+    queue_length = _extract_queue_length(health)
+    if queue_length is None:
+        queue_length = _extract_queue_length(about)
+    if queue_length is None:
+        queue_length = 0
 
-    # 2) Health (robusto a shape diverse)
-    health = client.get_health()  # dict[str, Any]
-    # spesso è qualcosa tipo {"healthy": True, ...} ma facciamo fallback
-    active = bool(
-        health.get("healthy")
-        if isinstance(health, dict) and "healthy" in health
-        else health.get("status") in ("healthy", "ok", "UP")
-        if isinstance(health, dict)
-        else True
-    )
+    name_candidates: list[str | None] = [
+        str(about.get("name")).strip() if "name" in about else None,
+        str(about.get("quantum_computer")).strip() if "quantum_computer" in about else None,
+        getattr(client, "quantum_computer", None),
+        _resolve_iqm_quantum_computer(),
+    ]
 
-    # 3) Metriche qualità (calibrazione + quality metrics)
-    # Ritorna un ObservationFinder con helper comodi  [oai_citation:9‡docs.meetiqm.com](https://docs.meetiqm.com/iqm-client/api/iqm.iqm_client.iqm_client.IQMClient.html)
-    qof = client.get_calibration_quality_metrics()
+    qubits = 0
+    try:
+        dqa = client.get_dynamic_quantum_architecture()
+        qubits = len(list(getattr(dqa, "qubits", []) or []))
+    except Exception:
+        qubits = 0
+    if qubits <= 0:
+        try:
+            sqa = client.get_static_quantum_architecture()
+            qubits = len(list(getattr(sqa, "qubits", []) or []))
+            name_candidates.insert(0, getattr(sqa, "dut_label", None))
+        except Exception:
+            qubits = 0
 
-    # Convenzioni/metodi più comuni per queste metriche:
-    # - prx fidelity via randomized benchmarking -> "rb"
-    # - measure errors via "ssro"
-    # - altre gate fidelities spesso via "irb"
-    prx_impl = "rb"
-    meas_impl = "ssro"
-    cz_impl = "irb"
-
-    # prx: media su qubit singoli
-    prx_fids = []
-    for qb in qubits:
-        f = qof.get_gate_fidelity("prx", prx_impl, (qb,))
-        if f is not None:
-            prx_fids.append(float(f))
-    avg_prx = _mean(prx_fids)
-
-    # cz: media su coppie nella connectivity (se ci sono)
-    cz_fids = []
-    for edge in connectivity:
-        locus = tuple(edge)
-        if len(locus) == 2:
-            f = qof.get_gate_fidelity("cz", cz_impl, locus)
-            if f is not None:
-                cz_fids.append(float(f))
-    avg_cz = _mean(cz_fids)
-
-    # readout: media degli errori (p10, p01), convertita in "readout fidelity"
-    readout_errs = []
-    for qb in qubits:
-        errs = qof.get_measure_errors("measure", meas_impl, (qb,))
-        # errs tipicamente è (err0, err1) oppure None
-        if errs is not None and len(errs) == 2:
-            e0, e1 = errs
-            readout_errs.append((float(e0) + float(e1)) / 2.0)
-
-    avg_readout_err = _mean(readout_errs)
-    readout_fidelity = (1.0 - avg_readout_err) if avg_readout_err is not None else None
-
-    # Fidelity aggregata: media delle parti disponibili
-    fidelity_parts = [v for v in (avg_prx, avg_cz, readout_fidelity) if v is not None]
-    fidelity = _mean(fidelity_parts) if fidelity_parts else None
+    name = next((str(candidate).strip() for candidate in name_candidates if candidate and str(candidate).strip()), "")
+    if not name:
+        name = "iqm_qpu"
 
     return {
-        "name": str(name).lower().replace(" ", "_"),
-        "active": active,
-        "qubits": len(qubits),
-        "fidelity": fidelity if fidelity is not None else 0.0,  # oppure None se preferisci
-        "queue": 0,  # al momento non esposto come "queue length" affidabile via API
+        "name": name.lower().replace(" ", "_"),
+        "active": bool(active),
+        "qubits": qubits,
+        "fidelity": 0.0,
+        "queue": queue_length,
     }
 
 
@@ -223,8 +290,21 @@ def get_quantum_metrics(backend, backend_type: BackendType):
 
 
 if __name__ == "__main__":
-    backend2 = get_ibm_quantum_backend()
-    print(backend2)
+    provider = (os.getenv("QSPLIT_QMETRICS_PROVIDER", "iqm") or "iqm").strip().lower()
+
+    if provider == "iqm":
+        backend = get_iqm_quantum_backend()
+        metrics = get_quantum_metrics(backend, BackendType.IQM_QPU)
+    elif provider in {"ibm", "ibm_gpu"}:
+        metrics = get_ibm_quantum_backend()
+    elif provider == "dwave":
+        backend = get_dwave_quantum_backend()
+        metrics = get_quantum_metrics(backend, BackendType.DWAVE_QPU)
+    else:
+        raise RuntimeError(f"Unsupported provider '{provider}'. Use: iqm, ibm, dwave.")
+
+    print(json.dumps(metrics, indent=2, sort_keys=True))
+
 
 """
 Quantinuum calculate cost:

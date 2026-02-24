@@ -41,7 +41,17 @@
         ]
       }
     },
-    "providerMaxJobs": {
+    "providerEnvMap": {
+      "type": "object",
+      "description": "Optional mapping provider -> environment variables injected at runtime for that provider.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    },
+    "maxConcurrentJobs": {
       "type": "object",
       "description": "Optional mapping provider -> max concurrent jobs. Overrides maxProviderJobs for the given provider.",
       "additionalProperties": {
@@ -53,12 +63,6 @@
       "type": "integer",
       "minimum": 1,
       "description": "If set, limit concurrent jobs per provider (best-effort, within the current StreamFlow process)."
-    },
-    "cacheTTL": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Cache TTL (seconds) for availability/queue lookups.",
-      "default": 3
     },
     "transferBufferSize": {
       "type": "integer",

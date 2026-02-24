@@ -13,18 +13,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import logging
+
 from typing import List
 
 import cudaq
 import numpy as np
 import pandas as pd
 from cudaq import spin
-from scipy.optimize import minimize
 
 from qsplit.qubo import QUBO
-
-logger = logging.getLogger(__name__)
 
 
 @cudaq.kernel
@@ -114,41 +111,15 @@ def optimize_circuit(circuit_bundle: tuple, cost_hamiltonian: cudaq.SpinOperator
             return 1e12
         return value
 
-    optimizer = cudaq.optimizers.COBYLA()
+    optimizer = cudaq.optimizers.SPSA()
     optimizer.max_iterations = 100
     initial_parameters = np.random.uniform(-np.pi / 8, np.pi / 8, parameter_count)
-    objective_function(initial_parameters)
     if hasattr(optimizer, "initial_parameters"):
         optimizer.initial_parameters = initial_parameters.tolist()
-    try:
-        result = optimizer.optimize(
-            dimensions=parameter_count,
-            function=objective_function,
-        )
-    except RuntimeError as exc:
-        if "nlopt failure" not in str(exc).lower():
-            raise
-        logger.warning("CUDA-Q COBYLA failed with nlopt failure. Retrying once.")
-        if hasattr(optimizer, "initial_parameters"):
-            optimizer.initial_parameters = np.random.uniform(-np.pi / 8, np.pi / 8, parameter_count).tolist()
-        try:
-            result = optimizer.optimize(
-                dimensions=parameter_count,
-                function=objective_function,
-            )
-        except RuntimeError as exc2:
-            if "nlopt failure" not in str(exc2).lower():
-                raise
-            logger.warning("CUDA-Q COBYLA failed again. Falling back to scipy.optimize (Nelder-Mead).")
-            scipy_result = minimize(
-                objective_function,
-                x0=initial_parameters,
-                method="Nelder-Mead",
-                options={"maxiter": 120},
-            )
-            if not scipy_result.success:
-                raise RuntimeError(f"CUDA-Q and scipy optimizers failed: {scipy_result.message}") from exc2
-            return scipy_result.x.tolist()
+    result = optimizer.optimize(
+        dimensions=parameter_count,
+        function=objective_function,
+    )
     return result[1]
 
 

@@ -7,15 +7,24 @@ workflows:
       file: cwl/main.cwl
       settings: cwl/config.yml
     bindings:
-      - step: /split
+      - step: /prepare_dataset
+        target:
+          deployment: qsplit-maintenance-local
+      - step: /qsplit_instances/split
         target:
           deployment: qsplit-cpu
-      - step: /parallelize
+      - step: /qsplit_instances/parallelize
         target:
           deployment: qsplit-base
-      - step: /aggregate
+      - step: /qsplit_instances/iqm
+        target:
+          deployment: qsplit-iqm-local
+      - step: /qsplit_instances/aggregate
         target:
           deployment: qsplit-cpu
+      - step: /collect_results
+        target:
+          deployment: qsplit-maintenance-local
 
 failureManager:
   type: default
@@ -25,6 +34,10 @@ failureManager:
     retry_delay: 10
 
 deployments:
+
+  qsplit-maintenance-local:
+    type: local
+    config: {}
 
   qsplit-hpc4ai:
     type: ssh
@@ -45,10 +58,10 @@ deployments:
           partition: epito
         hpc4ai_cpu:
           file: templates/hpc4ai_cpu.sh
-          partition: mirri
+          partition: broadwell
         hpc4ai_fallback:
           file: templates/hpc4ai_cpu.sh
-          partition: broadwell
+          partition: cascadelake
 
   qsplit-base:
     type: qsplit.quantum_connector
@@ -56,8 +69,8 @@ deployments:
       deployment: qsplit-slurm
       service: hpc4ai_cpu
     config:
-      provider: cudaq
-      providerPool: ["cudaq"]
+      provider: dwave
+      providerPool: ["dwave", "ibm", "cudaq"]
       providerServiceMap:
         dwave: hpc4ai_cpu
         ibm: hpc4ai_cpu
@@ -66,11 +79,11 @@ deployments:
       providerServiceFallbackMap:
         dwave: [hpc4ai_fallback]
         ibm: [hpc4ai_fallback]
-      providerMaxJobs:
+      maxConcurrentJobs:
         dwave: 8
         ibm: 8
+        cudaq: 8
         ibm_gpu: 8
-      cacheTTL: 60
 
   qsplit-cpu:
     type: qsplit.quantum_connector
@@ -84,6 +97,28 @@ deployments:
         dwave: hpc4ai_cpu
       providerServiceFallbackMap:
         dwave: [hpc4ai_fallback]
-      providerMaxJobs:
+      maxConcurrentJobs:
         dwave: 12
-      cacheTTL: 60
+
+  qsplit-iqm-local:
+    type: qsplit.quantum_connector
+    config:
+      provider: iqm
+      providerPool: ["iqm"]
+      maxConcurrentJobs:
+        iqm: 1
+      providerEnvMap:
+        iqm:
+          VIRTUAL_ENV: ${QSPLIT_IQM_VENV}
+          PATH: ${QSPLIT_IQM_VENV}/bin:${PATH}
+          PYTHONNOUSERSITE: "1"
+          IQM_SERVER_URL: https://resonance.meetiqm.com/
+          IQM_TOKEN: ${IQM_TOKEN}
+          IQM_QUANTUM_COMPUTER: garnet
+          QSPLIT_IQM_BACKEND: ${QSPLIT_IQM_BACKEND}
+          QSPLIT_IQM_FALLBACK_TIMEOUT_SEC: "0"
+
+# database:
+#   type: sqlite
+#   config:
+#     connection: kp/streamflow_kp.db

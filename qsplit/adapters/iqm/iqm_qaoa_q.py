@@ -14,22 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pandas as pd
-from qiskit import generate_preset_pass_manager
+import os
 
-from qsplit.adapters.ibm.util import get_qaoa_circuit_optimized, run_quantum_optimizer, to_dataframe
+import pandas as pd
+from iqm.qiskit_iqm import IQMProvider
+from iqm.qiskit_iqm.fake_backends.fake_garnet import IQMFakeGarnet
+
+from qsplit.adapters.iqm.util import get_qaoa_circuit_optimized, run_quantum_optimizer, to_dataframe
 from qsplit.qubo import QUBO
 
 
-def ibm_solve(qubo: QUBO, backend, backend_optimizer=None, optimize_on_backend: bool = True) -> pd.DataFrame:
-    if backend_optimizer is None:
-        backend_optimizer = backend
-    pm = generate_preset_pass_manager(backend=backend_optimizer, optimization_level=2)
-    circuit, var_to_qubit, all_vars = get_qaoa_circuit_optimized(
-        backend_optimizer,
-        pm,
-        qubo,
-        optimize_on_backend=optimize_on_backend,
-    )
-    counts_int = run_quantum_optimizer(backend, circuit)
-    return to_dataframe(counts_int, qubo, var_to_qubit, all_vars)
+def solve(qubo: QUBO) -> pd.DataFrame:
+    url = os.getenv("IQM_SERVER_URL")
+    _ = os.getenv("IQM_TOKEN")
+    qc = os.getenv("IQM_QUANTUM_COMPUTER", "garnet")
+    quantum_tune = os.getenv("QUANTUM_TUNE_QAOA") == "True"
+
+    backend = IQMProvider(url=url, quantum_computer=qc).get_backend()
+    backend_optimizer = backend if quantum_tune else IQMFakeGarnet()
+    circuit, var_to_qubit, all_vars = get_qaoa_circuit_optimized(backend=backend_optimizer, qubo=qubo)
+    counts = run_quantum_optimizer(backend, circuit)
+    return to_dataframe(counts, qubo, var_to_qubit, all_vars)

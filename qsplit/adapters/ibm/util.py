@@ -20,22 +20,38 @@
 # Source: https://quantum.cloud.ibm.com/docs/en/tutorials/quantum-approximate-optimization-algorithm
 # Modifications have been made to tailor the implementation to local requirements.
 
-import logging
-
 import numpy as np
 import pandas as pd
 from qiskit import QuantumCircuit, generate_preset_pass_manager
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.passmanager import BasePassManager
+from qiskit.primitives import BackendEstimatorV2, BackendSamplerV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit_aer import AerSimulator
 from qiskit_algorithms.optimizers import SPSA
-from qiskit_ibm_runtime import EstimatorV2, IBMBackend, SamplerV2
+from qiskit_ibm_runtime import IBMBackend
 
 from qsplit.qubo import QUBO
 
-logger = logging.getLogger(__name__)
+try:
+    from qiskit_aer import AerSimulator
+except Exception:
+    AerSimulator = None
+
+try:
+    from qiskit_ibm_runtime import EstimatorV2 as RuntimeEstimatorV2
+    from qiskit_ibm_runtime import IBMBackend
+    from qiskit_ibm_runtime import SamplerV2 as RuntimeSamplerV2
+except Exception:
+    RuntimeEstimatorV2 = None
+    RuntimeSamplerV2 = None
+    IBMBackend = None
+
+try:
+    from qiskit.primitives import StatevectorEstimator
+except Exception:
+    StatevectorEstimator = None
 
 
 def __get_variables_mapping(qubo: QUBO) -> tuple[dict[int, int], list[int]]:
@@ -75,15 +91,39 @@ def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePau
 __objective_func_vals = []
 
 
+def _is_ibm_backend(backend) -> bool:
+    return IBMBackend is not None and isinstance(backend, IBMBackend)
+
+
+def _is_aer_backend(backend) -> bool:
+    return AerSimulator is not None and isinstance(backend, AerSimulator)
+
+
 def __optimize_circuit(
-    backend: IBMBackend | AerSimulator, candidate_circuit: QuantumCircuit, cost_hamiltonian: SparsePauliOp
+    backend,
+    candidate_circuit: QuantumCircuit,
+    cost_hamiltonian: SparsePauliOp,
+    optimize_on_backend: bool = True,
 ) -> QuantumCircuit:
     initial_gamma = np.pi
     initial_beta = np.pi / 2
     init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
-    estimator = EstimatorV2(backend)
-    estimator.options.default_shots = 500
-    if isinstance(backend, IBMBackend):
+    if not optimize_on_backend:
+        if StatevectorEstimator is not None:
+            estimator = StatevectorEstimator()
+        elif AerSimulator is not None:
+            estimator = BackendEstimatorV2(
+                backend=AerSimulator(method="matrix_product_state", matrix_product_state_max_bond_dimension=None)
+            )
+        else:
+            raise RuntimeError("Local estimator backend is required when optimize_on_backend=False.")
+    elif _is_ibm_backend(backend) and RuntimeEstimatorV2 is not None:
+        estimator = RuntimeEstimatorV2(backend)
+    else:
+        estimator = BackendEstimatorV2(backend=backend)
+    if optimize_on_backend and _is_ibm_backend(backend) and hasattr(estimator, "options"):
+        if hasattr(estimator.options, "default_shots"):
+            estimator.options.default_shots = 500
         estimator.options.dynamical_decoupling.enable = True
         estimator.options.dynamical_decoupling.sequence_type = "XY4"
         estimator.options.twirling.enable_gates = True
@@ -99,9 +139,10 @@ def __optimize_circuit(
 
 
 def __cost_func_estimator(
-    params: list[float], ansatz: QuantumCircuit, hamiltonian: SparsePauliOp, estimator: EstimatorV2
+    params: list[float], ansatz: QuantumCircuit, hamiltonian: SparsePauliOp, estimator: object
 ) -> float:
-    isa_hamiltonian = hamiltonian.apply_layout(ansatz.layout)
+    layout = getattr(ansatz, "layout", None)
+    isa_hamiltonian = hamiltonian.apply_layout(layout) if layout is not None else hamiltonian
     pub = (ansatz, isa_hamiltonian, params)
     job = estimator.run([pub])
     results = job.result()[0]
@@ -111,39 +152,47 @@ def __cost_func_estimator(
 
 
 def get_qaoa_circuit_optimized(
-    backend: IBMBackend | AerSimulator, pm: BasePassManager, qubo: QUBO
+    backend,
+    pm: BasePassManager,
+    qubo: QUBO,
+    *,
+    optimize_on_backend: bool = True,
 ) -> tuple[QuantumCircuit, dict[int, int], list[int]]:
     circuit, cost_hamiltonian, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
-    try:
-        candidate_circuit = pm.run(circuit)
-    except TranspilerError as exc:
-        if isinstance(backend, AerSimulator) and "not in Target" in str(exc):
-            logger.warning("PassManager target mismatch on Aer (%s). Retrying with optimization_level=1.", exc)
-            try:
-                candidate_circuit = generate_preset_pass_manager(optimization_level=1).run(circuit)
-            except TranspilerError as exc2:
-                logger.warning(
-                    "Fallback pass manager failed (%s). Falling back to decompose(reps=10).",
-                    exc2,
-                )
-                candidate_circuit = circuit.decompose(reps=10)
-        else:
-            raise
-    if isinstance(backend, AerSimulator) and any(
-        str(inst.operation.name).lower() == "qaoa" for inst in candidate_circuit.data
-    ):
-        logger.warning("Aer circuit still contains QAOA. Falling back to decompose(reps=10).")
-        candidate_circuit = candidate_circuit.decompose(reps=10)
-    optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian)
+    if optimize_on_backend:
+        try:
+            candidate_circuit = pm.run(circuit)
+        except TranspilerError as exc:
+            if _is_aer_backend(backend) and "not in Target" in str(exc):
+                try:
+                    candidate_circuit = generate_preset_pass_manager(optimization_level=1).run(circuit)
+                except TranspilerError:
+                    candidate_circuit = circuit.decompose(reps=10)
+            else:
+                raise
+        if _is_aer_backend(backend) and any(
+            str(inst.operation.name).lower() == "qaoa" for inst in candidate_circuit.data
+        ):
+            candidate_circuit = candidate_circuit.decompose(reps=10)
+        optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian, optimize_on_backend=True)
+    else:
+        optimized_logical = __optimize_circuit(backend, circuit, cost_hamiltonian, optimize_on_backend=False)
+        try:
+            optimized_circ = pm.run(optimized_logical)
+        except TranspilerError:
+            optimized_circ = optimized_logical.decompose(reps=10)
     measured_circ = optimized_circ.copy()
     if measured_circ.num_clbits == 0:
         measured_circ.measure_all()
     return measured_circ, var_to_qubit, all_vars
 
 
-def run_quantum_optimizer(backend: IBMBackend | AerSimulator, optimized_circuit: QuantumCircuit) -> dict[int, int]:
-    sampler = SamplerV2(mode=backend)
-    if isinstance(backend, IBMBackend):
+def run_quantum_optimizer(backend, optimized_circuit: QuantumCircuit) -> dict[int, int]:
+    if _is_ibm_backend(backend) and RuntimeSamplerV2 is not None:
+        sampler = RuntimeSamplerV2(mode=backend)
+    else:
+        sampler = BackendSamplerV2(backend=backend)
+    if _is_ibm_backend(backend) and hasattr(sampler, "options"):
         sampler.options.dynamical_decoupling.enable = True
         sampler.options.dynamical_decoupling.sequence_type = "XY4"
         sampler.options.twirling.enable_gates = True
@@ -154,18 +203,14 @@ def run_quantum_optimizer(backend: IBMBackend | AerSimulator, optimized_circuit:
     keys_method = getattr(data_bin, "keys", None)
     available_keys = list(keys_method()) if callable(keys_method) else []
     if hasattr(data_bin, "meas") and hasattr(data_bin.meas, "get_int_counts"):
-        logger.warning("SamplerV2 counts register selected: meas (available keys: %s)", available_keys)
         return data_bin.meas.get_int_counts()
     if hasattr(data_bin, "c") and hasattr(data_bin.c, "get_int_counts"):
-        logger.warning("SamplerV2 counts register selected: c (available keys: %s)", available_keys)
         return data_bin.c.get_int_counts()
     if available_keys:
         for key in available_keys:
             reg = getattr(data_bin, key, None)
             if reg is not None and hasattr(reg, "get_int_counts"):
-                logger.warning("SamplerV2 counts register selected: %s (available keys: %s)", key, available_keys)
                 return reg.get_int_counts()
-    logger.error("No readable classical register found in SamplerV2 result (available keys: %s)", available_keys)
     raise RuntimeError("No readable classical register found in SamplerV2 result")
 
 

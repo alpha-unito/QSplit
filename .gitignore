@@ -6,10 +6,10 @@ qsplit.egg-info
 sketch
 aggregate.solutions*
 settings.json
-*.jsonl
 dataset/datasets
 solutions*.csv
 streamflow/singularity/images/*
 .vscode
 build
 maxcut_*
+.venv*

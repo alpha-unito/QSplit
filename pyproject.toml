@@ -16,21 +16,17 @@ ibm-core = ["qiskit-algorithms==0.4.0", "qiskit-ibm-runtime==0.43.1"]
 
 dwave = ["dwave-system==1.34.0"]
 
-ibm-cpu = ["qiskit==2.1.2", "qsplit[ibm-core]", "qiskit-aer==0.17.2"]
+ibm-cpu = ["qiskit>=2.1.2", "qsplit[ibm-core]", "qiskit-aer==0.17.2"]
 
 ibm-gpu = ["qiskit==1.4.1", "qsplit[ibm-core]", "qiskit-aer-gpu-cu11==0.17.2"]
 
-iqm = ["iqm-client[qiskit]==33.0.3"]
+iqm = ["iqm-client[qiskit]==33.0.4; python_version < '3.13'", "qiskit-algorithms==0.4.0"]
+
+quantinuum = ["qnexus>=0.40.1", "pytket>=2.13.0", "pytket-qiskit>=0.77.0", "qiskit-algorithms==0.4.0"]
 
 cudaq = ["cudaq>=0.13.0"]
 
-dev = [
-    "qsplit[ibm-cpu,dwave]",
-    "pytest==9.0.1",
-    "pytest-cov==7.0.0",
-    "pre-commit>=4.5.1",
-    "ruff>=0.14.13",
-]
+dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", "ruff>=0.14.13"]
 
 dataset = [
     "pennylane==0.44.0",
@@ -44,14 +40,40 @@ dataset = [
 
 streamflow = ["streamflow>=0.2.0dev13"]
 
+[tool.uv]
+conflicts = [
+    [
+        { extra = "ibm-cpu" },
+        { extra = "ibm-gpu" },
+    ],
+    [
+        { extra = "ibm-gpu" },
+        { extra = "dev" },
+    ],
+    [
+        { extra = "ibm-gpu" },
+        { extra = "quantinuum" },
+    ],
+    [
+        { extra = "iqm" },
+        { extra = "streamflow" },
+    ],
+    [
+        { extra = "iqm" },
+        { extra = "quantinuum" },
+    ],
+
+]
+
 [project.scripts]
 cli_split = "qsplit.cwl.cli.split:main"
 cli_scatter = "qsplit.cwl.cli.scatter:main"
 cli_aggregate = "qsplit.cwl.cli.aggregate:main"
+cli_dataset_prepare = "qsplit.cwl.cli.dataset_prepare:main"
+cli_collect_dataset_results = "qsplit.cwl.cli.collect_dataset_results:main"
 
 [project.entry-points."unito.streamflow.plugin"]
 qsplit = "streamflow.quantum.plugin.plugin:QSplitStreamFlowPlugin"
-
 
 [tool.setuptools.packages.find]
 where = ["."]

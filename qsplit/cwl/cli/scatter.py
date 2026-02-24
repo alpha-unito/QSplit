@@ -58,7 +58,17 @@ def load_solver(backend: str) -> Callable:
         return solver_fn
 
     if b == "iqm":
-        from qsplit.adapters.dwave.dwave_sa import solve as solver_fn
+        from qsplit.adapters.iqm.iqm_qaoa_q import solve as solver_fn
+
+        return solver_fn
+
+    if b == "quantinuum_h2":
+        from qsplit.adapters.quantinuum.quantinuum_h2 import solve as solver_fn
+
+        return solver_fn
+
+    if b == "quantinuum_h2e":
+        from qsplit.adapters.quantinuum.quantinuum_h2e import solve as solver_fn
 
         return solver_fn
 
@@ -73,11 +83,12 @@ def main() -> None:
     parser.add_argument("--output-qubo", required=True)
     args = parser.parse_args()
 
+    backend = resolve_backend(os.getenv("QSPLIT_BACKEND", ""))
+
     qubo = load_qubo(args.input_qubo)
     if not isinstance(qubo, QUBO):
         raise TypeError(f"Expected QUBO object in {args.input_qubo}, got {type(qubo)}")
 
-    backend = resolve_backend(os.getenv("QSPLIT_BACKEND", ""))
     solver_fn = load_solver(backend)
     df = solver_fn(qubo)
     if df is None:
