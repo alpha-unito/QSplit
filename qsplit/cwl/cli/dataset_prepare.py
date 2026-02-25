@@ -3,6 +3,7 @@ import csv
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 
 
@@ -14,9 +15,24 @@ def _record_id(record: dict, line_no: int) -> str:
     return value if value else str(line_no)
 
 
+def _sanitize_id(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-")
+
+
 def _safe_id(value: str, fallback: int) -> str:
-    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-")
+    safe = _sanitize_id(value)
     return safe if safe else f"row_{fallback}"
+
+
+def _strip_numeric_prefixes(value: str) -> str:
+    candidate = value
+    while True:
+        # Only strip fixed-width staging prefixes (000000_...).
+        match = re.match(r"^\d{6}_(.+)$", candidate)
+        if not match:
+            break
+        candidate = match.group(1)
+    return candidate
 
 
 def _repo_root() -> Path:
@@ -68,6 +84,13 @@ def _expected_solution_name(safe_id: str) -> str:
     return f"solutions_{safe_id}.csv"
 
 
+def _solution_safe_id_from_name(path: Path) -> str:
+    stem = path.stem
+    if stem.startswith("solutions_"):
+        stem = stem[len("solutions_") :]
+    return _sanitize_id(_strip_numeric_prefixes(stem))
+
+
 def _is_valid_solution_file(path: Path) -> bool:
     if not path.exists() or not path.is_file():
         return False
@@ -77,18 +100,47 @@ def _is_valid_solution_file(path: Path) -> bool:
         with path.open("r", encoding="utf-8", newline="") as handle:
             reader = csv.reader(handle)
             header = next(reader, None)
-            first_row = next(reader, None)
+            row = next(reader, None)
     except Exception:
         return False
-    if header != ["node_id", "backend", "bitstring", "energy"]:
+    if not header:
         return False
-    if not first_row or len(first_row) != 4:
+    # Support both canonical and historical CSV variants:
+    # if at least one data row exists and the last column is numeric, accept it.
+    if not row:
+        return False
+    if len(row) < 4:
         return False
     try:
-        float(first_row[3])
+        float(row[-1])
     except Exception:
         return False
     return True
+
+
+def _resolve_existing_solution_file(solutions_dir: Path, safe_id: str) -> Path:
+    expected = solutions_dir / _expected_solution_name(safe_id)
+    if _is_valid_solution_file(expected):
+        return expected
+
+    # Backward compatibility for legacy persisted names that accidentally
+    # contained StreamFlow staging numeric prefixes.
+    for candidate in sorted(solutions_dir.glob("solutions_*.csv")):
+        if candidate == expected:
+            continue
+        if not _is_valid_solution_file(candidate):
+            continue
+        if _solution_safe_id_from_name(candidate) != safe_id:
+            continue
+        shutil.copy2(candidate, expected)
+        print(
+            f"QSPLIT DATASET PREPARE normalized legacy solution name "
+            f"{candidate.name} -> {expected.name}",
+            flush=True,
+        )
+        return expected
+
+    return expected
 
 
 def _matrix_from_record(record: dict) -> list[list[float]] | None:
@@ -169,7 +221,7 @@ def main() -> None:
             rec_id = _record_id(record, line_no)
             safe_id = _safe_id(rec_id, line_no)
             solution_name = _expected_solution_name(safe_id)
-            solution_path = solutions_dir / solution_name
+            solution_path = _resolve_existing_solution_file(solutions_dir, safe_id)
             already_solved = _is_valid_solution_file(solution_path)
             matrix_name = None
 
@@ -181,6 +233,11 @@ def main() -> None:
                     encoding="utf-8",
                 )
                 scheduled_count += 1
+            else:
+                print(
+                    f"QSPLIT DATASET PREPARE skip id={safe_id} solution={solution_path}",
+                    flush=True,
+                )
 
             manifest_items.append(
                 {

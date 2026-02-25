@@ -60,15 +60,15 @@ def _is_valid_solution_file(path: Path) -> bool:
         with path.open("r", encoding="utf-8", newline="") as handle:
             reader = csv.reader(handle)
             header = next(reader, None)
-            first_row = next(reader, None)
+            row = next(reader, None)
     except Exception:
         return False
-    if header != ["node_id", "backend", "bitstring", "energy"]:
+    if not header:
         return False
-    if not first_row or len(first_row) != 4:
+    if not row or len(row) < 4:
         return False
     try:
-        float(first_row[3])
+        float(row[-1])
     except Exception:
         return False
     return True
