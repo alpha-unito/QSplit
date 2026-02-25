@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Dict
@@ -15,6 +16,7 @@ from qsplit.splitting.split_recursive import split_problem
 def recursively_split(
     qubo: QUBO,
     node_id: str,
+    instance_id: str,
     out_dir: Path,
     solved_dir: Path,
     nodes: Dict[str, Dict],
@@ -22,6 +24,7 @@ def recursively_split(
     enable_sparse_check: bool,
 ) -> None:
     qubo.node_id = node_id
+    qubo.instance_id = instance_id
 
     nodes[node_id] = {
         "rows_idx": qubo.rows_idx.astype(int).tolist(),
@@ -46,6 +49,7 @@ def recursively_split(
         recursively_split(
             sub,
             child_id,
+            instance_id,
             out_dir,
             solved_dir,
             nodes,
@@ -144,6 +148,19 @@ def _materialize(files: list[Path], out_dir: Path) -> None:
             shutil.copy2(src, dst)
 
 
+def _instance_id_from_matrix_path(matrix_path: str) -> str:
+    stem = Path(matrix_path).stem
+    match = re.match(r"^\d{6}_(.+)$", stem)
+    if match:
+        candidate = match.group(1)
+        nested = re.match(r"^\d{6}_(.+)$", candidate)
+        if nested:
+            candidate = nested.group(1)
+        stem = candidate
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._-")
+    return safe or "instance_unknown"
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--input-matrix", required=True)
@@ -171,10 +188,12 @@ def main() -> None:
     if cut_dim <= 0:
         raise ValueError(f"cut_dim must be positive, got {cut_dim}")
 
+    instance_id = _instance_id_from_matrix_path(args.input_matrix)
     nodes: Dict[str, Dict] = {}
     recursively_split(
         full,
         "root",
+        instance_id,
         out_dir,
         solved_dir,
         nodes,
