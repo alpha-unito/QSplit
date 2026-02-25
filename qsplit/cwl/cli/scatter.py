@@ -11,6 +11,8 @@ import pandas as pd
 from qsplit.cwl.cli.utils import load_qubo, save_qubo
 from qsplit.qubo import QUBO
 
+IQM_CACHE_MISS_EXIT_CODE = 75
+
 
 def resolve_backend(raw: str) -> str:
     b = (raw or "").strip().lower()
@@ -122,6 +124,11 @@ def _iqm_cache_enabled() -> bool:
     return raw not in {"0", "false", "no"}
 
 
+def _iqm_cache_probe_only() -> bool:
+    raw = (os.getenv("QSPLIT_IQM_CACHE_ONLY", "") or "").strip().lower()
+    return raw in {"1", "true", "yes"}
+
+
 def _safe_cache_component(value: str, fallback: str) -> str:
     text = (value or "").strip()
     text = re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("._-")
@@ -207,6 +214,9 @@ def main() -> None:
             if not os.path.exists(args.output_qubo):
                 raise SystemExit(f"Output not created: {args.output_qubo}")
             return
+        if _iqm_cache_probe_only():
+            print(f"QSPLIT IQM SUBPROBLEM CACHE MISS {iqm_cache_label} path={iqm_cache_path}", flush=True)
+            raise SystemExit(IQM_CACHE_MISS_EXIT_CODE)
 
     solver_fn = load_solver(backend)
     df = solver_fn(qubo)

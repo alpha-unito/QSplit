@@ -27,6 +27,7 @@ from .slurm_retry import run_with_slurm_cancellation_retry
 
 logger = logging.getLogger(__name__)
 _SHARED_DISABLED_PROVIDERS: dict[str, set[str]] = {}
+_IQM_CACHE_PROBE_MISS_EXIT_CODE = 75
 
 
 class QuantumConnectorWrapper(ConnectorWrapper):
@@ -251,6 +252,13 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             *list(command[1:]),
         ]
 
+    @staticmethod
+    def _is_iqm_scatter_command(command: MutableSequence[str]) -> bool:
+        if not command:
+            return False
+        executable = os.path.basename(str(command[0]).strip().lower())
+        return executable in {"cli_scatter", "cli_scatter.exe"}
+
     async def _get_quantum_locations(
         self,
         service: str | None = None,
@@ -367,45 +375,76 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             service_candidates = [primary_service] + [
                 service for service in fallback_services if service and service != primary_service
             ]
+
+            async def _resolve_target_location(service_index: int, target_service: str) -> ExecutionLocation | None:
+                if service_index == 0 and backend == preferred_backend:
+                    return get_inner_location(location)
+                available_locations = await self.connector.get_available_locations(service=target_service)
+                if not available_locations:
+                    logger.warning(
+                        "No available locations found for service '%s' (provider '%s').",
+                        target_service,
+                        backend,
+                    )
+                    return None
+                selected = next(iter(available_locations.values()))
+                return getattr(selected, "location", selected)
+
+            async def _run_on_location(
+                target_location: ExecutionLocation,
+                run_env: MutableMapping[str, str],
+                run_timeout: int | None,
+            ):
+                return await self.connector.run(
+                    location=target_location,
+                    command=command_to_run,
+                    environment=run_env,
+                    workdir=workdir,
+                    stdin=stdin,
+                    stdout=stdout,
+                    stderr=stderr,
+                    capture_output=capture_output,
+                    timeout=run_timeout,
+                    job_name=job_name,
+                )
+
+            if backend == "iqm" and self._is_iqm_scatter_command(command):
+                probe_env = dict(env)
+                probe_env["QSPLIT_IQM_CACHE_ONLY"] = "1"
+                try:
+                    probe_result = await run_with_slurm_cancellation_retry(
+                        logger=logger,
+                        service_candidates=service_candidates,
+                        get_location_for_service=_resolve_target_location,
+                        run_on_location=lambda target_location: _run_on_location(target_location, probe_env, None),
+                    )
+                    if (
+                        isinstance(probe_result, tuple)
+                        and len(probe_result) == 2
+                        and isinstance(probe_result[1], int)
+                    ):
+                        probe_code = probe_result[1]
+                        if probe_code == 0:
+                            logger.info("IQM cache hit resolved before provider slot reservation.")
+                            return probe_result
+                        if probe_code == _IQM_CACHE_PROBE_MISS_EXIT_CODE:
+                            logger.info("IQM cache miss detected. Reserving IQM provider slot.")
+                        else:
+                            logger.debug("IQM cache probe returned code %s. Proceeding with IQM execution.", probe_code)
+                except Exception as probe_exc:
+                    logger.debug("IQM cache probe failed (%s). Proceeding with IQM execution.", probe_exc)
+
             if backend:
                 self._provider_usage[backend] = self._provider_usage.get(backend, 0) + 1
             await self._acquire_provider_slot(backend)
             try:
-
-                async def _resolve_target_location(service_index: int, target_service: str) -> ExecutionLocation | None:
-                    if service_index == 0 and backend == preferred_backend:
-                        return get_inner_location(location)
-                    available_locations = await self.connector.get_available_locations(service=target_service)
-                    if not available_locations:
-                        logger.warning(
-                            "No available locations found for service '%s' (provider '%s').",
-                            target_service,
-                            backend,
-                        )
-                        return None
-                    selected = next(iter(available_locations.values()))
-                    return getattr(selected, "location", selected)
-
-                async def _run_on_location(target_location: ExecutionLocation):
-                    return await self.connector.run(
-                        location=target_location,
-                        command=command_to_run,
-                        environment=env,
-                        workdir=workdir,
-                        stdin=stdin,
-                        stdout=stdout,
-                        stderr=stderr,
-                        capture_output=capture_output,
-                        timeout=effective_timeout,
-                        job_name=job_name,
-                    )
 
                 try:
                     result = await run_with_slurm_cancellation_retry(
                         logger=logger,
                         service_candidates=service_candidates,
                         get_location_for_service=_resolve_target_location,
-                        run_on_location=_run_on_location,
+                        run_on_location=lambda target_location: _run_on_location(target_location, env, effective_timeout),
                     )
                 except Exception as exc:
                     if backend == "iqm" and isinstance(exc, TimeoutError):
