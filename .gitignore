@@ -14,3 +14,4 @@ build
 maxcut_*
 .venv*
 *.jsonl
+*.log

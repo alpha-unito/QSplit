@@ -101,7 +101,67 @@ def main() -> None:
     row_map, col_map = build_index_maps(full_qubo.rows_idx, full_qubo.cols_idx)
 
     solved_paths = parse_solved_paths(args.solved_list)
-    solved_entries, solved_by_id = load_solved_qubos(solved_paths)
+    solved_entries_raw, _ = load_solved_qubos(solved_paths)
+
+    expected_instance = str(getattr(full_qubo, "instance_id", "") or "").strip()
+    solved_entries: List[Tuple[Path, str, QUBO]] = []
+    skipped_instance: List[Tuple[Path, str, str]] = []
+    for path, node_id, qubo in solved_entries_raw:
+        source_instance = str(getattr(qubo, "instance_id", "") or "").strip()
+        if expected_instance and source_instance and source_instance != expected_instance:
+            skipped_instance.append((path, node_id, source_instance))
+            continue
+        solved_entries.append((path, node_id, qubo))
+
+    source_instances = sorted(
+        {
+            str(getattr(qubo, "instance_id", "") or "").strip()
+            for _, _, qubo in solved_entries_raw
+            if str(getattr(qubo, "instance_id", "") or "").strip()
+        }
+    )
+    if source_instances:
+        print(
+            "QSPLIT AGGREGATE solved_instances="
+            + ",".join(source_instances)
+            + f" expected_instance={expected_instance or 'unknown'}",
+            flush=True,
+        )
+    if skipped_instance:
+        print(
+            f"QSPLIT AGGREGATE skipped_solved_due_to_instance_mismatch={len(skipped_instance)}",
+            flush=True,
+        )
+
+    solved_by_id: Dict[str, QUBO] = {}
+    duplicate_nodes: set[str] = set()
+    for _, node_id, qubo in solved_entries:
+        if node_id in solved_by_id:
+            duplicate_nodes.add(node_id)
+            continue
+        solved_by_id[node_id] = qubo
+    if duplicate_nodes:
+        print(
+            "QSPLIT AGGREGATE duplicate_node_ids_in_solved_list=" + ",".join(sorted(duplicate_nodes)),
+            flush=True,
+        )
+
+    leaf_nodes = sorted(node_id for node_id, node in nodes.items() if not (node.get("children") or []))
+    missing_leaf_nodes = sorted(node_id for node_id in leaf_nodes if node_id not in solved_by_id)
+    if missing_leaf_nodes:
+        preview = ",".join(missing_leaf_nodes[:10])
+        message = (
+            f"QSPLIT AGGREGATE missing_solved_leaf_nodes={len(missing_leaf_nodes)} "
+            f"preview={preview}"
+        )
+        print(message, flush=True)
+        if expected_instance:
+            raise RuntimeError(message)
+
+    if expected_instance and not solved_by_id:
+        raise RuntimeError(
+            f"QSPLIT AGGREGATE no solved QUBOs available for expected_instance={expected_instance}"
+        )
 
     rows: List[Tuple[str, str, str, str]] = []
     best_by_node_backend: Dict[Tuple[str, str], List[Tuple[float, str]]] = {}
@@ -152,8 +212,16 @@ def main() -> None:
                     continue
                 agg_entries.append((energy, bits))
             agg_entries.sort(key=lambda e: e[0])
-            for i, (energy, bits) in enumerate(agg_entries[:3]):
-                rows.append((root_id, "aggregate", f"{i},{bits}", f"{energy:.12g}"))
+            for energy, bits in agg_entries[:3]:
+                rows.append((root_id, "aggregate", bits, f"{energy:.12g}"))
+        else:
+            message = (
+                f"QSPLIT AGGREGATE root aggregation failed for instance="
+                f"{expected_instance or 'unknown'} root={root_id}"
+            )
+            print(message, flush=True)
+            if expected_instance:
+                raise RuntimeError(message)
 
     rows.sort(key=lambda r: r[0])
     lines = ["node_id,backend,bitstring,energy"]

@@ -182,13 +182,18 @@ def main() -> None:
     solved_dir = Path("solved_dummy").resolve()
     solved_dir.mkdir(parents=True, exist_ok=True)
 
+    instance_id = _instance_id_from_matrix_path(args.input_matrix)
     full = build_qubo_from_matrix(args.input_matrix)
+    # Keep the full problem metadata aligned with subproblems so downstream
+    # aggregation can validate instance consistency.
+    full.instance_id = instance_id
+    full.node_id = "root"
+    save_qubo("initial_qubo.pkl", full)
 
     cut_dim = int(args.cut_dim)
     if cut_dim <= 0:
         raise ValueError(f"cut_dim must be positive, got {cut_dim}")
 
-    instance_id = _instance_id_from_matrix_path(args.input_matrix)
     nodes: Dict[str, Dict] = {}
     recursively_split(
         full,

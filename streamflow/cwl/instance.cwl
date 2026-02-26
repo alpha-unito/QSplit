@@ -92,21 +92,22 @@ steps:
     out: [solved_qubo]
     scatter: [input_qubo]
 
+  merge_solved:
+    run: clt/merge_solved_lists.cwl
+    in:
+      parallel_solved: parallelize/solved_qubo
+      iqm_solved: iqm/solved_qubo
+      quantinuum_h2_solved: quantinuum_h2/solved_qubo
+      quantinuum_h2e_solved: quantinuum_h2e/solved_qubo
+      split_solved: split/solved_qubos
+    out: [solved_list]
+
   aggregate:
     run: clt/aggregate.cwl
     in:
       input_qubo: split/full_qubo
       tree_file: split/tree_meta
-      solved_list:
-        source:
-          [
-            parallelize/solved_qubo,
-            iqm/solved_qubo,
-            quantinuum_h2/solved_qubo,
-            quantinuum_h2e/solved_qubo,
-            split/solved_qubos,
-          ]
-        linkMerge: merge_flattened
+      solved_list: merge_solved/solved_list
     out: [aggregate_solutions]
 
   persist_solution:
