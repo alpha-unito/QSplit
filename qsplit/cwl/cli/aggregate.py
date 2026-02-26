@@ -1,7 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 import numpy as np
 
@@ -16,6 +16,78 @@ from qsplit.cwl.cli.utils import (
     parse_solved_paths,
 )
 from qsplit.qubo import QUBO
+
+
+def _workspace_roots_from_paths(paths: List[Path]) -> List[Path]:
+    marker = "/streamflow_workdir/"
+    roots: set[Path] = set()
+    for path in paths:
+        text = str(path)
+        if marker not in text:
+            continue
+        prefix = text.split(marker, 1)[0] + marker.rstrip("/")
+        roots.add(Path(prefix))
+    return sorted(roots)
+
+
+def _discover_solved_for_instance(
+    workspace_roots: List[Path],
+    expected_instance: str,
+    required_nodes: Set[str],
+    known_paths: Set[Path],
+    required_node_specs: Dict[str, Tuple[Tuple[int, ...], Tuple[int, ...]]],
+) -> List[Tuple[Path, str, QUBO]]:
+    if not expected_instance or not required_nodes:
+        return []
+
+    candidates: Dict[str, Tuple[float, Path, QUBO]] = {}
+
+    for root in workspace_roots:
+        if not root.exists():
+            continue
+        for pattern in ("solved.pkl", "root_*.pkl"):
+            for candidate in root.rglob(pattern):
+                try:
+                    resolved = candidate.resolve()
+                except Exception:
+                    resolved = candidate
+                if resolved in known_paths:
+                    continue
+                try:
+                    qubo = load_qubo(candidate)
+                except Exception:
+                    continue
+                if not isinstance(qubo, QUBO):
+                    continue
+                source_instance = str(getattr(qubo, "instance_id", "") or "").strip()
+                if source_instance != expected_instance:
+                    continue
+                node_id = str(getattr(qubo, "node_id", "") or candidate.stem)
+                if node_id not in required_nodes:
+                    continue
+                spec = required_node_specs.get(node_id)
+                if spec is not None:
+                    rows_expected, cols_expected = spec
+                    rows_found = tuple(int(v) for v in getattr(qubo, "rows_idx", []))
+                    cols_found = tuple(int(v) for v in getattr(qubo, "cols_idx", []))
+                    if rows_found != rows_expected or cols_found != cols_expected:
+                        continue
+                df = getattr(qubo, "solutions", None)
+                if df is None or getattr(df, "empty", True):
+                    continue
+                try:
+                    mtime = candidate.stat().st_mtime
+                except Exception:
+                    mtime = 0.0
+                current = candidates.get(node_id)
+                if current is None or mtime > current[0]:
+                    candidates[node_id] = (mtime, candidate, qubo)
+
+    discovered: List[Tuple[Path, str, QUBO]] = []
+    for node_id in sorted(candidates):
+        _, path, qubo = candidates[node_id]
+        discovered.append((path, node_id, qubo))
+    return discovered
 
 
 def build_node_qubo(node: Dict, full_mat: np.ndarray, row_map: Dict[int, int], col_map: Dict[int, int]) -> QUBO | None:
@@ -147,16 +219,46 @@ def main() -> None:
         )
 
     leaf_nodes = sorted(node_id for node_id, node in nodes.items() if not (node.get("children") or []))
+    leaf_specs: Dict[str, Tuple[Tuple[int, ...], Tuple[int, ...]]] = {
+        node_id: (
+            tuple(int(v) for v in (nodes.get(node_id, {}).get("rows_idx") or [])),
+            tuple(int(v) for v in (nodes.get(node_id, {}).get("cols_idx") or [])),
+        )
+        for node_id in leaf_nodes
+    }
     missing_leaf_nodes = sorted(node_id for node_id in leaf_nodes if node_id not in solved_by_id)
     if missing_leaf_nodes:
-        preview = ",".join(missing_leaf_nodes[:10])
-        message = (
-            f"QSPLIT AGGREGATE missing_solved_leaf_nodes={len(missing_leaf_nodes)} "
-            f"preview={preview}"
+        workspace_roots = _workspace_roots_from_paths(
+            [Path(args.input_qubo), Path(args.tree_file), *solved_paths]
         )
-        print(message, flush=True)
-        if expected_instance:
-            raise RuntimeError(message)
+        discovered = _discover_solved_for_instance(
+            workspace_roots=workspace_roots,
+            expected_instance=expected_instance,
+            required_nodes=set(missing_leaf_nodes),
+            known_paths={path.resolve() for path, _, _ in solved_entries},
+            required_node_specs=leaf_specs,
+        )
+        if discovered:
+            for path, node_id, qubo in discovered:
+                if node_id in solved_by_id:
+                    continue
+                solved_entries.append((path, node_id, qubo))
+                solved_by_id[node_id] = qubo
+            print(
+                f"QSPLIT AGGREGATE recovered_solved_from_workspace={len(discovered)} "
+                f"workspace_roots={','.join(str(root) for root in workspace_roots)}",
+                flush=True,
+            )
+            missing_leaf_nodes = sorted(node_id for node_id in leaf_nodes if node_id not in solved_by_id)
+        if missing_leaf_nodes:
+            preview = ",".join(missing_leaf_nodes[:10])
+            message = (
+                f"QSPLIT AGGREGATE missing_solved_leaf_nodes={len(missing_leaf_nodes)} "
+                f"preview={preview}"
+            )
+            print(message, flush=True)
+            if expected_instance:
+                raise RuntimeError(message)
 
     if expected_instance and not solved_by_id:
         raise RuntimeError(
