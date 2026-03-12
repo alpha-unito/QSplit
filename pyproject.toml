@@ -26,7 +26,17 @@ quantinuum = ["qnexus>=0.40.1", "pytket>=2.13.0", "pytket-qiskit>=0.77.0"]
 
 cudaq = ["cudaq>=0.13.0"]
 
-dev = ["qsplit[ibm-cpu,dwave]", "pytest==9.0.1", "pytest-cov==7.0.0", "pre-commit>=4.5.1", "ruff>=0.14.13"]
+dev = [
+    "dwave-system==1.34.0",
+    "qiskit>=2.1.2",
+    "qiskit-algorithms==0.4.0",
+    "qiskit-ibm-runtime==0.43.1",
+    "qiskit-aer==0.17.2",
+    "pytest==9.0.1",
+    "pytest-cov==7.0.0",
+    "pre-commit>=4.5.1",
+    "ruff>=0.14.13",
+]
 
 dataset = [
     "pennylane==0.44.0",
@@ -36,6 +46,7 @@ dataset = [
     "aiohttp==3.13.3",
     "fsspec>=2025.3.0",
     "dwave-system==1.34.0",
+    "matplotlib>=3.10.8",
 ]
 
 streamflow = ["streamflow>=0.2.0dev13"]
