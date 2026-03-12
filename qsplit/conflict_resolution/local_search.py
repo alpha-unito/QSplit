@@ -22,6 +22,11 @@ from qsplit.adapters.dwave.dwave_sa import solve
 from qsplit.qubo import QUBO
 
 
+def calculate_energy(x, q_mat):
+    x_clean = np.where(np.isinf(x), 0.0, x)
+    return x_clean.T @ q_mat @ x_clean
+
+
 def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
     for i, row in df.iterrows():
         no_energy = row.drop("energy")
@@ -34,7 +39,7 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
             mat = np.pad(qubo.mat, ((0, pad_width), (0, pad_width)), mode="constant")
 
         if not np.any(np.isnan(no_energy.values)):
-            df.loc[i, "energy"] = no_energy.values.T @ mat @ no_energy.values
+            df.loc[i, "energy"] = calculate_energy(no_energy.values, mat)
         else:
             nan_indices = no_energy[no_energy.isna()].index.astype(int)
             nan_rows = [idx for idx in nan_indices if idx in qubo.rows_idx]
@@ -66,6 +71,6 @@ def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
                             val = best_sol[target_col]
                         df.at[i, target_col] = val
             full_row_values = df.iloc[i].drop("energy").values
-            df.loc[i, "energy"] = full_row_values.T @ mat[:var_num, :var_num] @ full_row_values
+            df.loc[i, "energy"] = calculate_energy(full_row_values, mat[:var_num, :var_num])
 
     return df
