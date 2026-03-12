@@ -14,24 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-
 import pandas as pd
-from iqm.qiskit_iqm import IQMProvider
-from iqm.qiskit_iqm.fake_backends.fake_garnet import IQMFakeGarnet
+from pytket.extensions.qiskit import AerBackend
 
-from qsplit.adapters.iqm.util import get_qaoa_circuit_optimized, run_quantum_optimizer, to_dataframe
+from qsplit.adapters.quantinuum.__tket_qaoa import __tket_solve
 from qsplit.qubo import QUBO
 
 
 def solve(qubo: QUBO) -> pd.DataFrame:
-    url = os.getenv("IQM_SERVER_URL")
-    _ = os.getenv("IQM_TOKEN")
-    qc = os.getenv("IQM_QUANTUM_COMPUTER", "garnet")
-    quantum_tune = os.getenv("QUANTUM_TUNE_IQM") == "True"
-
-    backend = IQMProvider(url=url, quantum_computer=qc).get_backend()
-    backend_optimizer = backend if quantum_tune else IQMFakeGarnet()
-    circuit, var_to_qubit, all_vars = get_qaoa_circuit_optimized(backend=backend_optimizer, qubo=qubo)
-    counts = run_quantum_optimizer(backend, circuit)
-    return to_dataframe(counts, qubo, var_to_qubit, all_vars)
+    backend = AerBackend()
+    backend._qiskit_backend.set_options(method="matrix_product_state")
+    return __tket_solve(qubo=qubo, backend=backend, backend_optimizer=backend)
