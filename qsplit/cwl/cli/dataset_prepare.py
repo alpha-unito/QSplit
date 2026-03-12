@@ -134,8 +134,7 @@ def _resolve_existing_solution_file(solutions_dir: Path, safe_id: str) -> Path:
             continue
         shutil.copy2(candidate, expected)
         print(
-            f"QSPLIT DATASET PREPARE normalized legacy solution name "
-            f"{candidate.name} -> {expected.name}",
+            f"QSPLIT DATASET PREPARE normalized legacy solution name {candidate.name} -> {expected.name}",
             flush=True,
         )
         return expected

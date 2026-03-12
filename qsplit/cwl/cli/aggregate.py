@@ -228,9 +228,7 @@ def main() -> None:
     }
     missing_leaf_nodes = sorted(node_id for node_id in leaf_nodes if node_id not in solved_by_id)
     if missing_leaf_nodes:
-        workspace_roots = _workspace_roots_from_paths(
-            [Path(args.input_qubo), Path(args.tree_file), *solved_paths]
-        )
+        workspace_roots = _workspace_roots_from_paths([Path(args.input_qubo), Path(args.tree_file), *solved_paths])
         discovered = _discover_solved_for_instance(
             workspace_roots=workspace_roots,
             expected_instance=expected_instance,
@@ -252,18 +250,13 @@ def main() -> None:
             missing_leaf_nodes = sorted(node_id for node_id in leaf_nodes if node_id not in solved_by_id)
         if missing_leaf_nodes:
             preview = ",".join(missing_leaf_nodes[:10])
-            message = (
-                f"QSPLIT AGGREGATE missing_solved_leaf_nodes={len(missing_leaf_nodes)} "
-                f"preview={preview}"
-            )
+            message = f"QSPLIT AGGREGATE missing_solved_leaf_nodes={len(missing_leaf_nodes)} preview={preview}"
             print(message, flush=True)
             if expected_instance:
                 raise RuntimeError(message)
 
     if expected_instance and not solved_by_id:
-        raise RuntimeError(
-            f"QSPLIT AGGREGATE no solved QUBOs available for expected_instance={expected_instance}"
-        )
+        raise RuntimeError(f"QSPLIT AGGREGATE no solved QUBOs available for expected_instance={expected_instance}")
 
     rows: List[Tuple[str, str, str, str]] = []
     best_by_node_backend: Dict[Tuple[str, str], List[Tuple[float, str]]] = {}
@@ -318,8 +311,7 @@ def main() -> None:
                 rows.append((root_id, "aggregate", bits, f"{energy:.12g}"))
         else:
             message = (
-                f"QSPLIT AGGREGATE root aggregation failed for instance="
-                f"{expected_instance or 'unknown'} root={root_id}"
+                f"QSPLIT AGGREGATE root aggregation failed for instance={expected_instance or 'unknown'} root={root_id}"
             )
             print(message, flush=True)
             if expected_instance:

@@ -418,11 +418,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                         get_location_for_service=_resolve_target_location,
                         run_on_location=lambda target_location: _run_on_location(target_location, probe_env, None),
                     )
-                    if (
-                        isinstance(probe_result, tuple)
-                        and len(probe_result) == 2
-                        and isinstance(probe_result[1], int)
-                    ):
+                    if isinstance(probe_result, tuple) and len(probe_result) == 2 and isinstance(probe_result[1], int):
                         probe_code = probe_result[1]
                         if probe_code == 0:
                             logger.info("IQM cache hit resolved before provider slot reservation.")
@@ -438,13 +434,12 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                 self._provider_usage[backend] = self._provider_usage.get(backend, 0) + 1
             await self._acquire_provider_slot(backend)
             try:
-
                 try:
                     result = await run_with_slurm_cancellation_retry(
                         logger=logger,
                         service_candidates=service_candidates,
                         get_location_for_service=_resolve_target_location,
-                        run_on_location=lambda target_location: _run_on_location(target_location, env, effective_timeout),
+                        run_on_location=lambda target_loc: _run_on_location(target_loc, env, effective_timeout),
                     )
                 except Exception as exc:
                     if backend == "iqm" and isinstance(exc, TimeoutError):
