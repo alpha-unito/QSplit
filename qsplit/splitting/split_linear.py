@@ -23,7 +23,7 @@ from qsplit.qubo import QUBO
 
 def split_problem(qubo: QUBO) -> list[QUBO]:
     cut_dim = int(os.environ["CUT_DIM"])
-    padding_needed = cut_dim - (qubo.problem_size % cut_dim)
+    padding_needed = (cut_dim - (qubo.problem_size % cut_dim)) % cut_dim
 
     if padding_needed > 0:
         qubo.mat = np.pad(qubo.mat, ((0, padding_needed), (0, padding_needed)), mode="constant", constant_values=0)
@@ -34,11 +34,15 @@ def split_problem(qubo: QUBO) -> list[QUBO]:
 
     res = []
     for i in range(0, qubo.problem_size, cut_dim):
-        end = i + cut_dim
-        mat = qubo.mat[i:end, i:end]
-        if np.count_nonzero(mat) == 0:
-            continue
-        sub_qubo = QUBO(mat, qubo.rows_idx[i:end], qubo.cols_idx[i:end])
-        res.append(sub_qubo)
+        for j in range(i, qubo.problem_size, cut_dim):
+            row_end = i + cut_dim
+            col_end = j + cut_dim
+            sub_mat = qubo.mat[i:row_end, j:col_end]
+
+            if np.count_nonzero(sub_mat) == 0:
+                continue
+
+            sub_qubo = QUBO(sub_mat, qubo.rows_idx[i:row_end], qubo.cols_idx[j:col_end])
+            res.append(sub_qubo)
 
     return res
