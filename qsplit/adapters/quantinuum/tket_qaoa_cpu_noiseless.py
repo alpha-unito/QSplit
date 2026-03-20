@@ -24,4 +24,4 @@ from qsplit.qubo import QUBO
 def solve(qubo: QUBO) -> pd.DataFrame:
     backend = AerBackend()
     backend._qiskit_backend.set_options(method="matrix_product_state")
-    return __tket_solve(qubo=qubo, backend=backend, backend_optimizer=backend)
+    return __tket_solve(qubo=qubo, backend=backend)

@@ -17,15 +17,12 @@
 import os
 
 import pandas as pd
-from pytket.extensions.qiskit import AerBackend
+import qnexus as qnx
 
 from qsplit.adapters.quantinuum.__tket_qaoa import __tket_solve
 from qsplit.qubo import QUBO
 
 
 def solve(qubo: QUBO) -> pd.DataFrame:
-    backend_optimizer = None
-    if os.getenv("QUANTUM_TUNE_QAOA") != "True":
-        backend_optimizer = AerBackend()
-        backend_optimizer._qiskit_backend.set_options(method="matrix_product_state")
-    return __tket_solve(qubo=qubo, backend=None, backend_optimizer=backend_optimizer)
+    qnx.auth.login_no_interaction(os.getenv("QNEXUS_USER"), os.getenv("QNEXUS_PASSWORD"))
+    return __tket_solve(qubo=qubo, backend=None)
