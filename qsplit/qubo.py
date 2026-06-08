@@ -16,7 +16,6 @@
 
 import numpy as np
 import pandas as pd
-from scipy.linalg import lu
 
 int_arr = np.ndarray[tuple[int], np.dtype[int]]
 flt_mat = np.ndarray[tuple[int, int], np.dtype[np.float64]]
@@ -41,7 +40,8 @@ class QUBO:
     @staticmethod
     def sanitize(mat: flt_mat, cols_idx: int_arr, rows_idx: int_arr) -> tuple[flt_mat, int_arr, int_arr]:
         if not np.allclose(mat, np.triu(mat)):
-            mat = lu(mat, permute_l=True)[1]
+            diag = np.diag(np.diag(mat))
+            mat = np.triu(mat + mat.T) - diag
 
         mat = np.round(mat, decimals=9)
         mat[np.abs(mat) < 1e-12] = 0.0

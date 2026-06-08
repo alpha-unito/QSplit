@@ -17,7 +17,6 @@
 import unittest
 
 import numpy as np
-from scipy.linalg import lu
 
 from qsplit.qubo import QUBO
 
@@ -89,7 +88,8 @@ class TestQUBO(unittest.TestCase):
         rows = np.array([1, 2, 3])
         cols = np.array([1, 2, 3])
         new_mat, new_cols, new_rows = QUBO.sanitize(mat, cols, rows)
-        triangular_mat = lu(mat, permute_l=True)[1]
+        diag = np.diag(np.diag(mat))
+        triangular_mat = np.triu(mat + mat.T) - diag
         expected_mat = np.zeros((4, 4))
         expected_mat[:3, :3] = triangular_mat
         self.assertEqual(new_mat.shape, (4, 4))
