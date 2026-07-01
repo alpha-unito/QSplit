@@ -17,7 +17,8 @@
 import pandas as pd
 from qiskit import generate_preset_pass_manager
 
-from qsplit.adapters.ibm.util import get_qaoa_circuit_optimized, run_quantum_optimizer, to_dataframe
+from qsplit.adapters.ibm.util import to_dataframe
+from qsplit.adapters.ibm.util_qaoa import get_qaoa_circuit_optimized, run_quantum_optimizer
 from qsplit.qubo import QUBO
 
 

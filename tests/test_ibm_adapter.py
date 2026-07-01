@@ -22,9 +22,8 @@ from qiskit.circuit.library import QAOAAnsatz
 from qiskit.quantum_info import SparsePauliOp
 
 from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as cpu_solve
-from qsplit.adapters.ibm.util import __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
-from qsplit.adapters.ibm.util import __get_variables_mapping as get_variables_mapping
-from qsplit.adapters.ibm.util import to_dataframe
+from qsplit.adapters.ibm.util import get_variables_mapping, to_dataframe
+from qsplit.adapters.ibm.util_qaoa import __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
 from qsplit.qubo import QUBO
 
 
