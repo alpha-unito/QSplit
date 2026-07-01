@@ -14,7 +14,7 @@ from qsplit.adapters.ibm.util import get_variables_mapping, to_dataframe
 from qsplit.qubo import QUBO
 
 
-def ibm_solve(qubo: QUBO, backend) -> pd.Dataframe:
+def ibm_solve(qubo: QUBO, backend) -> pd.DataFrame:
     var_to_qubit, all_vars = get_variables_mapping(qubo)
     pm = generate_preset_pass_manager(backend=backend, optimization_level=2)
     quantum_results = __run_quantum_optimizer(var_to_qubit, all_vars, qubo, backend, pm, k=3)

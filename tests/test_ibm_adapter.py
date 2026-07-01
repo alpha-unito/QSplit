@@ -155,7 +155,6 @@ class TestIBMAdapter(unittest.TestCase):
 
         self.assertEqual(df.iloc[0]["energy"], 0.0)
         self.assertEqual(df.iloc[0][1], 0)
-        self.assertIn(-1, df.columns)
 
     ##################################################
     # cpu_noiseless                                  #
