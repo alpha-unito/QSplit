@@ -79,33 +79,28 @@ def __pce_loss(
 def __run_quantum_optimizer(
     var_to_qubit, all_vars, qubo: QUBO, backend, pm: BasePassManager, k: int = 3
 ) -> dict[int, int]:
-    var_to_qubit, all_vars = get_variables_mapping(qubo)
     n = len(all_vars)
-
     Q = np.zeros((n, n))
-    for i, row_var in enumerate(qubo.rows_idx):
-        for j, col_var in enumerate(qubo.cols_idx):
-            Q[var_to_qubit[row_var], var_to_qubit[col_var]] = qubo.mat[i, j]
-
+    row_indices = [var_to_qubit[r] for r in qubo.rows_idx]
+    col_indices = [var_to_qubit[c] for c in qubo.cols_idx]
+    Q[np.ix_(row_indices, col_indices)] = qubo.mat
     J_prime = {}
-    for u in range(n):
-        for v in range(u + 1, n):
-            if Q[u, v] != 0:
-                J_prime[(u, v)] = Q[u, v] / 4.0
+
+    u_idx, v_idx = np.triu_indices(n, k=1)
+    for u, v in zip(u_idx, v_idx):
+        if Q[u, v] != 0:
+            J_prime[(u, v)] = Q[u, v] / 4.0
+
+    diag_Q = np.diag(Q)
+    sum_rows_cols = np.sum(Q, axis=1) + np.sum(Q, axis=0) - 2 * diag_Q
+    h = -diag_Q / 2.0 - sum_rows_cols / 4.0
 
     dummy_index = n
-    for u in range(n):
-        h_u = -Q[u, u] / 2.0
-        for v in range(n):
-            if u < v:
-                h_u -= Q[u, v] / 4.0
-            elif v < u:
-                h_u -= Q[v, u] / 4.0
-        if h_u != 0:
-            J_prime[(u, dummy_index)] = h_u
+    for u, val in enumerate(h):
+        if val != 0:
+            J_prime[(u, dummy_index)] = val
 
     num_nodes = n + 1
-
     q = k
     while 3 * comb(q, k) < num_nodes:
         q += 1
@@ -144,11 +139,10 @@ def __run_quantum_optimizer(
     ]
 
     estimator = EstimatorV2(mode=backend)
-
     exp_result = []
 
-    def loss_wrapper(x):
-        exp = __pce_loss(x, qc, pce_mapped, estimator, J_prime, num_nodes, num_qubits)
+    def loss_wrapper(x_params):
+        exp = __pce_loss(x_params, qc, pce_mapped, estimator, J_prime, num_nodes, num_qubits)
         exp_result.append(exp)
         return exp["loss"]
 
@@ -166,31 +160,25 @@ def __run_quantum_optimizer(
     )
 
     best_exp_map = min(exp_result, key=lambda val: val["loss"])["exp_map"]
-
-    x_raw = {}
-    for idx in range(num_nodes):
-        x_raw[idx] = 1 if best_exp_map[idx] >= 0 else -1
-
+    best_exp_arr = np.array([best_exp_map[idx] for idx in range(num_nodes)])
+    x_raw = np.where(best_exp_arr >= 0, 1, -1)
     x_dummy = x_raw[dummy_index]
-    z = {idx: int((1 - (x_raw[idx] * x_dummy)) / 2) for idx in range(n)}
+    x = ((1 - (x_raw[:n] * x_dummy)) // 2).astype(int)
+    H = Q @ x + x @ Q - 2 * diag_Q * x
 
     improved = True
     while improved:
         improved = False
         for u in range(n):
-            delta_z = 1 - 2 * z[u]
-            delta_E = Q[u, u] * delta_z
-            for v in range(n):
-                if u < v:
-                    delta_E += Q[u, v] * z[v] * delta_z
-                elif v < u:
-                    delta_E += Q[v, u] * z[v] * delta_z
-
+            delta_z = 1 - 2 * x[u]
+            delta_E = (Q[u, u] + H[u]) * delta_z
             if delta_E < -1e-6:
-                z[u] = 1 - z[u]
+                x[u] = 1 - x[u]
                 improved = True
+                H += (Q[u, :] + Q[:, u]) * delta_z
+                H[u] -= 2 * Q[u, u] * delta_z
 
-    bin_str = "".join([str(z[i]) for i in range(n)])[::-1]
-    state_int = int(bin_str, 2)
+    powers_of_two = 2 ** np.arange(n)
+    state_int = int(np.dot(x, powers_of_two))
 
     return {state_int: 1}
