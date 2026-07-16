@@ -20,7 +20,9 @@ import warnings
 from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.adapters.dwave.dwave_sa import solve
 from qsplit.aggregation.aggregate_k_interactions import aggregate_solutions as aggregate_solutions_interactions
-from qsplit.aggregation.aggregate_linear import aggregate_solutions as aggregate_solutions_linear
+
+# from qsplit.aggregation.aggregate_linear import aggregate_solutions as aggregate_solutions_linear
+from qsplit.aggregation.aggregate_linear_belief_propagation import aggregate_solutions as aggregate_solutions_linear_bp
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions as aggregate_solutions_recursive
 from qsplit.aggregation.aggregate_recursive_graph import aggregate_solutions as aggregate_solutions_recursive_graph
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
@@ -74,7 +76,7 @@ def qsplit_sampler_iterative(qubo: QUBO) -> QUBO:
             p.solutions = dummy_solve(p)
         else:
             p.solutions = solve(p)
-    return aggregate_solutions_linear(subs, qubo)
+    return aggregate_solutions_linear_bp(subs, qubo)
 
 
 def qsplit_sampler_interactions(qubo: QUBO) -> QUBO:
