@@ -22,11 +22,13 @@ from qsplit.adapters.dwave.dwave_sa import solve
 from qsplit.aggregation.aggregate_k_interactions import aggregate_solutions as aggregate_solutions_interactions
 from qsplit.aggregation.aggregate_linear import aggregate_solutions as aggregate_solutions_linear
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions as aggregate_solutions_recursive
+from qsplit.aggregation.aggregate_recursive_graph import aggregate_solutions as aggregate_solutions_recursive_graph
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_k_interactions import split_problem as split_problem_interactions
 from qsplit.splitting.split_linear import split_problem as split_problem_linear
 from qsplit.splitting.split_recursive import split_problem as split_problem_recursive
+from qsplit.splitting.split_recursive_graph import split_problem as split_problem_recursive_graph
 
 warnings.warn(
     "local_runner module is deprecated. This was the legacy method for using QSplit. "
@@ -83,3 +85,13 @@ def qsplit_sampler_interactions(qubo: QUBO) -> QUBO:
         else:
             p.solutions = solve(p)
     return aggregate_solutions_interactions(subs, qubo)
+
+
+def qsplit_sampler_graph_partitioning(qubo: QUBO) -> QUBO:
+    subs = split_problem_recursive_graph(qubo)
+    for p in subs:
+        if is_empty(p):
+            p.solutions = dummy_solve(p)
+        else:
+            p.solutions = solve(p)
+    return aggregate_solutions_recursive_graph(subs, qubo)
