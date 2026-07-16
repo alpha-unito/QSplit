@@ -28,9 +28,6 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
 
     for sub_qubo in solutions:
         df = sub_qubo.solutions
-        if df.empty:
-            continue
-
         valid_columns = [col for col in df.columns if col in idx_to_pos]
         min_energy = df["energy"].min()
         energies = df["energy"].to_numpy()
@@ -47,10 +44,7 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
 
     x = np.zeros(len(all_indices), dtype=int)
     for i in range(len(all_indices)):
-        if beliefs_1[i] + beliefs_0[i] > 0:
-            x[i] = 1 if beliefs_1[i] >= beliefs_0[i] else 0
-        else:
-            x[i] = 0
+        x[i] = 1 if beliefs_1[i] >= beliefs_0[i] else 0
 
     n = len(all_indices)
     energy = x.T @ qubo.mat[:n, :n] @ x
