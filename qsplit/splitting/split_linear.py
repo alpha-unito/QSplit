@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
 import os
 
 import numpy as np
@@ -23,7 +24,17 @@ from qsplit.qubo import QUBO
 
 def split_problem(qubo: QUBO) -> list[QUBO]:
     cut_dim = int(os.environ["CUT_DIM"])
-    padding_needed = (cut_dim - (qubo.problem_size % cut_dim)) % cut_dim
+    stride = int(os.environ.get("STRIDE", -1))
+    if stride <= 0:
+        stride = cut_dim
+
+    n = qubo.problem_size
+    if n <= cut_dim:
+        padding_needed = cut_dim - n
+    else:
+        steps = math.ceil((n - cut_dim) / stride)
+        padded_size = steps * stride + cut_dim
+        padding_needed = padded_size - n
 
     if padding_needed > 0:
         qubo.mat = np.pad(qubo.mat, ((0, padding_needed), (0, padding_needed)), mode="constant", constant_values=0)
@@ -33,8 +44,8 @@ def split_problem(qubo: QUBO) -> list[QUBO]:
         qubo.problem_size = qubo.mat.shape[0]
 
     res = []
-    for i in range(0, qubo.problem_size, cut_dim):
-        for j in range(i, qubo.problem_size, cut_dim):
+    for i in range(0, qubo.problem_size - cut_dim + 1, stride):
+        for j in range(i, qubo.problem_size - cut_dim + 1, stride):
             row_end = i + cut_dim
             col_end = j + cut_dim
             sub_mat = qubo.mat[i:row_end, j:col_end]
