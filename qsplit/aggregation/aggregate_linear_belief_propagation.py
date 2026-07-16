@@ -32,14 +32,10 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
             continue
 
         valid_columns = [col for col in df.columns if col in idx_to_pos]
-        has_energy = "energy" in df.columns
-        if has_energy:
-            min_energy = df["energy"].min()
-            energies = df["energy"].to_numpy()
-            weights = np.exp(-(energies - min_energy))
-            weights /= np.sum(weights)
-        else:
-            weights = np.ones(len(df)) / len(df)
+        min_energy = df["energy"].min()
+        energies = df["energy"].to_numpy()
+        weights = np.exp(-(energies - min_energy))
+        weights /= np.sum(weights)
 
         for idx_row, (_, row) in enumerate(df.iterrows()):
             w = weights[idx_row]
