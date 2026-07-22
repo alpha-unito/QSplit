@@ -76,7 +76,7 @@ class TestAggregateSolutions(unittest.TestCase):
         result_qubo = aggregate_solutions((ul_qubo, ur_qubo, lr_qubo), original_qubo)
 
         expected_qubo = QUBO(original_problem, original_problem_ids, original_problem_ids)
-        expected_qubo.solutions = pd.DataFrame({0: [1.0], 1: [1.0], 2: [0], 3: [1.0], "energy": [-1314.0]})
+        expected_qubo.solutions = pd.DataFrame({0: [0.0], 1: [1.0], 2: [0], 3: [1.0], "energy": [-1372.0]})
         pd.testing.assert_frame_equal(result_qubo.solutions, expected_qubo.solutions)
 
     def test_trivial_aggregate_keeps_only_original_min_energy_rows(self):

@@ -14,12 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from itertools import product
+
 import numpy as np
 import pandas as pd
 
 from qsplit.adapters.all_zero import solve as solve_zeros
 from qsplit.adapters.dwave.dwave_sa import solve
 from qsplit.qubo import QUBO
+
+EXACT_CONFLICT_LIMIT = 10
 
 
 def calculate_energy(x, q_mat):
@@ -28,49 +32,130 @@ def calculate_energy(x, q_mat):
 
 
 def nan_subqubo(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
-    for i, row in df.iterrows():
-        no_energy = row.drop("energy")
-        var_num = len(no_energy)
-        mat = qubo.mat
-        if qubo.mat.shape[0] > var_num:
-            mat = qubo.mat[:var_num, :var_num]
-        elif qubo.mat.shape[0] < var_num:
-            pad_width = var_num - qubo.mat.shape[0]
-            mat = np.pad(qubo.mat, ((0, pad_width), (0, pad_width)), mode="constant")
+    df = df.copy()
+    for row_idx, row in df.iterrows():
+        columns_by_variable = __columns_by_variable(row)
+        missing_variables = __missing_variables(row, columns_by_variable)
+        if missing_variables:
+            best_sol = __solve_missing_variables(row, columns_by_variable, missing_variables, qubo)
+            for variable in missing_variables:
+                target_col = columns_by_variable[variable]
+                df.at[row_idx, target_col] = best_sol.get(variable, 0.0)
 
-        if not np.any(np.isnan(no_energy.values)):
-            df.loc[i, "energy"] = calculate_energy(no_energy.values, mat)
-        else:
-            nan_indices = no_energy[no_energy.isna()].index.astype(int)
-            nan_rows = [idx for idx in nan_indices if idx in qubo.rows_idx]
-            nan_cols = [idx for idx in nan_indices if idx in qubo.cols_idx]
-            row_map = [list(qubo.rows_idx).index(r) for r in nan_rows]
-            col_map = [list(qubo.cols_idx).index(c) for c in nan_cols]
-            qubo_rect = qubo.mat[np.ix_(row_map, col_map)]
-            size_r = len(nan_rows)
-            size_c = len(nan_cols)
-            n = max(size_r, size_c)
-            qubo_square = np.zeros((n, n))
-            qubo_square[:size_r, :size_c] = qubo_rect
-            rows_padded = np.array(nan_rows + [-1] * (n - size_r))
-            cols_padded = np.array(nan_cols + [-1] * (n - size_c))
-            solver = solve_zeros if np.count_nonzero(qubo_square) == 0 else solve
-            qubo_nan = QUBO(qubo_square, cols_idx=cols_padded, rows_idx=rows_padded)
-            nans_sol = solver(qubo_nan)
-            best_sol = nans_sol.sort_values(by="energy").iloc[0]
-            for idx in nan_indices:
-                if idx != -1:
-                    target_col = None
-                    if idx in df.columns:
-                        target_col = idx
-                    elif str(idx) in df.columns:
-                        target_col = str(idx)
-                    if target_col is not None:
-                        val = 0.0
-                        if target_col in best_sol.index:
-                            val = best_sol[target_col]
-                        df.at[i, target_col] = val
-            full_row_values = df.iloc[i].drop("energy").values
-            df.loc[i, "energy"] = calculate_energy(full_row_values, mat[:var_num, :var_num])
+        df.loc[row_idx, "energy"] = __calculate_qubo_energy(df.loc[row_idx], qubo)
 
     return df
+
+
+def __columns_by_variable(row: pd.Series) -> dict[int, object]:
+    columns_by_variable = {}
+    for col in row.index:
+        if col == "energy":
+            continue
+
+        variable = int(col)
+        if variable is not None and variable >= 0:
+            columns_by_variable[variable] = col
+
+    return columns_by_variable
+
+
+def __missing_variables(row: pd.Series, columns_by_variable: dict[int, object]) -> list[int]:
+    return sorted([variable for variable, col in columns_by_variable.items() if pd.isna(row[col])])
+
+
+def __solve_missing_variables(
+    row: pd.Series,
+    columns_by_variable: dict[int, object],
+    missing_variables: list[int],
+    qubo: QUBO,
+) -> dict[int, float]:
+    local_qubo = __build_local_qubo(row, columns_by_variable, missing_variables, qubo)
+    if local_qubo.problem_size == 0 or np.count_nonzero(local_qubo.mat) == 0:
+        return dict.fromkeys(missing_variables, 0.0)
+
+    if len(missing_variables) <= EXACT_CONFLICT_LIMIT:
+        return __solve_exact(local_qubo)
+
+    nans_sol = __solve(local_qubo)
+    best_sol = nans_sol.sort_values(by="energy").iloc[0]
+    return {
+        variable: float(best_sol[variable]) if variable in best_sol.index else 0.0 for variable in missing_variables
+    }
+
+
+def __build_local_qubo(
+    row: pd.Series,
+    columns_by_variable: dict[int, object],
+    missing_variables: list[int],
+    qubo: QUBO,
+) -> QUBO:
+    variable_to_pos = {variable: pos for pos, variable in enumerate(missing_variables)}
+    local_mat = np.zeros((len(missing_variables), len(missing_variables)))
+
+    for row_pos, row_variable in enumerate(qubo.rows_idx):
+        if row_variable < 0:
+            continue
+
+        for col_pos, col_variable in enumerate(qubo.cols_idx):
+            if col_variable < 0:
+                continue
+
+            coefficient = qubo.mat[row_pos, col_pos]
+            if coefficient == 0:
+                continue
+
+            row_missing = row_variable in variable_to_pos
+            col_missing = col_variable in variable_to_pos
+            if row_missing and col_missing:
+                local_mat[variable_to_pos[row_variable], variable_to_pos[col_variable]] += coefficient
+            elif row_missing:
+                fixed_col_value = __row_value(row, columns_by_variable, col_variable)
+                local_mat[variable_to_pos[row_variable], variable_to_pos[row_variable]] += coefficient * fixed_col_value
+            elif col_missing:
+                fixed_row_value = __row_value(row, columns_by_variable, row_variable)
+                local_mat[variable_to_pos[col_variable], variable_to_pos[col_variable]] += coefficient * fixed_row_value
+
+    indices = np.array(missing_variables)
+    return QUBO(local_mat, rows_idx=indices, cols_idx=indices)
+
+
+def __solve_exact(qubo: QUBO) -> dict[int, float]:
+    variables = sorted([idx for idx in set(qubo.rows_idx).union(qubo.cols_idx) if idx >= 0])
+    best_assignment = dict.fromkeys(variables, 0.0)
+    best_energy = np.inf
+
+    for values in product([0.0, 1.0], repeat=len(variables)):
+        assignment = dict(zip(variables, values))
+        row_values = np.array([assignment.get(idx, 0.0) for idx in qubo.rows_idx])
+        col_values = np.array([assignment.get(idx, 0.0) for idx in qubo.cols_idx])
+        energy = float(row_values.T @ qubo.mat @ col_values)
+        if energy < best_energy:
+            best_energy = energy
+            best_assignment = assignment
+
+    return best_assignment
+
+
+def __calculate_qubo_energy(row: pd.Series, qubo: QUBO) -> float:
+    columns_by_variable = __columns_by_variable(row)
+    row_values = np.array([__row_value(row, columns_by_variable, idx) for idx in qubo.rows_idx])
+    col_values = np.array([__row_value(row, columns_by_variable, idx) for idx in qubo.cols_idx])
+    return float(row_values.T @ qubo.mat @ col_values)
+
+
+def __row_value(row: pd.Series, columns_by_variable: dict[int, object], variable: int) -> float:
+    if variable < 0 or variable not in columns_by_variable:
+        return 0.0
+
+    value = row[columns_by_variable[variable]]
+    if pd.isna(value) or np.isinf(value):
+        return 0.0
+    return float(value)
+
+
+def __solve(qubo: QUBO) -> pd.DataFrame:
+    if np.count_nonzero(qubo.mat) == 0:
+        return solve_zeros(qubo)
+
+    return solve(qubo)

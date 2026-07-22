@@ -42,10 +42,28 @@ class TestConflictResolution(unittest.TestCase):
 
         pd.testing.assert_frame_equal(result_df, expected_df)
 
+    def test_energy_recalculation_uses_variable_indices_not_column_position(self):
+        qubo = QUBO(np.array([[3.0, 5.0], [0.0, 7.0]]), np.array([0, 1]), np.array([0, 1]))
+        initial_df = pd.DataFrame({"1": [1.0], "0": [0.0], "energy": [99.0]})
+
+        result_df = nan_subqubo(initial_df, qubo)
+
+        expected_df = pd.DataFrame({"1": [1.0], "0": [0.0], "energy": [7.0]})
+        pd.testing.assert_frame_equal(result_df, expected_df)
+
     def test_nan_conflict_resolution(self):
         initial_df = pd.DataFrame({1: [1.0, 0.0], 2: [np.nan, 1], 3: [1, np.nan], "energy": [99.0, 99.0]})
         result_df = nan_subqubo(initial_df.copy(), self.qubo_obj)
         expected_df = pd.DataFrame({1: [1.0, 0.0], 2: [0.0, 1.0], 3: [1.0, 0.0], "energy": [4.0, 2.0]})
+        pd.testing.assert_frame_equal(result_df, expected_df)
+
+    def test_nan_resolution_uses_fixed_variable_interactions(self):
+        qubo = QUBO(np.array([[0.0, -5.0], [0.0, 1.0]]), np.array([0, 1]), np.array([0, 1]))
+        initial_df = pd.DataFrame({0: [1.0], 1: [np.nan], "energy": [99.0]})
+
+        result_df = nan_subqubo(initial_df, qubo)
+
+        expected_df = pd.DataFrame({0: [1.0], 1: [1.0], "energy": [-4.0]})
         pd.testing.assert_frame_equal(result_df, expected_df)
 
     def test_mixed_nan_and_no_nan_rows(self):
@@ -74,7 +92,5 @@ class TestConflictResolution(unittest.TestCase):
             rows_idx=np.array([0, 1, 2, 3]),
         )
         result_df = nan_subqubo(df, problem)
-        print(result_df)
-        expected_df = pd.DataFrame.from_dict({"0": [0.0], "1": [0.0], "6": [0.0], "7": [0.0], "energy": [0.0]})
-        print(expected_df)
+        expected_df = pd.DataFrame.from_dict({"0": [1.0], "1": [1.0], "6": [1.0], "7": [0.0], "energy": [-237.43678]})
         pd.testing.assert_frame_equal(result_df, expected_df)
