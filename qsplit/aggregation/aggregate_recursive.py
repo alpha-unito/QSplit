@@ -21,6 +21,12 @@ from qsplit.conflict_resolution.local_search import nan_subqubo
 from qsplit.qubo import QUBO
 
 
+def aggregate_solutions_trivial(ul: QUBO, lr: QUBO, qubo: QUBO) -> QUBO:
+    combined_df = __combine_ul_lr(ul, lr)
+    qubo.solutions = __keep_min_energy_solutions(__recalculate_energy(combined_df, qubo), qubo)
+    return qubo
+
+
 def aggregate_solutions(solutions: tuple[QUBO, QUBO, QUBO], qubo: QUBO) -> QUBO:
     # Aggregate upper-left qubo with lower-right
     starting_sols = __combine_ul_lr(solutions[0], solutions[2])
@@ -116,3 +122,26 @@ def __combine_ul_lr(ul: QUBO, lr: QUBO) -> pd.DataFrame:
     ul.solutions.drop("tmp", axis=1, inplace=True)
     lr.solutions.drop("tmp", axis=1, inplace=True)
     return __fill_with_inf(pd.Index(all_indices + ["energy"]), merge)
+
+
+def __recalculate_energy(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
+    real_indices = sorted([idx for idx in set(qubo.rows_idx).union(qubo.cols_idx) if idx >= 0])
+    df = __fill_with_inf(pd.Index(real_indices + ["energy"]), df)
+
+    for row_idx, row in df.iterrows():
+        assignment = {idx: np.nan_to_num(row[idx], nan=0.0, posinf=0.0, neginf=0.0) for idx in real_indices}
+        row_values = np.array([assignment.get(idx, 0.0) for idx in qubo.rows_idx])
+        col_values = np.array([assignment.get(idx, 0.0) for idx in qubo.cols_idx])
+        df.loc[row_idx, "energy"] = float(row_values.T @ qubo.mat @ col_values)
+
+    return df
+
+
+def __keep_min_energy_solutions(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
+    real_columns = sorted([idx for idx in set(qubo.rows_idx).union(qubo.cols_idx) if idx >= 0])
+    df = df[real_columns + ["energy"]].reset_index(drop=True).drop_duplicates()
+    if df.empty:
+        return df
+
+    min_energy = df["energy"].min()
+    return df[df["energy"] == min_energy].reset_index(drop=True)

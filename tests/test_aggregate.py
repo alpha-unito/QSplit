@@ -25,9 +25,32 @@ from qsplit.aggregation.aggregate_recursive import __combine_ul_lr as combine_ul
 from qsplit.aggregation.aggregate_recursive import __distance as distance
 from qsplit.aggregation.aggregate_recursive import __fill_with_inf as fill_with_inf
 from qsplit.aggregation.aggregate_recursive import __get_closest_assignments as get_closest_assignments
-from qsplit.aggregation.aggregate_recursive import aggregate_solutions
+from qsplit.aggregation.aggregate_recursive import aggregate_solutions, aggregate_solutions_trivial
+from qsplit.local_runner import logical_expansion
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
+
+
+class TestLogicalExpansion(unittest.TestCase):
+    def test_expands_ur_best_solution_into_ul_and_lr_diagonals(self):
+        original_problem = np.array(
+            [
+                [0.0, 0.0, 5.0, -2.0],
+                [0.0, 0.0, 0.0, 4.0],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        )
+        original_ids = np.array([0, 1, 2, 3])
+        ul_qubo, ur_qubo, lr_qubo = split_problem(QUBO(original_problem, original_ids, original_ids))
+        ur_qubo.solutions = pd.DataFrame({0: [1], 1: [0], 2: [1], 3: [1], "energy": [-1.0]})
+
+        logical_expansion((ul_qubo, ur_qubo, lr_qubo))
+
+        self.assertEqual(ul_qubo.mat[0, 0], 3.0)
+        self.assertEqual(ul_qubo.mat[1, 1], 4.0)
+        self.assertEqual(lr_qubo.mat[0, 0], 5.0)
+        self.assertEqual(lr_qubo.mat[1, 1], -2.0)
 
 
 class TestAggregateSolutions(unittest.TestCase):
@@ -55,6 +78,26 @@ class TestAggregateSolutions(unittest.TestCase):
         expected_qubo = QUBO(original_problem, original_problem_ids, original_problem_ids)
         expected_qubo.solutions = pd.DataFrame({0: [1.0], 1: [1.0], 2: [0], 3: [1.0], "energy": [-1314.0]})
         pd.testing.assert_frame_equal(result_qubo.solutions, expected_qubo.solutions)
+
+    def test_trivial_aggregate_keeps_only_original_min_energy_rows(self):
+        original_problem = np.array(
+            [
+                [0.0, 0.0, -10.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        )
+        original_ids = np.array([0, 1, 2, 3])
+        original_qubo = QUBO(original_problem, original_ids, original_ids)
+        ul_qubo, _, lr_qubo = split_problem(original_qubo)
+        ul_qubo.solutions = pd.DataFrame({0: [0, 1], 1: [0, 0], "energy": [0.0, 0.0]})
+        lr_qubo.solutions = pd.DataFrame({2: [0, 1], 3: [0, 0], "energy": [0.0, 0.0]})
+
+        result_qubo = aggregate_solutions_trivial(ul_qubo, lr_qubo, original_qubo)
+
+        expected_df = pd.DataFrame({0: [1], 1: [0], 2: [1], 3: [0], "energy": [-10.0]})
+        pd.testing.assert_frame_equal(result_qubo.solutions, expected_df)
 
 
 class TestCombineRows(unittest.TestCase):
