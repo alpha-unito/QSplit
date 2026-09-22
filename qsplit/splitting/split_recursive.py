@@ -31,3 +31,22 @@ def split_problem(qubo: QUBO) -> tuple[QUBO, QUBO, QUBO]:
     )
 
     return res
+
+
+def split_leaves(qubo: QUBO) -> list[QUBO]:
+    import os
+    from copy import deepcopy
+
+    from qsplit.halting_heuristic.stop import is_empty, is_sparse
+
+    cut_dim = int(os.environ["CUT_DIM"])
+    leaves = []
+
+    def visit(node):
+        if node.problem_size <= cut_dim or is_empty(node) or is_sparse(node):
+            leaves.append(node)
+            return len(leaves) - 1
+        return node, tuple(visit(sub) for sub in split_problem(node))
+
+    qubo.split_tree = visit(deepcopy(qubo))
+    return leaves

@@ -129,3 +129,16 @@ def __keep_min_energy_solutions(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
 
     min_energy = df["energy"].min()
     return df[df["energy"] == min_energy].reset_index(drop=True)
+
+
+def aggregate_leaves(solutions: list[QUBO], qubo: QUBO) -> QUBO:
+    from copy import deepcopy
+
+    def visit(tree):
+        if isinstance(tree, int):
+            return solutions[tree]
+        parent, children = tree
+        return aggregate_solutions(tuple(visit(child) for child in children), deepcopy(parent))
+
+    qubo.solutions = visit(qubo.split_tree).solutions
+    return qubo
