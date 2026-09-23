@@ -30,18 +30,4 @@ class QUBO:
         mat = np.round(mat, decimals=9)
         mat[np.abs(mat) < 1e-12] = 0.0
 
-        if mat.shape[0] % 2 == 0:
-            return mat, cols_idx, rows_idx
-
-        if cols_idx[-1] == -1 and rows_idx[-1] == -1:
-            mat = mat[:-1, :-1]
-            cols_idx = cols_idx[:-1]
-            rows_idx = rows_idx[:-1]
-            return mat, cols_idx, rows_idx
-
-        tmp = np.zeros((mat.shape[0] + 1, mat.shape[1] + 1))
-        tmp[:-1, :-1] = mat
-        mat = tmp
-        cols_idx = np.append(cols_idx, -1)
-        rows_idx = np.append(rows_idx, -1)
         return mat, cols_idx, rows_idx

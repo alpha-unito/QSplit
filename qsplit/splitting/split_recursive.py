@@ -5,32 +5,34 @@ from qsplit.qubo import QUBO
 
 def split_problem(qubo: QUBO) -> tuple[QUBO, QUBO, QUBO]:
     """
-    Returns 3 sub-problems in qubo form.
-    The 3 sub-problems correspond to the matrices obtained by dividing the qubo matrix of the original problem
-    in half both horizontally and vertically.
-    The sub-problem for the sub-matrix in the bottom left corner is not given as this is always empty.
-    The order of the results is:
-    - Upper left sub-matrix,
-    - Upper right sub-matrix,
-    - Lower right sub-matrix.
+    Splits the QUBO matrix into three sub-problems:
+    - Upper left
+    - Upper right
+    - Lower right
 
-    All sub-problems are converted to obtain an upper triangular matrix.
+    If the matrix has an odd dimension, adds one row and
+    one column of zero padding before splitting.
+    The original QUBO is not modified.
     """
-    split_idx = qubo.problem_size // 2
+    n = qubo.problem_size
+    mat = qubo.mat
+    rows_idx = qubo.rows_idx
+    cols_idx = qubo.cols_idx
 
-    ul_mat = qubo.mat[:split_idx, :split_idx]
-    ur_mat = qubo.mat[:split_idx, split_idx:]
-    lr_mat = qubo.mat[split_idx:, split_idx:]
-    if not np.all(qubo.mat[split_idx:, :split_idx] == 0):
+    if n % 2 != 0:
+        mat = np.pad(mat, ((0, 1), (0, 1)), mode="constant", constant_values=0)
+        rows_idx = np.append(rows_idx, -1)
+        cols_idx = np.append(cols_idx, -1)
+        n += 1
+
+    split_idx = n // 2
+    if not np.all(mat[split_idx:, :split_idx] == 0):
         raise ValueError("Lower left sub-matrix must be 0")
 
-    res = (
-        QUBO(ul_mat, cols_idx=qubo.cols_idx[:split_idx], rows_idx=qubo.rows_idx[:split_idx]),
-        QUBO(ur_mat, cols_idx=qubo.cols_idx[split_idx:], rows_idx=qubo.rows_idx[:split_idx]),
-        QUBO(lr_mat, cols_idx=qubo.cols_idx[split_idx:], rows_idx=qubo.rows_idx[split_idx:]),
-    )
-
-    return res
+    ul = QUBO(mat[:split_idx, :split_idx], cols_idx=cols_idx[:split_idx], rows_idx=rows_idx[:split_idx])
+    ur = QUBO(mat[:split_idx, split_idx:], cols_idx=cols_idx[split_idx:], rows_idx=rows_idx[:split_idx])
+    lr = QUBO(mat[split_idx:, split_idx:], cols_idx=cols_idx[split_idx:], rows_idx=rows_idx[split_idx:])
+    return ul, ur, lr
 
 
 def split_leaves(qubo: QUBO) -> list[QUBO]:

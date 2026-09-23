@@ -9,12 +9,13 @@ def vars_count(qubo: QUBO) -> int:
     rows_found, cols_found = np.nonzero(qubo.mat)
     variables_in_rows = qubo.rows_idx[rows_found]
     variables_in_cols = qubo.cols_idx[cols_found]
-    unique_vars = np.unique(np.concatenate([variables_in_rows, variables_in_cols]))
+    valid = (variables_in_rows >= 0) & (variables_in_cols >= 0)
+    unique_vars = np.unique(np.concatenate([variables_in_rows[valid], variables_in_cols[valid]]))
     return int(len(unique_vars))
 
 
 def is_empty(qubo: QUBO) -> bool:
-    return np.count_nonzero(qubo.mat) == 0 or qubo.problem_size == 0
+    return not np.any(qubo.mat[np.ix_(qubo.rows_idx >= 0, qubo.cols_idx >= 0)])
 
 
 def is_sparse(qubo: QUBO, cut_dim=None) -> bool:
