@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -23,7 +24,7 @@ class TestSplitProblem(unittest.TestCase):
 
         # UL check
         self.assertEqual(res_ul.mat[0, 0], 9.0)
-        self.assertEqual(np.count_nonzero(res_ul), 1)
+        self.assertEqual(np.count_nonzero(res_ul.mat), 1)
         self.assertEqual(res_ul.cols_idx.tolist(), [0, 1])
 
         # UR check
@@ -49,20 +50,23 @@ class TestSplitProblem(unittest.TestCase):
 
         # UL check
         self.assertEqual(res_ul.mat[0, 0], 1.0)
-        self.assertEqual(np.count_nonzero(res_ul), 1)
-        self.assertEqual(res_ul.cols_idx.tolist(), [0, 1, 2, -1])
+        self.assertEqual(np.count_nonzero(res_ul.mat), 1)
+        self.assertEqual(res_ul.cols_idx.tolist(), [0, 1, 2])
 
         # UR check
-        print(res_ur)
         self.assertEqual(res_ur.mat[0, 0], 2.0)
         self.assertEqual(np.count_nonzero(res_ur.mat), 1)
-        self.assertEqual(res_ur.cols_idx.tolist(), [3, 4, -1, -1])
-        self.assertEqual(res_ur.rows_idx.tolist(), [0, 1, 2, -1])
+        self.assertEqual(res_ur.cols_idx.tolist(), [3, 4, -1])
+        self.assertEqual(res_ur.rows_idx.tolist(), [0, 1, 2])
 
         # LR check
         self.assertEqual(res_lr.mat[0, 0], 3.0)
         self.assertEqual(np.count_nonzero(res_lr.mat), 1)
-        self.assertEqual(res_lr.rows_idx.tolist(), [3, 4])
+        self.assertEqual(res_lr.rows_idx.tolist(), [3, 4, -1])
+        self.assertEqual(qubo.problem_size, 5)
+        np.testing.assert_array_equal(qubo.mat, mat)
+        np.testing.assert_array_equal(qubo.rows_idx, np.arange(5))
+        np.testing.assert_array_equal(qubo.cols_idx, np.arange(5))
 
     def test_raise_value_error_for_lower_left(self):
         dim = 4
@@ -80,14 +84,27 @@ class TestSplitProblem(unittest.TestCase):
         qubo = QUBO(np.zeros((dim, dim)), rows_idx=rows, cols_idx=cols)
         ul, ur, lr = split_problem(qubo)
 
-        self.assertEqual(ul.cols_idx.tolist(), [0, 1, 2, -1])
-        self.assertEqual(ul.rows_idx.tolist(), [0, 1, 2, -1])
+        self.assertEqual(ul.cols_idx.tolist(), [0, 1, 2])
+        self.assertEqual(ul.rows_idx.tolist(), [0, 1, 2])
 
-        self.assertEqual(ur.cols_idx.tolist(), [3, 4, 5, -1])
-        self.assertEqual(ur.rows_idx.tolist(), [0, 1, 2, -1])
+        self.assertEqual(ur.cols_idx.tolist(), [3, 4, 5])
+        self.assertEqual(ur.rows_idx.tolist(), [0, 1, 2])
 
-        self.assertEqual(lr.cols_idx.tolist(), [3, 4, 5, -1])
-        self.assertEqual(lr.rows_idx.tolist(), [3, 4, 5, -1])
+        self.assertEqual(lr.cols_idx.tolist(), [3, 4, 5])
+        self.assertEqual(lr.rows_idx.tolist(), [3, 4, 5])
+
+    def test_recursive_solver_skips_leaf_with_only_padding_biases(self):
+        from qsplit.local_runner import qsplit_sampler_recursive
+
+        # The lower half of the UR block is folded into its padding column.
+        mat = np.zeros((5, 5))
+        mat[2, 3] = 2.0
+        _, ur, _ = split_problem(QUBO(mat, np.arange(5), np.arange(5)))
+        self.assertTrue(np.any(ur.mat))
+        with patch.dict(os.environ, {"CUT_DIM": "10"}), patch("qsplit.local_runner.solve") as sampler:
+            result = qsplit_sampler_recursive(ur)
+        sampler.assert_not_called()
+        self.assertTrue(result.solutions.isna().all().all())
 
 
 class TestSplitLinear(unittest.TestCase):

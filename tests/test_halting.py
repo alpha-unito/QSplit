@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from qsplit.halting_heuristic.stop import is_empty, is_sparse
+from qsplit.halting_heuristic.stop import is_empty, is_sparse, vars_count
 from qsplit.qubo import QUBO
 
 
@@ -20,6 +20,23 @@ class TestHalting(unittest.TestCase):
         mat[0, 1] = 1.5
         q = QUBO(mat=mat, rows_idx=np.array([0, 1]), cols_idx=np.array([0, 1]))
         self.assertFalse(is_empty(q))
+
+    def test_padding_only_biases_are_empty(self):
+        for rows, cols in [([0, 1], [2, -1]), ([-1, 0], [1, 2]), ([-1, -2], [-1, -2])]:
+            with self.subTest(rows=rows, cols=cols):
+                q = QUBO(np.array([[0.0, 3.0], [0.0, 0.0]]), np.array(rows), np.array(cols))
+                self.assertTrue(is_empty(q))
+                self.assertEqual(vars_count(q), 0)
+
+    def test_padding_masks_are_independent(self):
+        q = QUBO(np.array([[0.0, 3.0], [0.0, 0.0]]), np.array([0, -1]), np.array([-1, 1]))
+        self.assertFalse(is_empty(q))
+        self.assertEqual(vars_count(q), 2)
+
+    def test_zero_dimension_is_empty(self):
+        q = QUBO(np.zeros((0, 0)), np.array([], dtype=int), np.array([], dtype=int))
+        self.assertTrue(is_empty(q))
+        self.assertEqual(vars_count(q), 0)
 
     def test_is_sparse_within_limit(self):
         os.environ["CUT_DIM"] = str(5)
