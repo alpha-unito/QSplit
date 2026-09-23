@@ -38,13 +38,13 @@ class TestIBMAdapter(unittest.TestCase):
 
     def test_single_index_set(self):
         qubo = QUBO(np.triu(np.ones((3, 3))), rows_idx=np.array([0, 1, 2]), cols_idx=np.array([0, 1, 2]))
-        expected_vars = [-1, 0, 1, 2]
-        expected_mapping = {-1: 0, 0: 1, 1: 2, 2: 3}
+        expected_vars = [0, 1, 2]
+        expected_mapping = {0: 0, 1: 1, 2: 2}
         var_to_qubit, all_vars = get_variables_mapping(qubo)
 
         self.assertEqual(all_vars, expected_vars)
         self.assertEqual(var_to_qubit, expected_mapping)
-        self.assertEqual(len(all_vars), 4)
+        self.assertEqual(len(all_vars), 3)
 
     ##################################################
     # __from_qubo_matrix_to_circuit                  #
@@ -126,9 +126,9 @@ class TestIBMAdapter(unittest.TestCase):
         self.assertEqual(best_row[20], 1)
 
     def test_to_dataframe_with_padding_variable(self):
-        mat_raw = np.array([[5.0]])
-        rows_raw = np.array([1])
-        cols_raw = np.array([1])
+        mat_raw = np.array([[5.0, 0.0], [0.0, 0.0]])
+        rows_raw = np.array([1, -1])
+        cols_raw = np.array([1, -1])
         qubo = QUBO(mat_raw, rows_raw, cols_raw)
 
         self.assertIn(-1, qubo.rows_idx)
@@ -139,6 +139,7 @@ class TestIBMAdapter(unittest.TestCase):
 
         self.assertEqual(df.iloc[0]["energy"], 0.0)
         self.assertEqual(df.iloc[0][1], 0)
+        self.assertNotIn(-1, df.columns)
 
     ##################################################
     # cpu_noiseless                                  #
