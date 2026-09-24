@@ -28,9 +28,9 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
         else:
             assignment[idx] = 0
 
-    x = np.array([assignment[idx] for idx in sorted(assignment.keys())])
-    n = len(x)
-    energy = x.T @ qubo.mat[:n, :n] @ x
+    rows = np.array([assignment.get(idx, 0) for idx in qubo.rows_idx])
+    cols = np.array([assignment.get(idx, 0) for idx in qubo.cols_idx])
+    energy = rows @ qubo.mat @ cols + qubo.offset
     sol_dict = {idx: [assignment[idx]] for idx in sorted(assignment.keys())}
     sol_dict["energy"] = [float(energy)]
     qubo.solutions = pd.DataFrame(sol_dict)

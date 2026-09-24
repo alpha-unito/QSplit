@@ -1,11 +1,9 @@
 import unittest
 
 import numpy as np
-import pandas as pd
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.quantum_info import SparsePauliOp
 
-from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as cpu_solve
 from qsplit.adapters.ibm.util import get_variables_mapping, to_dataframe
 from qsplit.adapters.ibm.util_qaoa import __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
 from qsplit.qubo import QUBO
@@ -140,23 +138,6 @@ class TestIBMAdapter(unittest.TestCase):
         self.assertEqual(df.iloc[0]["energy"], 0.0)
         self.assertEqual(df.iloc[0][1], 0)
         self.assertNotIn(-1, df.columns)
-
-    ##################################################
-    # cpu_noiseless                                  #
-    ##################################################
-
-    def test_ibm_cpu_solve(self):
-        rows_idx = np.array([1, 2])
-        cols_idx = np.array([1, 2])
-        mat = np.array([[0, 1], [0, 0]])
-        qubo = QUBO(mat=mat, rows_idx=rows_idx, cols_idx=cols_idx)
-        expected_dataframe = pd.DataFrame({1: [1, 0, 0], 2: [0, 1, 0], "energy": [0, 0, 0]}).reset_index(drop=True)
-        actual_dataframe = cpu_solve(qubo).reset_index(drop=True)
-        self.assertEqual(expected_dataframe["energy"].min(), actual_dataframe["energy"].min())
-        var_cols = [col for col in expected_dataframe.columns if col not in ["energy"]]
-        expected_solutions = set(expected_dataframe[var_cols].apply(tuple, axis=1))
-        actual_solutions = set(actual_dataframe[var_cols].apply(tuple, axis=1))
-        self.assertTrue(all(x in expected_solutions for x in actual_solutions))
 
 
 if __name__ == "__main__":

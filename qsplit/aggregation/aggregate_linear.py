@@ -25,8 +25,10 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
             out_solutions[i] = out_solutions[i] / counts[i]
 
     x = np.array([round(val) for val in out_solutions])
-    n = len(all_indices)
-    energy = x.T @ qubo.mat[:n, :n] @ x
+    assignment = dict(zip(all_indices, x))
+    rows = np.array([assignment.get(idx, 0) for idx in qubo.rows_idx])
+    cols = np.array([assignment.get(idx, 0) for idx in qubo.cols_idx])
+    energy = rows @ qubo.mat @ cols + qubo.offset
     sol_dict = {all_indices[i]: [x[i]] for i in range(len(all_indices))}
     sol_dict["energy"] = [float(energy)]
 

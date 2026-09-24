@@ -270,7 +270,7 @@ def main() -> None:
         if df is None or getattr(df, "empty", True):
             continue
 
-        bit_cols = [int(v) for v in qubo.cols_idx]
+        bit_cols = [int(v) for v in qubo.cols_idx if v >= 0]
 
         for _, row in df.reset_index(drop=True).iterrows():
             bits = bitstring_from_row(row, bit_cols)
@@ -295,7 +295,7 @@ def main() -> None:
             and not aggregated_root.solutions.empty
         ):
             full_qubo.solutions = aggregated_root.solutions
-            agg_cols = [int(v) for v in full_qubo.cols_idx]
+            agg_cols = [int(v) for v in full_qubo.cols_idx if v >= 0]
             agg_entries: List[Tuple[float, str]] = []
             for _, row in aggregated_root.solutions.reset_index(drop=True).iterrows():
                 bits = bitstring_from_row(row, agg_cols)

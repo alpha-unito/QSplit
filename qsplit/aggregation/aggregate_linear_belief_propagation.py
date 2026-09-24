@@ -27,8 +27,10 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
                 beliefs_0[pos] += (1.0 - val) * w
 
     x = np.array([int(beliefs_1[i] >= beliefs_0[i]) for i in range(len(all_indices))])
-    n = len(all_indices)
-    energy = x.T @ qubo.mat[:n, :n] @ x
+    assignment = dict(zip(all_indices, x))
+    rows = np.array([assignment.get(idx, 0) for idx in qubo.rows_idx])
+    cols = np.array([assignment.get(idx, 0) for idx in qubo.cols_idx])
+    energy = rows @ qubo.mat @ cols + qubo.offset
     sol_dict = {all_indices[i]: [x[i]] for i in range(len(all_indices))}
     sol_dict["energy"] = [float(energy)]
     qubo.solutions = pd.DataFrame(sol_dict)

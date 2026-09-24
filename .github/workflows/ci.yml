@@ -6,29 +6,91 @@ on:
 
 jobs:
   test:
-    name: CI
+    name: Local tests (Python 3.12)
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
-
-      - name: Set up Python
+      - name: Install local test dependencies
         run: |
           uv python install 3.12
-          uv venv
-          uv pip install -e ".[dev]"
+          uv venv --python 3.12
+          uv pip install -e ".[dev,streamflow,quantinuum,dataset]"
+      - name: Verify optional local dependencies import successfully
+        run: uv run --no-sync python -c "import streamflow.main, pytket.extensions.qiskit, pennylane"
+      - name: Lint and format
+        run: |
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+      - name: Unit tests and unit coverage
+        run: >-
+          uv run --no-sync python -m pytest -m "unit and not iqm and not cudaq"
+          --junitxml=reports/unit.xml --cov
+          --cov-report=term-missing --cov-report=json:reports/coverage-unit.json
+      - name: Integration tests (CPU simulators)
+        run: >-
+          uv run --no-sync python -m pytest -m "integration and not iqm and not cudaq"
+          --junitxml=reports/integration.xml --cov --cov-append
+          --cov-report=term-missing --cov-report=json:reports/coverage-unit-integration.json
+      - name: End-to-end CLI and local StreamFlow workflows
+        run: >-
+          uv run --no-sync python -m pytest -m e2e
+          --junitxml=reports/e2e.xml --cov --cov-append --cov-fail-under=75
+          --cov-report=term-missing --cov-report=xml:reports/coverage.xml
+          --cov-report=json:reports/coverage.json --cov-report=html
+      - name: Upload test results and cumulative coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-test-reports
+          include-hidden-files: true
+          path: |
+            reports/
+            htmlcov/
+            .coverage
 
-      - name: Run linter
-        run: uv run ruff check .
-
-      - name: Run formatter
-        run: uv run ruff format --check .
-
-      - name: Run tests
-        run: uv run python -m pytest --cov=qsplit tests/ --cov-report term-missing
+  optional-simulators:
+    name: ${{ matrix.extra }} CPU simulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # IQM conflicts with StreamFlow/Quantinuum; CUDA-Q wheels require Linux.
+        include:
+          - extra: iqm
+            module: iqm.qiskit_iqm
+          - extra: cudaq
+            module: cudaq
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+      - name: Install isolated simulator dependencies
+        run: |
+          uv python install 3.12
+          uv venv --python 3.12
+          uv pip install -e ".[dev,${{ matrix.extra }}]"
+      - name: Verify simulator is installed
+        run: uv run --no-sync python -c "import ${{ matrix.module }}"
+      - name: Run simulator tests
+        run: >-
+          uv run --no-sync python -m pytest tests/integration -m ${{ matrix.extra }}
+          --junitxml=reports/${{ matrix.extra }}.xml --cov
+          --cov-report=term-missing --cov-report=xml:reports/coverage-${{ matrix.extra }}.xml
+      - name: Upload simulator reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-${{ matrix.extra }}-reports
+          path: reports/

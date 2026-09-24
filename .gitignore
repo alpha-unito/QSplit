@@ -15,3 +15,8 @@ maxcut_*
 .venv*
 *.jsonl
 *.log
+# Local test reports and subprocess coverage data
+.coverage.*
+htmlcov/
+reports/
+coverage.xml

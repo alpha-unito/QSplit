@@ -16,7 +16,7 @@ def split_problem(qubo: QUBO) -> list[QUBO]:
 
     for i in range(qubo.problem_size):
         num_neighbors = cut_dim - 1
-        best_neighbors = np.argsort(interaction_matrix[i])[-num_neighbors:]
+        best_neighbors = np.argsort(interaction_matrix[i])[qubo.problem_size - num_neighbors :]
         sub_indices = np.append(best_neighbors, i)
         sub_indices = np.unique(sub_indices)
 

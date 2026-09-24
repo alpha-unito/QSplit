@@ -39,12 +39,14 @@ dev = [
     "qiskit-aer==0.17.2",
     "pytest==9.0.1",
     "pytest-cov==7.0.0",
+    "coverage>=7.10.6",
     "pre-commit>=4.5.1",
     "ruff>=0.14.13",
 ]
 
 dataset = [
     "pennylane==0.44.0",
+    "gast>=0.6.0",  # Imported by PennyLane 0.44's autograph module.
     "networkx==3.6.1",
     "tqdm==4.67.1",
     "h5py>=3.15.1",
@@ -111,3 +113,29 @@ fixable = ["ALL"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+    "unit: isolated behavior and error handling (no external services)",
+    "integration: real components and CPU simulators working together",
+    "e2e: public CLI and local CWL workflows in subprocesses",
+    "quantinuum: requires the quantinuum extra (CPU Aer backend)",
+    "dataset: dataset generators with local fixture data (requires dataset extra)",
+    "iqm: requires the iqm extra (local fake-device simulator)",
+    "cudaq: requires the cudaq extra (Linux CPU qpp target)",
+    "streamflow: requires the streamflow extra (local execution only)",
+]
+
+[tool.coverage.run]
+source = ["qsplit", "streamflow.quantum"]
+branch = true
+patch = ["subprocess"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"

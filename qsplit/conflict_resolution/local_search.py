@@ -125,7 +125,7 @@ def __calculate_qubo_energy(row: pd.Series, qubo: QUBO) -> float:
     columns_by_variable = __columns_by_variable(row)
     row_values = np.array([__row_value(row, columns_by_variable, idx) for idx in qubo.rows_idx])
     col_values = np.array([__row_value(row, columns_by_variable, idx) for idx in qubo.cols_idx])
-    return float(row_values.T @ qubo.mat @ col_values)
+    return float(row_values.T @ qubo.mat @ col_values + qubo.offset)
 
 
 def __row_value(row: pd.Series, columns_by_variable: dict[int, object], variable: int) -> float:

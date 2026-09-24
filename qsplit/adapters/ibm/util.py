@@ -32,7 +32,7 @@ def to_dataframe(
 
         vec_row = np.array([sol_dict[r] for r in valid_rows_idx])
         vec_col = np.array([sol_dict[c] for c in valid_cols_idx])
-        energy = vec_row @ mat_valid @ vec_col.T
+        energy = vec_row @ mat_valid @ vec_col.T + qubo.offset
 
         if -1 in sol_dict:
             del sol_dict[-1]

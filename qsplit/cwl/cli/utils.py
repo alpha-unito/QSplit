@@ -21,7 +21,7 @@ def load_qubo(path: str | Path) -> QUBO:
 
 
 def build_qubo_from_matrix(matrix_path: str) -> QUBO:
-    mat = np.loadtxt(matrix_path, delimiter=",")
+    mat = np.loadtxt(matrix_path, delimiter=",", ndmin=2)
     n = mat.shape[0]
     qubo = QUBO(mat=mat, rows_idx=np.arange(n), cols_idx=np.arange(n))
     save_qubo("initial_qubo.pkl", qubo)

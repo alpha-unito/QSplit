@@ -31,6 +31,7 @@ def aggregate_solutions(solutions: tuple[QUBO, QUBO, QUBO], qubo: QUBO) -> QUBO:
     qubo.solutions = (
         nan_subqubo(combined_df, qubo).reset_index(drop=True).drop_duplicates().nsmallest(n=10, columns="energy")
     )
+    qubo.solutions = qubo.solutions.drop(columns=[-1], errors="ignore")
 
     return qubo
 
@@ -116,7 +117,7 @@ def __recalculate_energy(df: pd.DataFrame, qubo: QUBO) -> pd.DataFrame:
         assignment = {idx: np.nan_to_num(row[idx], nan=0.0, posinf=0.0, neginf=0.0) for idx in real_indices}
         row_values = np.array([assignment.get(idx, 0.0) for idx in qubo.rows_idx])
         col_values = np.array([assignment.get(idx, 0.0) for idx in qubo.cols_idx])
-        df.loc[row_idx, "energy"] = float(row_values.T @ qubo.mat @ col_values)
+        df.loc[row_idx, "energy"] = float(row_values.T @ qubo.mat @ col_values + qubo.offset)
 
     return df
 
