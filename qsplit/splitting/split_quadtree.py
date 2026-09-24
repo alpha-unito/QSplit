@@ -55,6 +55,8 @@ def split_problem(qubo: QUBO) -> list[QUBO]:
                 new_mat_sym[macro_pos2, macro_pos] = cross_int
 
         sub_ids = np.array(real_ids[exact_indices].tolist() + [-(m + 1000) for m in range(num_macro)], dtype=int)
-        res.append(QUBO(np.triu(new_mat_sym), sub_ids.copy(), sub_ids.copy(), offset=qubo.offset))
+        sub_qubo = QUBO(np.triu(new_mat_sym), sub_ids.copy(), sub_ids.copy(), offset=qubo.offset)
+        sub_qubo.macro_members = {-(m + 1000): real_ids[cluster].tolist() for m, cluster in enumerate(macro_clusters)}
+        res.append(sub_qubo)
 
     return res
