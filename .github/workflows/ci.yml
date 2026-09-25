@@ -36,30 +36,68 @@ jobs:
             python=${{ matrix.python }}
             pymetis>=2025.2.2
           init-shell: bash
+      - name: Verify Windows Python environment
+        if: runner.os == 'Windows'
+        run: |
+          echo "CONDA_PREFIX=$CONDA_PREFIX"
+          echo "CONDA_DEFAULT_ENV=$CONDA_DEFAULT_ENV"
+          command -v python
+          python -c "import sys; print(sys.executable)"
+          micromamba info
       - name: Set up Linux/macOS Python
         if: runner.os != 'Windows'
         run: |
           uv python install "${{ matrix.python }}"
           uv venv --python "${{ matrix.python }}"
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      - name: Select and validate CI Python
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Usa Python dell'ambiente micromamba.
+            ci_python="python"
+            uv_python="$(python -c 'import sys; print(sys.executable)')"
+          else
+            # Usa direttamente l'ambiente creato da uv.
+            ci_python="$GITHUB_WORKSPACE/.venv/bin/python"
+            uv_python="$ci_python"
+          fi
+          "$ci_python" -c "
+          import sys
+          print('Python:', sys.executable)
+          print('Version:', sys.version)
+          assert '.'.join(map(str, sys.version_info[:2])) == '${{ matrix.python }}'
+          "
+          echo "CI_PYTHON=$ci_python" >> "$GITHUB_ENV"
+          echo "UV_PYTHON=$uv_python" >> "$GITHUB_ENV"
       - name: Install local test dependencies
         run: |
-          python -c "import sys; assert '.'.join(map(str, sys.version_info[:2])) == '${{ matrix.python }}', sys.version"
-          uv pip install --python python -e ".[dev,streamflow,quantinuum,dataset]"
+          uv pip install --python "$UV_PYTHON" -e ".[dev,streamflow,quantinuum,dataset]"
       - name: Record platform and dependency versions
         run: |
           mkdir -p reports
-          python -c "import platform; print(platform.platform()); print(platform.machine()); print(platform.python_version())" > reports/platform.txt
-          uv pip freeze --python python > reports/dependencies.txt
+          "$CI_PYTHON" -c "
+          import platform
+          print(platform.platform())
+          print(platform.machine())
+          print(platform.python_version())
+          " > reports/platform.txt
+          uv pip freeze --python "$UV_PYTHON" \
+            > reports/dependencies.txt
       - name: Verify optional local dependencies import successfully
-        run: python -c "import streamflow.main, pytket.extensions.qiskit, pennylane, pymetis"
+        run: |
+          "$CI_PYTHON" -c "
+          import streamflow.main
+          import pytket.extensions.qiskit
+          import pennylane
+          import pymetis
+          "
       - name: Lint and format
         run: |
-          python -m ruff check .
-          python -m ruff format --check .
+          "$CI_PYTHON" -m ruff check .
+          "$CI_PYTHON" -m ruff format --check .
       - name: Unit tests and unit coverage
         run: >-
-          python -m pytest -m "unit and not iqm and not cudaq"
+          "$CI_PYTHON" -m pytest -m "unit and not iqm and not cudaq"
           --junitxml=reports/unit.xml --cov
           --cov-report=term-missing --cov-report=json:reports/coverage-unit.json
       - name: Integration tests (CPU simulators)
@@ -74,7 +112,7 @@ jobs:
             e2e_cpus=$(python -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
             e2e_prefix=(taskset --cpu-list "$e2e_cpus")
           fi
-          "${e2e_prefix[@]}" python -m pytest -m e2e -ra \
+           "${e2e_prefix[@]}" "$CI_PYTHON" -m pytest -m e2e -ra \
             --basetemp=reports/e2e-work --junitxml=reports/e2e.xml \
             --cov --cov-append --cov-fail-under=75 \
             --cov-report=term-missing --cov-report=xml:reports/coverage.xml \
