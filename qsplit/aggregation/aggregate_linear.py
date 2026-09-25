@@ -16,6 +16,8 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
 
         for _, row in df.iterrows():
             for col in valid_columns:
+                if row[col] not in (0, 1):
+                    continue
                 pos = idx_to_pos[col]
                 out_solutions[pos] += row[col]
                 counts[pos] += 1

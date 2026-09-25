@@ -65,3 +65,22 @@ def test_qubo_sanitization_preserves_binary_objective(make_qubo):
     for bits in product((0, 1), repeat=3):
         x = np.array(bits)
         assert x @ qubo.mat @ x == pytest.approx(x @ raw @ x)
+
+
+@pytest.mark.parametrize(
+    "name", ["linear", "linear_belief_propagation", "k_interactions", "recursive_graph", "quadtree"]
+)
+@pytest.mark.parametrize("dummy_first", [False, True])
+def test_dummy_assignments_do_not_override_valid_votes(name, dummy_first, make_qubo, assert_solution):
+    from qsplit.adapters.dummy import solve
+
+    qubo = make_qubo([[-2]], ids=[10], offset=7)
+    empty = make_qubo([[0]], ids=[10])
+    empty.solutions = solve(empty)
+    valid = make_qubo([[-2]], ids=[10])
+    valid.solutions = pd.DataFrame({10: [1], "energy": [-2.0]})
+    subs = [empty, valid] if dummy_first else [valid, empty]
+    aggregate = importlib.import_module(f"qsplit.aggregation.aggregate_{name}").aggregate_solutions
+    result = aggregate(subs, qubo)
+    assert_solution(result)
+    assert result.solutions.iloc[0].to_dict() == {10: 1, "energy": 5}

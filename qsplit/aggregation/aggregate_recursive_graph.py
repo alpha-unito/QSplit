@@ -16,7 +16,7 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
         for col in df_sol.columns:
             if col == "energy" or col < 0:
                 continue
-            elif col in votes:
+            elif col in votes and best_sol[col] in (0, 1):
                 votes[col].append(best_sol[col])
 
     assignment = {}

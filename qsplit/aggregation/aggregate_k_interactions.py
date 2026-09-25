@@ -15,6 +15,8 @@ def aggregate_solutions(solutions: list[QUBO], qubo: QUBO) -> QUBO:
             if col == "energy" or col < 0:
                 continue
             val = best_sol[col]
+            if val not in (0, 1):
+                continue
             votes[col].append(val)
 
             weight = 2.0 if col == center_idx else 1.0

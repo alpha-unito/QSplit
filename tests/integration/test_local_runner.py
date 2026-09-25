@@ -74,3 +74,24 @@ def test_refinement_with_real_annealing(method, sampler, monkeypatch, make_qubo,
     assert_solution(result)
     assert 1 <= len(result.refinement_history) <= 3
     assert result.solutions.energy.min() == min(result.refinement_history)
+
+
+@pytest.mark.parametrize("diagonal", [[0, 0, 0], [0, -2, 1]])
+def test_graph_runner_handles_empty_partitions(diagonal, monkeypatch, make_qubo, exact_solver, assert_solution):
+    monkeypatch.setenv("CUT_DIM", "1")
+    solved_ids = []
+
+    def solve(sub):
+        solved_ids.extend(sub.rows_idx)
+        return exact_solver(sub)
+
+    monkeypatch.setattr(local_runner, "solve", solve)
+    result = local_runner.qsplit_sampler_graph_partitioning(make_qubo(np.diag(diagonal), ids=[30, 10, 20], offset=7))
+    assert_solution(result)
+    assert result.solutions.iloc[0].to_dict() == {
+        10: int(diagonal[1] < 0),
+        20: 0,
+        30: 0,
+        "energy": 7 + min(diagonal[1], 0),
+    }
+    assert sorted(solved_ids) == ([10, 20] if any(diagonal) else [])
