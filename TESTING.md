@@ -7,7 +7,7 @@ fixture data instead of downloading a dataset.
 
 ## Install and run
 
-Use Python 3.12, the version exercised in CI:
+CI exercises Python 3.12, 3.13 and 3.14. For example, to use Python 3.12:
 
 ```bash
 uv venv --python 3.12
@@ -25,6 +25,11 @@ production StreamFlow configuration or the repository's solution caches.
 Optional SDK tests are skipped when their dependencies are absent. The CI installs
 the required extras, including separate jobs for IQM and CUDA-Q, so those paths
 are exercised rather than silently omitted.
+
+On native Windows, PyMetis is installed from conda-forge because PyPI does not
+provide Windows wheels. CI uses `mamba-org/setup-micromamba` to create an environment
+with the selected Python and PyMetis, then installs QSplit and its test extras with
+`uv pip install --python python`. Commands run in the activated environment.
 
 ## Test levels
 
@@ -105,12 +110,51 @@ uv run --no-sync python -m pytest -m e2e \
 ```
 
 The first command resets coverage, the next two append to it. In CI each level
-also writes JUnit XML. The `local-test-reports` artifact contains these results,
+also writes JUnit XML. Each `local-test-reports-<os>-py<version>` artifact contains these results,
 unit-only and cumulative JSON reports, final XML, HTML and the coverage database.
+It also records the platform, architecture, Python and installed dependency
+versions, so differences between runners can be investigated.
 The 75% gate applies to the combined line/branch coverage of the main local suite,
 not to each individual level. Separate IQM/CUDA-Q jobs publish their own coverage
 and JUnit reports; their percentages describe those isolated runs and are not
 added arithmetically to the main report.
+
+The main matrix has nine required jobs: Linux, macOS and Windows, each with
+Python 3.12, 3.13 and 3.14. Each job runs unit, integration and E2E tests and
+produces its own cumulative coverage report with the 75% gate. `fail-fast: false`
+lets other combinations finish when one fails; no combination is allowed to
+fail silently.
+
+The native Windows jobs explicitly skip only the actual StreamFlow CWL E2E:
+StreamFlow's local executor generates POSIX commands (including `export`), which
+cannot execute through Windows `cmd`. The installed CLI E2E and the plugin's
+unit tests still run on Windows. Linux and macOS run both E2E tests.
+IQM and CUDA-Q retain their isolated Linux/Python 3.12 jobs. In particular, the
+IQM extra currently pins its SDK to Python < 3.13; the nine-job main matrix does
+not claim coverage of these two optional SDKs.
+
+On Linux, the end-to-end step uses at most two CPUs (`taskset`) to exercise
+resource contention. macOS and Windows do not invoke this Linux-specific tool.
+The local CWL test configures the scheduler's `retry_delay` to one
+second: local deployments share CPU capacity, but StreamFlow's default scheduler
+only notifies waiting jobs on the deployment that released resources. Without a
+periodic recheck, another deployment can wait indefinitely on a small runner.
+This retries resource allocation, not failed solver commands.
+
+The command timeout remains 180 seconds. E2E commands write combined stdout/stderr
+logs in their pytest temporary directory, and StreamFlow runs with `--debug`.
+Failures include the log tail; timeouts also terminate the subprocess group on
+Linux/macOS. CI uses `--basetemp=reports/e2e-work`, so complete command logs and
+test inputs are included in the existing report artifact even after failure.
+That directory is cleared by pytest at the start of each invocation; use a
+dedicated directory when reproducing this option locally.
+
+Partitioning and stochastic samplers may produce different valid assignments
+across architectures or native library builds. Tests check mathematical
+invariants instead of identical partitions. Regression tests explicitly exercise
+zero-matrix graph partitions: their dummy solutions contain `NaN` (no vote),
+which aggregators must ignore rather than convert to an integer or count as a
+vote for zero.
 
 CI also runs Ruff lint and format checks. Run them locally with:
 

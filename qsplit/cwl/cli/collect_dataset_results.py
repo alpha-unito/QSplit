@@ -25,7 +25,7 @@ def _candidate_launch_dirs() -> list[Path]:
 
 
 def _is_ephemeral_solutions_dir(path: Path) -> bool:
-    normalized = str(path.resolve())
+    normalized = path.resolve().as_posix()
     return "/tmp/streamflow/" in normalized or "/private/tmp/streamflow/" in normalized
 
 

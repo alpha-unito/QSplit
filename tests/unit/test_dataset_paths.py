@@ -1,10 +1,21 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from unittest.mock import Mock
 
 import pytest
 
 from qsplit.cwl.cli import collect_dataset_results, dataset_prepare, persist_instance_solution
 
 MODULES = [dataset_prepare, collect_dataset_results, persist_instance_solution]
+
+
+@pytest.mark.parametrize("module", MODULES, ids=lambda m: m.__name__)
+@pytest.mark.parametrize("path_type", [PurePosixPath, PureWindowsPath])
+def test_ephemeral_directory_detection_across_path_separators(module, path_type):
+    path = Mock(spec=Path)
+    path.resolve.return_value = path_type("/tmp/streamflow/run/solutions")
+    assert module._is_ephemeral_solutions_dir(path)
+    path.resolve.return_value = path_type("/project/solutions")
+    assert not module._is_ephemeral_solutions_dir(path)
 
 
 @pytest.mark.parametrize("module", MODULES, ids=lambda m: m.__name__)

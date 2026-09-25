@@ -4,53 +4,77 @@ on:
   push:
   pull_request:
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 jobs:
   test:
-    name: Local tests (${{ matrix.os }}, Python 3.12)
+    name: Local tests (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-    timeout-minutes: 20
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12", "3.13", "3.14"]
+    timeout-minutes: 30
     env:
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
+      - name: Set up Windows Python and PyMetis
+        if: runner.os == 'Windows'
+        uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-name: qsplit-ci
+          create-args: >-
+            python=${{ matrix.python }}
+            pymetis>=2025.2.2
+          init-shell: bash
+      - name: Set up Linux/macOS Python
+        if: runner.os != 'Windows'
+        run: |
+          uv python install "${{ matrix.python }}"
+          uv venv --python "${{ matrix.python }}"
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
       - name: Install local test dependencies
         run: |
-          uv python install 3.12
-          uv venv --python 3.12
-          uv pip install -e ".[dev,streamflow,quantinuum,dataset]"
+          python -c "import sys; assert '.'.join(map(str, sys.version_info[:2])) == '${{ matrix.python }}', sys.version"
+          uv pip install --python python -e ".[dev,streamflow,quantinuum,dataset]"
       - name: Record platform and dependency versions
         run: |
           mkdir -p reports
-          uv run --no-sync python -c "import platform; print(platform.platform()); print(platform.machine()); print(platform.python_version())" > reports/platform.txt
-          uv pip freeze > reports/dependencies.txt
+          python -c "import platform; print(platform.platform()); print(platform.machine()); print(platform.python_version())" > reports/platform.txt
+          uv pip freeze --python python > reports/dependencies.txt
       - name: Verify optional local dependencies import successfully
-        run: uv run --no-sync python -c "import streamflow.main, pytket.extensions.qiskit, pennylane"
+        run: python -c "import streamflow.main, pytket.extensions.qiskit, pennylane, pymetis"
       - name: Lint and format
         run: |
-          uv run --no-sync ruff check .
-          uv run --no-sync ruff format --check .
+          python -m ruff check .
+          python -m ruff format --check .
       - name: Unit tests and unit coverage
         run: >-
-          uv run --no-sync python -m pytest -m "unit and not iqm and not cudaq"
+          python -m pytest -m "unit and not iqm and not cudaq"
           --junitxml=reports/unit.xml --cov
           --cov-report=term-missing --cov-report=json:reports/coverage-unit.json
       - name: Integration tests (CPU simulators)
         run: >-
-          uv run --no-sync python -m pytest -m "integration and not iqm and not cudaq"
+          python -m pytest -m "integration and not iqm and not cudaq"
           --junitxml=reports/integration.xml --cov --cov-append
           --cov-report=term-missing --cov-report=json:reports/coverage-unit-integration.json
-      - name: End-to-end CLI and local StreamFlow workflows (2 CPUs)
+      - name: End-to-end CLI and local StreamFlow workflows
         run: |
-          e2e_cpus=$(uv run --no-sync python -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
-          taskset --cpu-list "$e2e_cpus" uv run --no-sync python -m pytest -m e2e \
+          e2e_prefix=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            e2e_cpus=$(python -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+            e2e_prefix=(taskset --cpu-list "$e2e_cpus")
+          fi
+          "${e2e_prefix[@]}" python -m pytest -m e2e -ra \
             --basetemp=reports/e2e-work --junitxml=reports/e2e.xml \
             --cov --cov-append --cov-fail-under=75 \
             --cov-report=term-missing --cov-report=xml:reports/coverage.xml \
@@ -59,7 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: local-test-reports-${{ matrix.os }}
+          name: local-test-reports-${{ matrix.os }}-py${{ matrix.python }}
           include-hidden-files: true
           path: |
             reports/
@@ -67,13 +91,12 @@ jobs:
             .coverage
 
   optional-simulators:
-    name: ${{ matrix.extra }} CPU simulator (${{ matrix.os }})
+    name: ${{ matrix.extra }} CPU simulator (${{ matrix.os }}, Python 3.12)
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        # IQM conflicts with StreamFlow/Quantinuum; CUDA-Q wheels require Linux.
         include:
           - extra: iqm
             module: iqm.qiskit_iqm
@@ -105,5 +128,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-${{ matrix.extra }}-${{ matrix.os }}-reports
+          name: simulator-${{ matrix.extra }}-${{ matrix.os }}-py3.12-reports
           path: reports/

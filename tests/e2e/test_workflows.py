@@ -3,6 +3,7 @@ import os
 import signal
 import subprocess
 import sys
+import sysconfig
 from itertools import count
 from pathlib import Path
 
@@ -15,7 +16,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 @pytest.fixture
 def run_command(tmp_path, monkeypatch):
-    monkeypatch.setenv("PATH", str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"])
+    monkeypatch.setenv("PATH", sysconfig.get_path("scripts") + os.pathsep + os.environ["PATH"])
     monkeypatch.setenv("OMP_NUM_THREADS", "1")
     monkeypatch.setenv("OPENBLAS_NUM_THREADS", "1")
     monkeypatch.setenv("PYTHONUNBUFFERED", "1")
@@ -83,6 +84,10 @@ def test_installed_commands_split_scatter_aggregate(tmp_path, run_command):
 
 
 @pytest.mark.streamflow
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="StreamFlow's local CWL execution uses POSIX shell commands; native Windows runs the CLI E2E instead",
+)
 def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
     pytest.importorskip("streamflow.main")
     matrix = np.triu(-np.ones((3, 3)))
