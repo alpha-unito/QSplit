@@ -1,9 +1,9 @@
-"""Black-box CLI and actual CWL execution. No cluster configurations are used."""
-
 import json
 import os
+import signal
 import subprocess
 import sys
+from itertools import count
 from pathlib import Path
 
 import numpy as np
@@ -18,18 +18,40 @@ def run_command(tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"])
     monkeypatch.setenv("OMP_NUM_THREADS", "1")
     monkeypatch.setenv("OPENBLAS_NUM_THREADS", "1")
+    monkeypatch.setenv("PYTHONUNBUFFERED", "1")
     monkeypatch.setenv("MPLCONFIGDIR", str(tmp_path / "matplotlib"))
-    # CWL may launch each command in a different working directory. Coverage's
-    # subprocess patch propagates these absolute paths to every child process.
     if "COVERAGE_RCFILE" in os.environ:
         monkeypatch.setenv("COVERAGE_RCFILE", str(Path(os.environ["COVERAGE_RCFILE"]).resolve()))
 
+    command_ids = count(1)
+
     def run(*command, cwd=tmp_path, timeout=180):
-        result = subprocess.run(
-            list(map(str, command)), cwd=cwd, env=os.environ.copy(), text=True, capture_output=True, timeout=timeout
-        )
-        assert result.returncode == 0, f"Command: {command}\n{result.stdout}\n{result.stderr}"
-        return result
+        log_path = tmp_path / f"{next(command_ids):02d}-{Path(str(command[0])).name}.log"
+        with log_path.open("w") as log:
+            log.write(f"Command: {command}\n")
+            log.flush()
+            with subprocess.Popen(
+                list(map(str, command)),
+                cwd=cwd,
+                env=os.environ.copy(),
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=os.name == "posix",
+            ) as process:
+                try:
+                    process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    if os.name == "posix":
+                        os.killpg(process.pid, signal.SIGKILL)
+                    else:
+                        process.kill()
+                    process.wait()
+                    pytest.fail(
+                        f"Command timed out after {timeout}s. Full log: {log_path}\n"
+                        f"{log_path.read_text(errors='replace')[-16000:]}",
+                        pytrace=False,
+                    )
+        assert process.returncode == 0, f"Full log: {log_path}\n{log_path.read_text(errors='replace')[-16000:]}"
 
     return run
 
@@ -93,6 +115,7 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
         json.dumps(
             {
                 "version": "v1.0",
+                "scheduling": {"scheduler": {"type": "default", "config": {"retry_delay": 1}}},
                 "workflows": {
                     "local-test": {
                         "type": "cwl",
@@ -119,12 +142,12 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
             }
         )
     )
-    run_command("streamflow", "run", "--outdir", tmp_path / "output", config)
+    run_command("streamflow", "run", "--debug", "--outdir", tmp_path / "output", config)
     assert len(list(store.glob("solutions_*.csv"))) == 2
     for path in store.glob("solutions_*.csv"):
         check_result(path, matrix)
     original = {path.name: (path.read_bytes(), path.stat().st_mtime_ns) for path in store.glob("*.csv")}
-    run_command("streamflow", "run", "--outdir", tmp_path / "resumed", config)
+    run_command("streamflow", "run", "--debug", "--outdir", tmp_path / "resumed", config)
     assert {path.name: (path.read_bytes(), path.stat().st_mtime_ns) for path in store.glob("*.csv")} == original
     manifests = list((tmp_path / "resumed").rglob("dataset_results_manifest.json"))
     assert len(manifests) == 1

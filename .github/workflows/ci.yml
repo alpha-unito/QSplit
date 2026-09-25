@@ -47,12 +47,14 @@ jobs:
           uv run --no-sync python -m pytest -m "integration and not iqm and not cudaq"
           --junitxml=reports/integration.xml --cov --cov-append
           --cov-report=term-missing --cov-report=json:reports/coverage-unit-integration.json
-      - name: End-to-end CLI and local StreamFlow workflows
-        run: >-
-          uv run --no-sync python -m pytest -m e2e
-          --junitxml=reports/e2e.xml --cov --cov-append --cov-fail-under=75
-          --cov-report=term-missing --cov-report=xml:reports/coverage.xml
-          --cov-report=json:reports/coverage.json --cov-report=html
+      - name: End-to-end CLI and local StreamFlow workflows (2 CPUs)
+        run: |
+          e2e_cpus=$(uv run --no-sync python -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+          taskset --cpu-list "$e2e_cpus" uv run --no-sync python -m pytest -m e2e \
+            --basetemp=reports/e2e-work --junitxml=reports/e2e.xml \
+            --cov --cov-append --cov-fail-under=75 \
+            --cov-report=term-missing --cov-report=xml:reports/coverage.xml \
+            --cov-report=json:reports/coverage.json --cov-report=html
       - name: Upload test results and cumulative coverage
         if: always()
         uses: actions/upload-artifact@v4
