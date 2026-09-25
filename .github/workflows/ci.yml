@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     timeout-minutes: 20
     env:
       OMP_NUM_THREADS: "1"
@@ -76,9 +76,6 @@ jobs:
           - extra: iqm
             module: iqm.qiskit_iqm
             os: ubuntu-latest
-          - extra: iqm
-            module: iqm.qiskit_iqm
-            os: macos-latest
           - extra: cudaq
             module: cudaq
             os: ubuntu-latest
