@@ -71,7 +71,12 @@ jobs:
           echo "UV_PYTHON=$uv_python" >> "$GITHUB_ENV"
       - name: Install local test dependencies
         run: |
-          uv pip install --python "$UV_PYTHON" -e ".[dev,streamflow,quantinuum,dataset]"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            extras="dev,quantinuum,dataset"
+          else
+            extras="dev,streamflow,quantinuum,dataset"
+          fi
+          uv pip install --python "$UV_PYTHON" -e ".[$extras]"
       - name: Record platform and dependency versions
         run: |
           mkdir -p reports
@@ -86,33 +91,38 @@ jobs:
       - name: Verify optional local dependencies import successfully
         run: |
           "$CI_PYTHON" -c "
-          import streamflow.main
           import pytket.extensions.qiskit
           import pennylane
           import pymetis
           "
+          if [[ "$RUNNER_OS" != "Windows" ]]; then
+            "$CI_PYTHON" -c "import streamflow.main"
+          fi
       - name: Lint and format
         run: |
           "$CI_PYTHON" -m ruff check .
           "$CI_PYTHON" -m ruff format --check .
       - name: Unit tests and unit coverage
+        if: runner.os != 'Windows'
         run: >-
           "$CI_PYTHON" -m pytest -m "unit and not iqm and not cudaq"
           --junitxml=reports/unit.xml --cov
           --cov-report=term-missing --cov-report=json:reports/coverage-unit.json
       - name: Integration tests (CPU simulators)
+        if: runner.os != 'Windows'
         run: >-
-          python -m pytest -m "integration and not iqm and not cudaq"
+          "$CI_PYTHON" -m pytest -m "integration and not iqm and not cudaq"
           --junitxml=reports/integration.xml --cov --cov-append
           --cov-report=term-missing --cov-report=json:reports/coverage-unit-integration.json
       - name: End-to-end CLI and local StreamFlow workflows
+        if: runner.os != 'Windows'
         run: |
           e2e_prefix=()
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            e2e_cpus=$(python -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+            e2e_cpus=$("$CI_PYTHON" -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
             e2e_prefix=(taskset --cpu-list "$e2e_cpus")
           fi
-           "${e2e_prefix[@]}" "$CI_PYTHON" -m pytest -m e2e -ra \
+          "${e2e_prefix[@]}" "$CI_PYTHON" -m pytest -m e2e -ra \
             --basetemp=reports/e2e-work --junitxml=reports/e2e.xml \
             --cov --cov-append --cov-fail-under=75 \
             --cov-report=term-missing --cov-report=xml:reports/coverage.xml \
