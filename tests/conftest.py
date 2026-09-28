@@ -9,11 +9,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 
 
 @pytest.fixture(autouse=True)
 def local_environment(monkeypatch, tmp_path):
+    monkeypatch.setattr(configuration, "_settings", configuration.ContextVar("test_config", default=None))
     for name in list(os.environ):
         if name.startswith(("QSPLIT_", "IQM_", "REFINEMENT_", "QUANTUM_")) or name in {
             "TOKEN_IBM",
@@ -23,10 +25,10 @@ def local_environment(monkeypatch, tmp_path):
             "EXACT_RATIO",
         }:
             monkeypatch.delenv(name)
-    monkeypatch.setenv("CUT_DIM", "2")
-    monkeypatch.setenv("QSPLIT_BACKEND", "dwave")
-    monkeypatch.setenv("QSPLIT_IQM_STATE_DIR", str(tmp_path / "iqm_state"))
-    monkeypatch.setenv("QSPLIT_LAUNCH_DIR", str(tmp_path))
+    monkeypatch.setitem(configuration.current(), "CUT_DIM", "2")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_BACKEND", "dwave")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_IQM_STATE_DIR", str(tmp_path / "iqm_state"))
+    monkeypatch.setitem(configuration.current(), "QSPLIT_LAUNCH_DIR", str(tmp_path))
     monkeypatch.setenv("MPLCONFIGDIR", str(tmp_path / "matplotlib"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
     # Never let an accidental provider call use the network. Local IPC is needed

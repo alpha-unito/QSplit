@@ -4,6 +4,14 @@ class: CommandLineTool
 baseCommand: [cli_aggregate]
 
 inputs:
+  configs:
+    type:
+      type: array
+      items: File
+      inputBinding:
+        prefix: --config
+    default: []
+    inputBinding: {}
   input_qubo:
     type: File
     inputBinding:

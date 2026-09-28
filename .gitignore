@@ -20,3 +20,13 @@ maxcut_*
 htmlcov/
 reports/
 coverage.xml
+
+# Runtime YAML can contain private API keys. Only explicit public templates and
+# repository tooling are allowed, regardless of filename or directory.
+*.[yY][aA][mM][lL]
+*.[yY][mM][lL]
+!/qsplit.config.template.yaml
+!/streamflow/streamflow.template.yml
+!/streamflow/cwl/config.template.yml
+!/.pre-commit-config.yaml
+!/.github/workflows/ci.yml

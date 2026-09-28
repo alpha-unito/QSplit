@@ -1,5 +1,4 @@
 import math
-import os
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -12,6 +11,8 @@ from pytket.extensions.qiskit import AerBackend
 from pytket.pauli import Pauli, QubitPauliString
 from pytket.utils import QubitPauliOperator, gen_term_sequence_circuit, get_operator_expectation_value
 from scipy.optimize import minimize
+
+from qsplit import configuration
 
 
 class TKET_BACKEND(Enum):
@@ -119,7 +120,7 @@ def _optimize(circ, operator, backend):
             return float(np.real_if_close(val))
         else:
             project = qnx.projects.get_or_create("qsplit-qaoa")
-            config = qnx.QuantinuumConfig(device_name=os.getenv("QNEXUS_QPU"))
+            config = qnx.QuantinuumConfig(device_name=configuration.get("QNEXUS_QPU"))
             name = f"qaoa-opt-{datetime.now(timezone.utc).isoformat()}"
             ref = qnx.circuits.upload(c, name=f"opt-{name}", project=project)
             compiled = qnx.compile([ref], name=name, backend_config=config, project=project)
@@ -141,7 +142,7 @@ def run_quantum_optimizer(optimized_circuit, backend):
         result = backend.run_circuit(backend_circuit, n_shots=100)
     else:
         project = qnx.projects.get_or_create("qsplit-qaoa")
-        config = qnx.QuantinuumConfig(device_name=os.getenv("QNEXUS_QPU"))
+        config = qnx.QuantinuumConfig(device_name=configuration.get("QNEXUS_QPU"))
         name = f"qaoa-{datetime.now(timezone.utc).isoformat()}"
         ref = qnx.circuits.upload(optimized_circuit, name=f"compile-{name}", project=project)
         compiled = qnx.compile([ref], name=name, backend_config=config, project=project)

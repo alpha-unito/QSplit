@@ -4,6 +4,14 @@ class: CommandLineTool
 baseCommand: [cli_persist_instance_solution]
 
 inputs:
+  configs:
+    type:
+      type: array
+      items: File
+      inputBinding:
+        prefix: --config
+    default: []
+    inputBinding: {}
   input_solution:
     type: File
     inputBinding:

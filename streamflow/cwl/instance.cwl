@@ -6,6 +6,27 @@ requirements:
   - class: MultipleInputFeatureRequirement
 
 inputs:
+  split_configs:
+    type: File[]
+    default: []
+  parallel_configs:
+    type: File[]
+    default: []
+  iqm_configs:
+    type: File[]
+    default: []
+  quantinuum_h2_configs:
+    type: File[]
+    default: []
+  quantinuum_h2e_configs:
+    type: File[]
+    default: []
+  aggregate_configs:
+    type: File[]
+    default: []
+  storage_configs:
+    type: File[]
+    default: []
   input_matrix: File
   cut_dim: int
   enable_sparse_check:
@@ -42,6 +63,7 @@ steps:
   split:
     run: clt/split.cwl
     in:
+      configs: split_configs
       input_qubo: input_matrix
       adaptive: { default: true }
       cut_dim: cut_dim
@@ -67,6 +89,7 @@ steps:
   parallelize:
     run: clt/scatter.cwl
     in:
+      configs: parallel_configs
       input_qubo: split/parallel_qubos
     out: [solved_qubo]
     scatter: [input_qubo]
@@ -74,6 +97,8 @@ steps:
   iqm:
     run: clt/scatter.cwl
     in:
+      backend: { default: iqm }
+      configs: iqm_configs
       input_qubo: split/iqm_qubos
     out: [solved_qubo]
     scatter: [input_qubo]
@@ -81,6 +106,8 @@ steps:
   quantinuum_h2:
     run: clt/scatter.cwl
     in:
+      backend: { default: quantinuum_h2 }
+      configs: quantinuum_h2_configs
       input_qubo: split/quantinuum_h2_qubos
     out: [solved_qubo]
     scatter: [input_qubo]
@@ -88,6 +115,8 @@ steps:
   quantinuum_h2e:
     run: clt/scatter.cwl
     in:
+      backend: { default: quantinuum_h2e }
+      configs: quantinuum_h2e_configs
       input_qubo: split/quantinuum_h2e_qubos
     out: [solved_qubo]
     scatter: [input_qubo]
@@ -105,6 +134,7 @@ steps:
   aggregate:
     run: clt/aggregate.cwl
     in:
+      configs: aggregate_configs
       input_qubo: split/full_qubo
       tree_file: split/tree_meta
       solved_list: merge_solved/solved_list
@@ -113,6 +143,7 @@ steps:
   persist_solution:
     run: clt/persist_solution.cwl
     in:
+      configs: storage_configs
       input_solution: aggregate/aggregate_solutions
       input_matrix: input_matrix
       solutions_dir: solutions_dir

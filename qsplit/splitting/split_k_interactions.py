@@ -1,12 +1,12 @@
-import os
-
 import numpy as np
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 
 
+@configuration.configured
 def split_problem(qubo: QUBO) -> list[QUBO]:
-    cut_dim = min(int(os.environ["CUT_DIM"]), qubo.problem_size)
+    cut_dim = min(int(configuration.require("CUT_DIM")), qubo.problem_size)
     res = []
 
     mat_abs = np.abs(qubo.mat)

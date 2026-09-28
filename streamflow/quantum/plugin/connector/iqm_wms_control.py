@@ -9,13 +9,16 @@ from pathlib import Path
 from typing import Mapping
 from uuid import UUID
 
+from qsplit import configuration
+
 logger = logging.getLogger(__name__)
 
+_RUNTIME_CONFIG: dict = {}
 _LOCAL_ACTIVE_JOBS: dict[str, object] = {}
 _PATCHED_BACKEND_RUN = False
 _SIGNAL_HANDLERS_INSTALLED = False
 _SUPERVISOR_HANDLERS_INSTALLED = False
-_SUPERVISOR_ENV: dict[str, str] = {}
+_SUPERVISOR_CONFIG: dict[str, str] = {}
 _PREV_SUPERVISOR_HANDLERS: dict[int, object] = {}
 _CLEANUP_RUNNING = False
 
@@ -25,23 +28,20 @@ except Exception:
     fcntl = None
 
 
-def _env_value(env: Mapping[str, str] | None, key: str) -> str:
-    if env is not None:
-        value = str(env.get(key, "")).strip()
-        if value:
-            return value
-    return os.getenv(key, "").strip()
+def _config_value(config: Mapping[str, object] | None, key: str) -> str:
+    value = configuration.get(key) if config is None else config.get(key)
+    return str(value).strip() if value is not None else ""
 
 
-def _iqm_state_dir(env: Mapping[str, str] | None = None) -> Path:
-    raw = _env_value(env, "QSPLIT_IQM_STATE_DIR")
+def _iqm_state_dir(config: Mapping[str, object] | None = None) -> Path:
+    raw = _config_value(config, "QSPLIT_IQM_STATE_DIR")
     if raw:
         return Path(raw).expanduser()
     return Path("/tmp") / "qsplit" / "iqm_state"
 
 
-def _active_jobs_path(env: Mapping[str, str] | None = None) -> Path:
-    return _iqm_state_dir(env) / "iqm_active_jobs.json"
+def _active_jobs_path(config: Mapping[str, object] | None = None) -> Path:
+    return _iqm_state_dir(config) / "iqm_active_jobs.json"
 
 
 def _lock(file_obj) -> None:
@@ -103,20 +103,20 @@ def _parse_positive_int(raw: str) -> int | None:
     return value if value > 0 else None
 
 
-def resolve_iqm_timeout_seconds(env: Mapping[str, str] | None = None) -> int | None:
-    return _parse_positive_int(_env_value(env, "QSPLIT_IQM_FALLBACK_TIMEOUT_SEC"))
+def resolve_iqm_timeout_seconds(config: Mapping[str, object] | None = None) -> int | None:
+    return _parse_positive_int(_config_value(config, "QSPLIT_IQM_FALLBACK_TIMEOUT_SEC"))
 
 
-def reset_iqm_runtime_state(env: Mapping[str, str] | None = None) -> None:
-    for path in (_active_jobs_path(env),):
+def reset_iqm_runtime_state(config: Mapping[str, object] | None = None) -> None:
+    for path in (_active_jobs_path(config),):
         try:
             path.unlink(missing_ok=True)
         except Exception:
             continue
 
 
-def _read_active_registry(env: Mapping[str, str] | None = None) -> list[dict[str, object]]:
-    data = _read_json_file(_active_jobs_path(env))
+def _read_active_registry(config: Mapping[str, object] | None = None) -> list[dict[str, object]]:
+    data = _read_json_file(_active_jobs_path(config))
     entries = data.get("jobs", [])
     if not isinstance(entries, list):
         return []
@@ -135,32 +135,32 @@ def _read_active_registry(env: Mapping[str, str] | None = None) -> list[dict[str
     return out
 
 
-def _write_active_registry(entries: list[dict[str, object]], env: Mapping[str, str] | None = None) -> None:
-    _write_json_file(_active_jobs_path(env), {"jobs": entries})
+def _write_active_registry(entries: list[dict[str, object]], config: Mapping[str, object] | None = None) -> None:
+    _write_json_file(_active_jobs_path(config), {"jobs": entries})
 
 
-def add_active_iqm_job(job_id: str, env: Mapping[str, str] | None = None) -> None:
+def add_active_iqm_job(job_id: str, config: Mapping[str, object] | None = None) -> None:
     job_id = str(job_id).strip()
     if not job_id:
         return
-    entries = _read_active_registry(env)
+    entries = _read_active_registry(config)
     pid = os.getpid()
     if any(str(e.get("job_id")) == job_id and int(e.get("pid", -1)) == pid for e in entries):
         return
     entries.append({"job_id": job_id, "pid": pid})
-    _write_active_registry(entries, env)
+    _write_active_registry(entries, config)
 
 
 def remove_active_iqm_job(
     job_id: str,
-    env: Mapping[str, str] | None = None,
+    config: Mapping[str, object] | None = None,
     *,
     include_all_pids: bool = False,
 ) -> None:
     job_id = str(job_id).strip()
     if not job_id:
         return
-    entries = _read_active_registry(env)
+    entries = _read_active_registry(config)
     pid = os.getpid()
     kept = []
     for entry in entries:
@@ -169,31 +169,31 @@ def remove_active_iqm_job(
         if same_job and (include_all_pids or same_pid):
             continue
         kept.append(entry)
-    _write_active_registry(kept, env)
+    _write_active_registry(kept, config)
 
 
 def get_active_iqm_job_ids(
-    env: Mapping[str, str] | None = None,
+    config: Mapping[str, object] | None = None,
     *,
     include_all_pids: bool = False,
 ) -> list[str]:
     pid = os.getpid()
     return [
-        str(entry["job_id"]) for entry in _read_active_registry(env) if include_all_pids or int(entry["pid"]) == pid
+        str(entry["job_id"]) for entry in _read_active_registry(config) if include_all_pids or int(entry["pid"]) == pid
     ]
 
 
-def _resolve_iqm_auth_env(env: Mapping[str, str] | None = None) -> tuple[str, str, str]:
-    url = _env_value(env, "IQM_SERVER_URL")
-    token = _env_value(env, "IQM_TOKEN")
-    qc = _env_value(env, "IQM_QUANTUM_COMPUTER")
+def _resolve_iqm_auth_config(config: Mapping[str, object] | None = None) -> tuple[str, str, str]:
+    url = _config_value(config, "IQM_SERVER_URL")
+    token = _config_value(config, "IQM_TOKEN")
+    qc = _config_value(config, "IQM_QUANTUM_COMPUTER")
     return url, token, qc
 
 
-def cancel_iqm_job_ids(job_ids: list[str], env: Mapping[str, str] | None = None) -> int:
+def cancel_iqm_job_ids(job_ids: list[str], config: Mapping[str, object] | None = None) -> int:
     if not job_ids:
         return 0
-    url, token, quantum_computer = _resolve_iqm_auth_env(env)
+    url, token, quantum_computer = _resolve_iqm_auth_config(config)
     if not url or not token:
         logger.warning("Cannot cancel IQM jobs: missing IQM_SERVER_URL/IQM_TOKEN.")
         return 0
@@ -224,7 +224,7 @@ def cancel_iqm_job_ids(job_ids: list[str], env: Mapping[str, str] | None = None)
 
 def cleanup_active_iqm_jobs(
     reason: str,
-    env: Mapping[str, str] | None = None,
+    config: Mapping[str, object] | None = None,
     *,
     include_all_pids: bool = False,
 ) -> int:
@@ -233,7 +233,7 @@ def cleanup_active_iqm_jobs(
         return 0
     _CLEANUP_RUNNING = True
     try:
-        tracked = set(get_active_iqm_job_ids(env, include_all_pids=include_all_pids))
+        tracked = set(get_active_iqm_job_ids(config, include_all_pids=include_all_pids))
         tracked.update(_LOCAL_ACTIVE_JOBS.keys())
         for job_id, job in list(_LOCAL_ACTIVE_JOBS.items()):
             try:
@@ -244,9 +244,9 @@ def cleanup_active_iqm_jobs(
                 pass
             finally:
                 _LOCAL_ACTIVE_JOBS.pop(job_id, None)
-        cancelled = cancel_iqm_job_ids(sorted(tracked), env)
+        cancelled = cancel_iqm_job_ids(sorted(tracked), config)
         for job_id in list(tracked):
-            remove_active_iqm_job(job_id, env, include_all_pids=include_all_pids)
+            remove_active_iqm_job(job_id, config, include_all_pids=include_all_pids)
         if tracked:
             logger.warning(
                 "IQM WMS cleanup (%s): tracked=%s cancelled_via_api=%s",
@@ -312,7 +312,7 @@ def _attach_job(job: object) -> None:
 
 
 def _runtime_exit_cleanup() -> None:
-    cleanup_active_iqm_jobs("runtime_exit", include_all_pids=False)
+    cleanup_active_iqm_jobs("runtime_exit", config=_RUNTIME_CONFIG, include_all_pids=False)
 
 
 def _runtime_signal_handler(signum: int, _frame) -> None:
@@ -338,6 +338,8 @@ def _install_runtime_signal_handlers() -> None:
 
 def install_iqm_runtime_hooks() -> None:
     global _PATCHED_BACKEND_RUN
+    _RUNTIME_CONFIG.clear()
+    _RUNTIME_CONFIG.update(configuration.current())
     if _PATCHED_BACKEND_RUN:
         return
     _install_runtime_signal_handlers()
@@ -362,7 +364,7 @@ def install_iqm_runtime_hooks() -> None:
 def _supervisor_exit_cleanup() -> None:
     cleanup_active_iqm_jobs(
         "wms_exit",
-        env=_SUPERVISOR_ENV,
+        config=_SUPERVISOR_CONFIG,
         include_all_pids=True,
     )
 
@@ -370,7 +372,7 @@ def _supervisor_exit_cleanup() -> None:
 def _supervisor_signal_handler(signum: int, frame) -> None:
     cleanup_active_iqm_jobs(
         f"wms_signal_{signum}",
-        env=_SUPERVISOR_ENV,
+        config=_SUPERVISOR_CONFIG,
         include_all_pids=True,
     )
     prev = _PREV_SUPERVISOR_HANDLERS.get(signum)
@@ -382,10 +384,10 @@ def _supervisor_signal_handler(signum: int, frame) -> None:
     raise SystemExit(128 + signum)
 
 
-def install_supervisor_cleanup_handlers(env: Mapping[str, str] | None = None) -> None:
+def install_supervisor_cleanup_handlers(config: Mapping[str, object] | None = None) -> None:
     global _SUPERVISOR_HANDLERS_INSTALLED
-    if env:
-        _SUPERVISOR_ENV.update({k: str(v) for k, v in env.items()})
+    if config:
+        _SUPERVISOR_CONFIG.update(config)
     if _SUPERVISOR_HANDLERS_INSTALLED:
         return
     atexit.register(_supervisor_exit_cleanup)

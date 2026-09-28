@@ -1,9 +1,10 @@
 import argparse
 import csv
 import json
-import os
 import shutil
 from pathlib import Path
+
+from qsplit import configuration
 
 
 def _repo_root() -> Path:
@@ -16,8 +17,8 @@ def _looks_like_project_root(path: Path) -> bool:
 
 def _candidate_launch_dirs() -> list[Path]:
     candidates: list[Path] = []
-    for env_name in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT", "PWD", "OLDPWD", "INIT_CWD"):
-        raw = os.getenv(env_name, "").strip()
+    for key in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT"):
+        raw = configuration.get(key, "").strip()
         if not raw:
             continue
         candidates.append(Path(raw).expanduser())
@@ -74,6 +75,7 @@ def _is_valid_solution_file(path: Path) -> bool:
     return True
 
 
+@configuration.cli
 def main() -> None:
     parser = argparse.ArgumentParser(description="Collect per-instance QSplit solutions for a dataset run.")
     parser.add_argument("--dataset-manifest", required=True)
@@ -81,6 +83,7 @@ def main() -> None:
     parser.add_argument("--solution-csv", action="append", nargs="+", default=[])
     parser.add_argument("--output-dir", default="solutions_dataset")
     parser.add_argument("--output-manifest", default="dataset_results_manifest.json")
+    parser.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = parser.parse_args()
 
     manifest_path = Path(args.dataset_manifest).resolve()

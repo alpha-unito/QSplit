@@ -1,14 +1,14 @@
-import os
-
 import numpy as np
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 
 
+@configuration.configured
 def split_problem(qubo: QUBO) -> list[QUBO]:
-    cut_dim = int(os.environ["CUT_DIM"])
+    cut_dim = int(configuration.require("CUT_DIM"))
     cut_dim -= cut_dim % 2
-    exact_ratio = float(os.environ.get("EXACT_RATIO", "0.75"))
+    exact_ratio = float(configuration.get("EXACT_RATIO", "0.75"))
 
     real_positions = np.flatnonzero(qubo.rows_idx >= 0)
     real_ids = qubo.rows_idx[real_positions]

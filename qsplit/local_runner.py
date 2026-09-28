@@ -1,13 +1,12 @@
-import os
 import warnings
 from collections.abc import Callable
 from copy import deepcopy
 
 import numpy as np
 
+from qsplit import configuration
 from qsplit.adapters.all_zero import solve as zero_solve
 from qsplit.adapters.dummy import solve as dummy_solve
-from qsplit.adapters.dwave.dwave_sa import solve
 
 # from qsplit.adapters.ibm.ibm_default import solve
 from qsplit.aggregation.aggregate_k_interactions import aggregate_solutions as aggregate_solutions_interactions
@@ -17,6 +16,7 @@ from qsplit.aggregation.aggregate_quadtree import aggregate_solutions as aggrega
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions as aggregate_solutions_recursive
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions_trivial
 from qsplit.aggregation.aggregate_recursive_graph import aggregate_solutions as aggregate_solutions_recursive_graph
+from qsplit.cwl.cli.scatter import load_solver
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
 from qsplit.refinement.refine_conditioned import refine_solutions as refine_solutions_conditioned
@@ -35,6 +35,11 @@ warnings.warn(
     DeprecationWarning,
     stacklevel=1,
 )
+
+
+def solve(qubo):
+    return load_solver(configuration.get("QSPLIT_BACKEND", "dwave"))(qubo)
+
 
 LOGICAL_EXPANSION = False
 BP = False
@@ -87,11 +92,12 @@ def __extract_logical_hints(qubo: QUBO) -> dict[int, float]:
     return hints
 
 
+@configuration.configured
 def qsplit_sampler_recursive(qubo: QUBO) -> QUBO:
     if is_empty(qubo):
         qubo.solutions = dummy_solve(qubo)
         return qubo
-    if (qubo.problem_size <= int(os.environ["CUT_DIM"])) or is_sparse(qubo):
+    if (qubo.problem_size <= int(configuration.require("CUT_DIM"))) or is_sparse(qubo):
         qubo.solutions = solve(qubo)
         return qubo
 
@@ -109,6 +115,7 @@ def qsplit_sampler_recursive(qubo: QUBO) -> QUBO:
         return aggregate_solutions_recursive(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_iterative(qubo: QUBO) -> QUBO:
     subs = split_problem_linear(qubo)
     for p in subs:
@@ -119,6 +126,7 @@ def qsplit_sampler_iterative(qubo: QUBO) -> QUBO:
     return aggregate_solutions_linear_bp(subs, qubo) if BP else aggregate_solutions_linear(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_interactions(qubo: QUBO) -> QUBO:
     subs = split_problem_interactions(qubo)
     for p in subs:
@@ -129,6 +137,7 @@ def qsplit_sampler_interactions(qubo: QUBO) -> QUBO:
     return aggregate_solutions_interactions(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_graph_partitioning(qubo: QUBO) -> QUBO:
     subs = split_problem_recursive_graph(qubo)
     for p in subs:
@@ -139,6 +148,7 @@ def qsplit_sampler_graph_partitioning(qubo: QUBO) -> QUBO:
     return aggregate_solutions_recursive_graph(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_quadtree(qubo: QUBO) -> QUBO:
     subs = split_problem_quadtree(qubo)
     for p in subs:
@@ -156,14 +166,14 @@ def _qsplit_sampler_refined(
     refinement: Callable[[list[QUBO], QUBO], list[QUBO]] | None,
     loops: int,
 ) -> QUBO:
-    tolerance = float(os.environ.get("REFINEMENT_TOLERANCE", "1e-9"))
+    tolerance = float(configuration.get("REFINEMENT_TOLERANCE", "1e-9"))
     if not np.isfinite(tolerance) or tolerance < 0:
         raise ValueError("REFINEMENT_TOLERANCE must be finite and non-negative")
-    patience = int(os.environ.get("REFINEMENT_PATIENCE", "10" if refinement is None else "1"))
+    patience = int(configuration.get("REFINEMENT_PATIENCE", "10" if refinement is None else "1"))
     if patience <= 0:
         raise ValueError("REFINEMENT_PATIENCE must be positive")
-    rng = np.random.default_rng(int(os.environ.get("REFINEMENT_SEED", "0"))) if refinement is None else None
-    block_size = int(os.environ["CUT_DIM"])
+    rng = np.random.default_rng(int(configuration.get("REFINEMENT_SEED", "0"))) if refinement is None else None
+    block_size = int(configuration.require("CUT_DIM"))
     if split is split_problem_quadtree:
         block_size -= block_size % 2
     if block_size <= 0:
@@ -226,7 +236,7 @@ def _select_refinement(
 ) -> Callable[[list[QUBO], QUBO], list[QUBO]] | None:
     if refinement is not None:
         return refinement
-    method = os.environ.get("REFINEMENT_METHOD", "conditioned")
+    method = configuration.get("REFINEMENT_METHOD", "conditioned")
     if method == "consensus":
         return consensus_refinement
     if method != "conditioned":
@@ -234,12 +244,13 @@ def _select_refinement(
     return None
 
 
+@configuration.configured
 def qsplit_sampler_refined_iterative(
     qubo: QUBO,
     *,
     refinement: Callable[[list[QUBO], QUBO], list[QUBO]] | None = None,
 ) -> QUBO:
-    loops = int(os.environ.get("REFINEMENT_LOOPS", "0"))
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
     if loops <= 0:
         return qsplit_sampler_iterative(qubo)
     refinement = _select_refinement(refinement, refine_problems_linear)
@@ -247,12 +258,13 @@ def qsplit_sampler_refined_iterative(
     return _qsplit_sampler_refined(qubo, split_problem_linear, aggregate, refinement, loops)
 
 
+@configuration.configured
 def qsplit_sampler_refined_quadtree(
     qubo: QUBO,
     *,
     refinement: Callable[[list[QUBO], QUBO], list[QUBO]] | None = None,
 ) -> QUBO:
-    loops = int(os.environ.get("REFINEMENT_LOOPS", "0"))
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
     if loops <= 0:
         return qsplit_sampler_quadtree(qubo)
     refinement = _select_refinement(refinement, refine_problems_quadtree)

@@ -1,10 +1,11 @@
 import argparse
 import csv
 import json
-import os
 import re
 import shutil
 from pathlib import Path
+
+from qsplit import configuration
 
 
 def _record_id(record: dict, line_no: int) -> str:
@@ -45,8 +46,8 @@ def _looks_like_project_root(path: Path) -> bool:
 
 def _candidate_launch_dirs() -> list[Path]:
     candidates: list[Path] = []
-    for env_name in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT", "PWD", "OLDPWD", "INIT_CWD"):
-        raw = os.getenv(env_name, "").strip()
+    for key in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT"):
+        raw = configuration.get(key, "").strip()
         if not raw:
             continue
         candidates.append(Path(raw).expanduser())
@@ -169,6 +170,7 @@ def _matrix_from_record(record: dict) -> list[list[float]] | None:
     return matrix
 
 
+@configuration.cli
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare per-instance matrix CSV files from a JSONL dataset.")
     parser.add_argument("--dataset-jsonl", required=True)
@@ -176,6 +178,7 @@ def main() -> None:
     parser.add_argument("--output-dir", default="dataset_matrices")
     parser.add_argument("--manifest", default="dataset_manifest.json")
     parser.add_argument("--solutions-dir", default="solutions")
+    parser.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = parser.parse_args()
 
     if args.max_instances < 0:

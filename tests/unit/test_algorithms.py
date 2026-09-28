@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from qsplit import configuration
 from qsplit.splitting import split_k_interactions, split_quadtree, split_recursive_graph
 
 
@@ -22,7 +23,7 @@ def test_aggregators_respect_original_variable_order_padding_and_offset(name, ma
 
 @pytest.mark.parametrize("cut", [1, 2, 4])
 def test_interaction_neighborhoods_respect_cut_dimension(cut, monkeypatch, make_qubo):
-    monkeypatch.setenv("CUT_DIM", str(cut))
+    monkeypatch.setitem(configuration.current(), "CUT_DIM", str(cut))
     qubo = make_qubo(np.triu(np.ones((4, 4))), ids=[30, 10, 40, 20])
     subs = split_k_interactions.split_problem(qubo)
     assert len(subs) == 4
@@ -44,8 +45,8 @@ def test_graph_partition_covers_every_real_variable_once(connected, make_qubo):
 
 
 def test_quadtree_macro_energy_equals_expanded_assignment(make_qubo, monkeypatch):
-    monkeypatch.setenv("CUT_DIM", "4")
-    monkeypatch.setenv("EXACT_RATIO", "0.5")
+    monkeypatch.setitem(configuration.current(), "CUT_DIM", "4")
+    monkeypatch.setitem(configuration.current(), "EXACT_RATIO", "0.5")
     matrix = np.triu(np.random.default_rng(17).integers(-4, 5, (6, 6)))
     qubo = make_qubo(matrix, ids=[60, 20, 10, 40, 30, 50], offset=5)
     for sub in split_quadtree.split_problem(qubo):

@@ -1,0 +1,26 @@
+dataset:
+  class: File
+  path: ../../qubo_max_cut.jsonl
+
+cut_dim: 10
+enable_sparse_check: false
+enable_iqm: false
+enable_quantinuum_h2: false
+enable_quantinuum_h2e: false
+iqm_real_jobs: "1"
+solutions_store_dir: /absolute/path/to/QSplit/solutions
+# quantinuum_h2_real_jobs: "1"
+# quantinuum_h2e_real_jobs: "1"
+
+# Copy only the relevant keys from ../../qsplit.config.template.yaml into each file.
+# Paths are relative to this settings file. Credentials belong only to solver lanes.
+split_configs: []
+parallel_configs: []
+iqm_configs: []
+# iqm_configs:
+#   - class: File
+#     path: ../../configs/iqm.yaml
+quantinuum_h2_configs: []
+quantinuum_h2e_configs: []
+aggregate_configs: []
+storage_configs: []

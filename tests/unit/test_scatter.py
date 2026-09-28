@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from qsplit import configuration
 from qsplit.cwl.cli import scatter
 from qsplit.cwl.cli.utils import load_qubo, save_qubo
 
@@ -20,11 +21,11 @@ def test_backend_resolution(raw, expected):
 
 
 def test_backend_override(monkeypatch):
-    monkeypatch.setenv("QSPLIT_BACKEND", "ibm")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_BACKEND", "ibm")
     assert scatter.resolve_backend("auto") == "ibm"
-    monkeypatch.setenv("QSPLIT_SOLVER_MODULE", "qsplit.adapters.all_zero")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_SOLVER_MODULE", "qsplit.adapters.all_zero")
     assert scatter.load_solver("ibm").__module__ == "qsplit.adapters.all_zero"
-    monkeypatch.setenv("QSPLIT_SOLVER_MODULE", "qsplit.qubo")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_SOLVER_MODULE", "qsplit.qubo")
     with pytest.raises(AttributeError, match="not callable"):
         scatter.load_solver("ibm")
 
@@ -88,7 +89,7 @@ def test_iqm_cache_store_hit_and_probe_miss_without_provider(tmp_path, monkeypat
     qubo.instance_id, qubo.node_id = "case", "root"
     source, output = tmp_path / "input.pkl", tmp_path / "output.pkl"
     save_qubo(source, qubo)
-    monkeypatch.setenv("QSPLIT_BACKEND", "iqm")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_BACKEND", "iqm")
     monkeypatch.setattr(scatter, "_resolve_iqm_subproblem_dir", lambda: tmp_path)
     monkeypatch.setattr(sys, "argv", ["scatter", "--input-qubo", str(source), "--output-qubo", str(output)])
     fake_solver = Mock(return_value=pd.DataFrame({0: [1], "energy": [-1.0]}))
@@ -100,7 +101,7 @@ def test_iqm_cache_store_hit_and_probe_miss_without_provider(tmp_path, monkeypat
     assert not list(tmp_path.rglob("*.tmp"))
     output.unlink()
     loader.reset_mock()
-    monkeypatch.setenv("QSPLIT_IQM_CACHE_ONLY", "true")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_IQM_CACHE_ONLY", "true")
     scatter.main()
     loader.assert_not_called()
     assert load_qubo(output).solutions.iloc[0].energy == -1
@@ -115,7 +116,7 @@ def test_iqm_cache_store_hit_and_probe_miss_without_provider(tmp_path, monkeypat
 
 
 def test_cache_coordinates_sanitize_paths(monkeypatch):
-    monkeypatch.setenv("IQM_QUANTUM_COMPUTER", "machine / one")
-    monkeypatch.setenv("QUANTUM_TUNE_QAOA", "yes")
+    monkeypatch.setitem(configuration.current(), "IQM_QUANTUM_COMPUTER", "machine / one")
+    monkeypatch.setitem(configuration.current(), "QUANTUM_TUNE_IQM", "yes")
     coords = scatter._iqm_cache_coordinates(SimpleNamespace(instance_id="../../escape"), "root.pkl")
     assert coords == ("escape", "root", "machine_one", "yes")

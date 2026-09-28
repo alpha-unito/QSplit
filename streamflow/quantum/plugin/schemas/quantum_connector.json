@@ -11,7 +11,10 @@
       "default": "dwave"
     },
     "providerPool": {
-      "type": ["array", "string"],
+      "type": [
+        "array",
+        "string"
+      ],
       "description": "List (or comma-separated string) of providers considered by auto-selection.",
       "items": {
         "type": "string"
@@ -41,16 +44,6 @@
         ]
       }
     },
-    "providerEnvMap": {
-      "type": "object",
-      "description": "Optional mapping provider -> environment variables injected at runtime for that provider.",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        }
-      }
-    },
     "maxConcurrentJobs": {
       "type": "object",
       "description": "Optional mapping provider -> max concurrent jobs. Overrides maxProviderJobs for the given provider.",
@@ -69,6 +62,30 @@
       "minimum": 1,
       "description": "Buffer size for connector transfers.",
       "default": 65536
+    },
+    "providerConfigMap": {
+      "type": "object",
+      "description": "Supervisor-only provider YAML paths, relative to the StreamFlow config directory. Worker files must be supplied through CWL inputs.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "providerPythonMap": {
+      "type": "object",
+      "description": "Explicit Python executable per provider for scatter and isolated metrics probes.",
+      "additionalProperties": {
+        "type": "string"
+      }
     }
   },
   "additionalProperties": false

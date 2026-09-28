@@ -1,9 +1,9 @@
-import os
 import unittest
 from unittest.mock import patch
 
 import numpy as np
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_linear import split_problem as split_linear
 from qsplit.splitting.split_recursive import split_problem
@@ -101,7 +101,7 @@ class TestSplitProblem(unittest.TestCase):
         mat[2, 3] = 2.0
         _, ur, _ = split_problem(QUBO(mat, np.arange(5), np.arange(5)))
         self.assertTrue(np.any(ur.mat))
-        with patch.dict(os.environ, {"CUT_DIM": "10"}), patch("qsplit.local_runner.solve") as sampler:
+        with patch.dict(configuration.current(), {"CUT_DIM": "10"}), patch("qsplit.local_runner.solve") as sampler:
             result = qsplit_sampler_recursive(ur)
         sampler.assert_not_called()
         self.assertTrue(result.solutions.isna().all().all())
@@ -114,7 +114,7 @@ class TestSplitLinear(unittest.TestCase):
         mat[2, 2] = 20.0
         ids = np.array([10, 11, 12, 13])
         qubo = QUBO(mat, ids.copy(), ids.copy())
-        os.environ["CUT_DIM"] = "2"
+        configuration.current()["CUT_DIM"] = "2"
         res = split_linear(qubo)
 
         self.assertEqual(len(res), 2)
@@ -127,7 +127,7 @@ class TestSplitLinear(unittest.TestCase):
         mat = np.eye(3)
         ids = np.array([1, 2, 3])
         qubo = QUBO(mat, ids.copy(), ids.copy())
-        os.environ["CUT_DIM"] = "2"
+        configuration.current()["CUT_DIM"] = "2"
         res = split_linear(qubo)
 
         self.assertEqual(len(res), 2)
@@ -138,7 +138,7 @@ class TestSplitLinear(unittest.TestCase):
         mat = np.zeros((4, 4))
         mat[0, 0] = 5.0
         qubo = QUBO(mat, np.array([0, 1, 2, 3]), np.array([0, 1, 2, 3]))
-        os.environ["CUT_DIM"] = "2"
+        configuration.current()["CUT_DIM"] = "2"
         res = split_linear(qubo)
 
         self.assertEqual(len(res), 1)

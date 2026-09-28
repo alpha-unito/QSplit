@@ -88,7 +88,8 @@ def test_installed_commands_split_scatter_aggregate(tmp_path, run_command):
     sys.platform == "win32",
     reason="StreamFlow's local CWL execution uses POSIX shell commands; native Windows runs the CLI E2E instead",
 )
-def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
+@pytest.mark.parametrize("with_yaml", [False, True])
+def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command, with_yaml):
     pytest.importorskip("streamflow.main")
     matrix = np.triu(-np.ones((3, 3)))
     records = [
@@ -101,6 +102,10 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
     ]
     dataset = tmp_path / "dataset.jsonl"
     dataset.write_text("\n".join(json.dumps(record) for record in records))
+    common = tmp_path / "solver-common.yaml"
+    private = tmp_path / "solver-private.yaml"
+    common.write_text("QSPLIT_SOLVER_MODULE: invalid.module\n")
+    private.write_text("QSPLIT_SOLVER_MODULE: qsplit.adapters.all_zero\nIQM_TOKEN: test-private-sentinel\n")
     settings = tmp_path / "settings.json"
     store = tmp_path / "store"
     settings.write_text(
@@ -108,6 +113,9 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
             {
                 "dataset": {"class": "File", "path": str(dataset)},
                 "cut_dim": 2,
+                "parallel_configs": [{"class": "File", "path": str(path)} for path in [common, private]]
+                if with_yaml
+                else [],
                 "enable_iqm": False,
                 "enable_quantinuum_h2": False,
                 "enable_quantinuum_h2e": False,
@@ -139,7 +147,6 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
                             "provider": "dwave",
                             "providerPool": ["dwave"],
                             "maxConcurrentJobs": {"dwave": 2},
-                            "providerEnvMap": {"dwave": {"PATH": os.environ["PATH"]}},
                         },
                     },
                 },
@@ -151,6 +158,9 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command):
     assert len(list(store.glob("solutions_*.csv"))) == 2
     for path in store.glob("solutions_*.csv"):
         check_result(path, matrix)
+        assert "test-private-sentinel" not in path.read_text()
+        if with_yaml:
+            assert (pd.read_csv(path).energy == 0).all()
     original = {path.name: (path.read_bytes(), path.stat().st_mtime_ns) for path in store.glob("*.csv")}
     run_command("streamflow", "run", "--debug", "--outdir", tmp_path / "resumed", config)
     assert {path.name: (path.read_bytes(), path.stat().st_mtime_ns) for path in store.glob("*.csv")} == original

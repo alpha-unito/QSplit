@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
+from qsplit import configuration
 from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.cwl.cli.utils import build_qubo_from_matrix, save_qubo
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
@@ -161,13 +162,14 @@ def _instance_id_from_matrix_path(matrix_path: str) -> str:
     return safe or "instance_unknown"
 
 
+@configuration.cli
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--input-matrix", required=True)
     p.add_argument("--adaptive", action="store_true")
     p.add_argument("--approach", default="dr")
     p.add_argument("--out-dir", default="subproblems")
-    p.add_argument("--cut-dim", type=int, default=16)
+    p.add_argument("--cut-dim", type=int, default=configuration.get("CUT_DIM", 16))
     p.add_argument("--enable-sparse-check", action="store_true")
     p.add_argument("--enable-iqm", action="store_true")
     p.add_argument("--enable-quantinuum-h2", action="store_true")
@@ -175,6 +177,7 @@ def main() -> None:
     p.add_argument("--iqm-real-jobs", default="1")
     p.add_argument("--quantinuum-h2-real-jobs", default="1")
     p.add_argument("--quantinuum-h2e-real-jobs", default="1")
+    p.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = p.parse_args()
 
     out_dir = Path(args.out_dir).resolve()

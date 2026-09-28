@@ -1,8 +1,7 @@
-import os
-
 import numpy as np
 import pymetis
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 
 
@@ -14,8 +13,9 @@ def _create_sub_qubo(qubo: QUBO, active_indices: list[int]) -> QUBO:
     return QUBO(sub_mat, sub_rows, sub_cols, offset=qubo.offset)
 
 
+@configuration.configured
 def split_problem(qubo: QUBO) -> list[QUBO]:
-    cut_dim = min(int(os.environ.get("CUT_DIM")), qubo.problem_size)
+    cut_dim = min(int(configuration.get("CUT_DIM")), qubo.problem_size)
     real_nodes = [i for i in range(qubo.problem_size) if qubo.cols_idx[i] != -1]
     size = qubo.problem_size
     adjacency = [[] for _ in range(size)]

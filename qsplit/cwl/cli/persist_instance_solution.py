@@ -1,8 +1,9 @@
 import argparse
-import os
 import re
 import shutil
 from pathlib import Path
+
+from qsplit import configuration
 
 
 def _repo_root() -> Path:
@@ -15,8 +16,8 @@ def _looks_like_project_root(path: Path) -> bool:
 
 def _candidate_launch_dirs() -> list[Path]:
     candidates: list[Path] = []
-    for env_name in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT", "PWD", "OLDPWD", "INIT_CWD"):
-        raw = os.getenv(env_name, "").strip()
+    for key in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT"):
+        raw = configuration.get(key, "").strip()
         if not raw:
             continue
         candidates.append(Path(raw).expanduser())
@@ -64,12 +65,14 @@ def _safe_id_from_matrix(path: Path) -> str:
     return safe or "instance_unknown"
 
 
+@configuration.cli
 def main() -> None:
     parser = argparse.ArgumentParser(description="Persist a completed instance solution to the shared solutions dir.")
     parser.add_argument("--input-solution", required=True)
     parser.add_argument("--input-matrix", required=True)
     parser.add_argument("--solutions-dir", default="solutions")
     parser.add_argument("--output-solution", default="persisted_solution.csv")
+    parser.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = parser.parse_args()
 
     input_solution = Path(args.input_solution).resolve()

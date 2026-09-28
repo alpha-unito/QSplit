@@ -1,0 +1,43 @@
+# PUBLIC TEMPLATE: never put real credentials here. Copy to configs/local.yaml
+# (ignored by Git) and keep only the keys each process/step needs.
+# Keys retain their former names, but are read only from YAML, never the environment.
+CUT_DIM: 16
+STRIDE: -1
+EXACT_RATIO: 0.75
+QSPLIT_BACKEND: dwave
+# QSPLIT_SOLVER_MODULE: qsplit.adapters.all_zero
+REFINEMENT_METHOD: conditioned
+REFINEMENT_LOOPS: 0
+REFINEMENT_TOLERANCE: 1.0e-9
+# Default patience: 10 for conditioned refinement, 1 for consensus.
+# REFINEMENT_PATIENCE: 10
+REFINEMENT_SEED: 0
+REFINEMENT_STRENGTH: 0.1
+
+# Paths refer to the machine executing the step. Prefer absolute paths for
+# shared storage; CWL stages config files, not paths written inside those files.
+# QSPLIT_PROJECT_ROOT: /absolute/path/to/QSplit
+# QSPLIT_LAUNCH_DIR: /absolute/path/to/run
+
+# IQM solver lane; share the required subset with the supervisor for probes/cancel.
+IQM_SERVER_URL: https://resonance.meetiqm.com/
+IQM_TOKEN: ""
+IQM_QUANTUM_COMPUTER: garnet
+QUANTUM_TUNE_IQM: false
+QSPLIT_IQM_SUBPROBLEM_CACHE: true
+QSPLIT_IQM_CACHE_ONLY: false
+# QSPLIT_IQM_STATE_DIR: /absolute/path/to/shared/iqm_state
+QSPLIT_IQM_FALLBACK_TIMEOUT_SEC: 0
+QSPLIT_IQM_INIT_CLEANUP: false
+
+# D-Wave hardware adapter (dwave backend uses simulated annealing by default).
+DWAVE_API_TOKEN: ""
+
+# IBM hardware adapter (ibm backend uses the CPU simulator by default).
+TOKEN_IBM: ""
+CRN_IBM: ""
+
+# Quantinuum Nexus adapter.
+QNEXUS_USER: ""
+QNEXUS_PASSWORD: ""
+QNEXUS_QPU: H2-1E

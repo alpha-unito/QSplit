@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from qsplit import local_runner
+from qsplit import configuration, local_runner
 from qsplit.aggregation.aggregate_recursive import aggregate_leaves
 from qsplit.splitting.split_recursive import split_leaves
 
@@ -68,8 +68,8 @@ def test_recursive_leaf_api_matches_recursive_runner(make_qubo, exact_solver, mo
     "sampler", [local_runner.qsplit_sampler_refined_iterative, local_runner.qsplit_sampler_refined_quadtree]
 )
 def test_refinement_with_real_annealing(method, sampler, monkeypatch, make_qubo, assert_solution):
-    monkeypatch.setenv("REFINEMENT_METHOD", method)
-    monkeypatch.setenv("REFINEMENT_LOOPS", "2")
+    monkeypatch.setitem(configuration.current(), "REFINEMENT_METHOD", method)
+    monkeypatch.setitem(configuration.current(), "REFINEMENT_LOOPS", "2")
     result = sampler(make_qubo(np.triu(-np.ones((4, 4))), offset=3))
     assert_solution(result)
     assert 1 <= len(result.refinement_history) <= 3
@@ -78,7 +78,7 @@ def test_refinement_with_real_annealing(method, sampler, monkeypatch, make_qubo,
 
 @pytest.mark.parametrize("diagonal", [[0, 0, 0], [0, -2, 1]])
 def test_graph_runner_handles_empty_partitions(diagonal, monkeypatch, make_qubo, exact_solver, assert_solution):
-    monkeypatch.setenv("CUT_DIM", "1")
+    monkeypatch.setitem(configuration.current(), "CUT_DIM", "1")
     solved_ids = []
 
     def solve(sub):

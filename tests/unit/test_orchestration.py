@@ -7,6 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from qsplit import configuration
 from streamflow.quantum import qmetrics
 from streamflow.quantum.plugin.connector import helpers, slurm_retry
 from streamflow.quantum.plugin.connector import iqm_wms_control as wms
@@ -188,7 +189,7 @@ def test_registry_filters_corruption_deduplicates_and_respects_pid(tmp_path):
 @pytest.mark.parametrize("fail", [False, True])
 def test_job_result_detaches_even_on_failure(monkeypatch, fail):
     monkeypatch.setattr(wms, "_LOCAL_ACTIVE_JOBS", {})
-    monkeypatch.setenv("QSPLIT_IQM_FALLBACK_TIMEOUT_SEC", "10")
+    monkeypatch.setitem(configuration.current(), "QSPLIT_IQM_FALLBACK_TIMEOUT_SEC", "10")
     result = Mock(side_effect=TimeoutError() if fail else None, return_value="done")
     job = SimpleNamespace(job_id=lambda: "test-job", result=result)
     wms._attach_job(job)

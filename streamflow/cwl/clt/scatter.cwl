@@ -4,6 +4,17 @@ class: CommandLineTool
 baseCommand: [cli_scatter]
 
 inputs:
+  configs:
+    type:
+      type: array
+      items: File
+      inputBinding:
+        prefix: --config
+    default: []
+    inputBinding: {}
+  backend:
+    type: string?
+    inputBinding: { prefix: --backend }
   input_qubo:
     type: File
     inputBinding:

@@ -3505,6 +3505,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "pymetis" },
+    { name = "pyyaml" },
     { name = "scipy" },
 ]
 
@@ -3592,6 +3593,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = "==7.0.0" },
     { name = "pytket", marker = "extra == 'quantinuum'", specifier = ">=2.13.0" },
     { name = "pytket-qiskit", marker = "extra == 'quantinuum'", specifier = ">=0.77.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "qiskit", marker = "extra == 'dev'", specifier = ">=2.1.2" },
     { name = "qiskit", marker = "extra == 'ibm-cpu'", specifier = ">=2.1.2" },
     { name = "qiskit", marker = "extra == 'ibm-gpu'", specifier = "==1.4.1" },

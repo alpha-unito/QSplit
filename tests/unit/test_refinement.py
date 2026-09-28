@@ -1,4 +1,3 @@
-import os
 import unittest
 from copy import deepcopy
 from itertools import product
@@ -8,7 +7,7 @@ import numpy as np
 import pandas as pd
 from dimod import ExactSolver
 
-from qsplit import local_runner
+from qsplit import configuration, local_runner
 from qsplit.adapters.dwave.util import from_qubo_matrix_to_bqm, to_dataframe
 from qsplit.qubo import QUBO
 from qsplit.refinement.propagation import collect_beliefs, condition_subproblem
@@ -104,7 +103,7 @@ class TestPropagation(unittest.TestCase):
     def test_quadtree_macro_members_are_local_and_penalties_do_not_accumulate(self):
         qubo = make_qubo([[2, -4, 1, 3], [0, 1, -2, 4], [0, 0, -1, 2], [0, 0, 0, 1]], offset=5)
         qubo.solutions = pd.DataFrame({0: [0], 1: [1], 2: [0], 3: [1], "energy": [11.0]})
-        with patch.dict(os.environ, {"CUT_DIM": "2", "EXACT_RATIO": "0.5", "REFINEMENT_STRENGTH": "0"}):
+        with patch.dict(configuration.current(), {"CUT_DIM": "2", "EXACT_RATIO": "0.5", "REFINEMENT_STRENGTH": "0"}):
             subs = split_quadtree(qubo)
             self.assertEqual(subs[0].macro_members[-1000], [1, 3, 2])
             self.assertNotEqual(subs[0].macro_members[-1000], subs[1].macro_members[-1000])
@@ -113,7 +112,7 @@ class TestPropagation(unittest.TestCase):
                 np.testing.assert_allclose(original.mat, new.mat)
                 self.assertEqual(new.offset, qubo.offset)
 
-        with patch.dict(os.environ, {"REFINEMENT_STRENGTH": "0.2"}):
+        with patch.dict(configuration.current(), {"REFINEMENT_STRENGTH": "0.2"}):
             first = refine_quadtree(subs, qubo)
             second = refine_quadtree(first, qubo)
         for original, new, repeated in zip(subs, first, second):
@@ -147,7 +146,10 @@ class TestRefinedSamplers(unittest.TestCase):
                     if loops is not None:
                         env["REFINEMENT_LOOPS"] = loops
                     strategy = Mock(side_effect=AssertionError("Refinement must be disabled"))
-                    with patch.dict(os.environ, env, clear=True), patch.object(local_runner, legacy) as previous:
+                    with (
+                        patch.dict(configuration.current(), env, clear=True),
+                        patch.object(local_runner, legacy) as previous,
+                    ):
                         qubo = make_qubo([[1]])
                         self.assertIs(refined(qubo, refinement=strategy), previous.return_value)
                         previous.assert_called_once_with(qubo)
@@ -170,7 +172,7 @@ class TestRefinedSamplers(unittest.TestCase):
                     strategy = Mock(side_effect=lambda subs, qubo: deepcopy(subs))
                     env = {"CUT_DIM": "4", "REFINEMENT_LOOPS": loops, "REFINEMENT_TOLERANCE": tolerance}
                     with (
-                        patch.dict(os.environ, env, clear=True),
+                        patch.dict(configuration.current(), env, clear=True),
                         patch.object(local_runner, "solve", side_effect=samples) as solve,
                     ):
                         result = sampler(make_qubo(-np.eye(4), offset=7), refinement=strategy)
@@ -207,7 +209,7 @@ class TestRefinedSamplers(unittest.TestCase):
                     "REFINEMENT_METHOD": "consensus",
                 }
                 with (
-                    patch.dict(os.environ, env, clear=True),
+                    patch.dict(configuration.current(), env, clear=True),
                     patch.object(local_runner, "solve", side_effect=exact_solve),
                 ):
                     result = sampler(make_qubo(matrix, ids=[30, 10, 50, 20, 60, 40], offset=3))
@@ -220,13 +222,13 @@ class TestRefinedSamplers(unittest.TestCase):
     def test_zero_objective_and_cancelled_local_fields(self):
         env = {"CUT_DIM": "2", "REFINEMENT_LOOPS": "3"}
         for sampler in self.samplers:
-            with self.subTest(sampler=sampler.__name__), patch.dict(os.environ, env, clear=True):
+            with self.subTest(sampler=sampler.__name__), patch.dict(configuration.current(), env, clear=True):
                 with patch.object(local_runner, "solve") as solve:
                     result = sampler(make_qubo(np.zeros((3, 3)), offset=4))
                 solve.assert_not_called()
                 self.assertEqual(result.solutions.iloc[0]["energy"], 4)
         with (
-            patch.dict(os.environ, {**env, "CUT_DIM": "1", "REFINEMENT_METHOD": "consensus"}, clear=True),
+            patch.dict(configuration.current(), {**env, "CUT_DIM": "1", "REFINEMENT_METHOD": "consensus"}, clear=True),
             patch.object(local_runner, "solve", side_effect=exact_solve) as solve,
         ):
             result = local_runner.qsplit_sampler_refined_iterative(make_qubo([[2, -2], [0, -1]]))
@@ -235,7 +237,7 @@ class TestRefinedSamplers(unittest.TestCase):
 
     def test_belief_propagation_aggregation_is_preserved(self):
         env = {"CUT_DIM": "2", "REFINEMENT_LOOPS": "1", "REFINEMENT_METHOD": "consensus"}
-        with patch.dict(os.environ, env, clear=True), patch.object(local_runner, "BP", True):
+        with patch.dict(configuration.current(), env, clear=True), patch.object(local_runner, "BP", True):
             with (
                 patch.object(local_runner, "solve", side_effect=exact_solve),
                 patch.object(
@@ -252,7 +254,7 @@ class TestRefinedSamplers(unittest.TestCase):
             initial = pd.DataFrame({0: [0], "energy": [0.0]})
             improved = pd.DataFrame({0: [1], "energy": [-1.0]})
             with (
-                patch.dict(os.environ, env, clear=True),
+                patch.dict(configuration.current(), env, clear=True),
                 patch.object(local_runner, "solve", return_value=initial),
                 patch.object(
                     local_runner, "refine_solutions_conditioned", side_effect=[initial, initial, improved]
@@ -273,7 +275,10 @@ class TestRefinedSamplers(unittest.TestCase):
                 self.assertLessEqual(sub.problem_size, 2)
                 return exact_solve(sub)
 
-            with patch.dict(os.environ, env, clear=True), patch.object(local_runner, "solve", side_effect=solve):
+            with (
+                patch.dict(configuration.current(), env, clear=True),
+                patch.object(local_runner, "solve", side_effect=solve),
+            ):
                 result = sampler(deepcopy(qubo))
             self.assertEqual(len(result.refinement_history), 4)
             self.assertTrue(np.all(np.diff(result.refinement_history) <= 0))
@@ -293,7 +298,7 @@ class TestRefinedSamplers(unittest.TestCase):
             with self.subTest(setting=name, value=value):
                 env = {"CUT_DIM": "2", "REFINEMENT_LOOPS": "1", "REFINEMENT_METHOD": "consensus", name: value}
                 with (
-                    patch.dict(os.environ, env, clear=True),
+                    patch.dict(configuration.current(), env, clear=True),
                     patch.object(local_runner, "solve", side_effect=exact_solve),
                     self.assertRaises(ValueError),
                 ):

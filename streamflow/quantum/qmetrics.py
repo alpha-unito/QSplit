@@ -1,9 +1,12 @@
+import argparse
 import json
-import os
+import sys
 from collections.abc import Mapping, Sequence
 from enum import Enum, auto
 from math import pi, sqrt
 from typing import Any
+
+from qsplit import configuration
 
 IQM_DEFAULT_SERVER_URL = "https://resonance.meetiqm.com/"
 
@@ -86,7 +89,7 @@ def _extract_active(*payloads: Any) -> bool:
 
 
 def _resolve_iqm_auth() -> str:
-    token = os.getenv("IQM_TOKEN", "").strip() or os.getenv("QSPLIT_IQM_TOKEN", "").strip()
+    token = configuration.get("IQM_TOKEN", "").strip() or configuration.get("QSPLIT_IQM_TOKEN", "").strip()
     if not token:
         raise RuntimeError("IQM auth is missing: set IQM_TOKEN.")
     return token
@@ -94,14 +97,17 @@ def _resolve_iqm_auth() -> str:
 
 def _resolve_iqm_url() -> str:
     return (
-        os.getenv("IQM_SERVER_URL", "").strip()
-        or os.getenv("QSPLIT_IQM_SERVER_URL", "").strip()
+        configuration.get("IQM_SERVER_URL", "").strip()
+        or configuration.get("QSPLIT_IQM_SERVER_URL", "").strip()
         or IQM_DEFAULT_SERVER_URL
     )
 
 
 def _resolve_iqm_quantum_computer() -> str | None:
-    qc = os.getenv("IQM_QUANTUM_COMPUTER", "").strip() or os.getenv("QSPLIT_IQM_QUANTUM_COMPUTER", "").strip()
+    qc = (
+        configuration.get("IQM_QUANTUM_COMPUTER", "").strip()
+        or configuration.get("QSPLIT_IQM_QUANTUM_COMPUTER", "").strip()
+    )
     return qc or None
 
 
@@ -110,8 +116,8 @@ def get_ibm_quantum_backend():
 
     backend = QiskitRuntimeService(
         channel="ibm_cloud",
-        token=os.environ["TOKEN_IBM"],
-        instance=os.environ["CRN_IBM"],
+        token=configuration.require("TOKEN_IBM"),
+        instance=configuration.require("CRN_IBM"),
     ).least_busy()
     return get_quantum_metrics(backend, BackendType.IBM_QPU)
 
@@ -126,11 +132,11 @@ def get_ibm_classical_backend():
 def get_iqm_quantum_backend():
     from iqm.iqm_client import IQMClient
 
-    _resolve_iqm_auth()
+    token = _resolve_iqm_auth()
     iqm_url = _resolve_iqm_url()
     quantum_computer = _resolve_iqm_quantum_computer()
 
-    auth_kwargs: dict[str, str] = {}
+    auth_kwargs: dict[str, str] = {"token": token}
     if quantum_computer:
         auth_kwargs["quantum_computer"] = quantum_computer
 
@@ -198,7 +204,7 @@ def iqm_qpu_metrics(client):
 def get_dwave_quantum_backend():
     from dwave.system import DWaveSampler, EmbeddingComposite
 
-    return EmbeddingComposite(DWaveSampler())
+    return EmbeddingComposite(DWaveSampler(token=configuration.require("DWAVE_API_TOKEN")))
 
 
 def get_dwave_classical_backend():
@@ -289,9 +295,20 @@ def get_quantum_metrics(backend, backend_type: BackendType):
         assert False, "Unreachable"
 
 
-if __name__ == "__main__":
-    provider = (os.getenv("QSPLIT_QMETRICS_PROVIDER", "iqm") or "iqm").strip().lower()
+@configuration.cli
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--provider", default="iqm")
+    parser.add_argument("--config-stdin", action="store_true")
+    args = parser.parse_args()
+    if args.config_stdin:
+        with configuration.use(json.load(sys.stdin)):
+            print_metrics(args.provider)
+    else:
+        print_metrics(args.provider)
 
+
+def print_metrics(provider):
     if provider == "iqm":
         backend = get_iqm_quantum_backend()
         metrics = get_quantum_metrics(backend, BackendType.IQM_QPU)
@@ -304,6 +321,10 @@ if __name__ == "__main__":
         raise RuntimeError(f"Unsupported provider '{provider}'. Use: iqm, ibm, dwave.")
 
     print(json.dumps(metrics, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
 
 
 """

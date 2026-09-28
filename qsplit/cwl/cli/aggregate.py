@@ -5,6 +5,7 @@ from typing import Dict, List, Set, Tuple
 
 import numpy as np
 
+from qsplit import configuration
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions
 from qsplit.cwl.cli.utils import (
     bitstring_from_row,
@@ -144,11 +145,13 @@ def aggregate_tree_solutions(
     return results.get(root_id)
 
 
+@configuration.cli
 def main() -> None:
     parser = argparse.ArgumentParser(description="Aggregate QSplit outputs")
     parser.add_argument("--input-qubo", required=True, help="initial_qubo.pkl (full original QUBO)")
     parser.add_argument("--tree-file", required=True, help="tree.json")
     parser.add_argument("--solved-list", action="extend", nargs="+", default=[], help="Solved sub-QUBO")
+    parser.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = parser.parse_args()
 
     tree = json.loads(Path(args.tree_file).read_text(encoding="utf-8"))

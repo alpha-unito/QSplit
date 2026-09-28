@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from qsplit import configuration
 from qsplit.cwl.cli import collect_dataset_results, dataset_prepare, persist_instance_solution
 
 MODULES = [dataset_prepare, collect_dataset_results, persist_instance_solution]
@@ -23,7 +24,7 @@ def test_ephemeral_directory_detection_across_path_separators(module, path_type)
 def test_solution_directory_resolution(module, source, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     for name in ("QSPLIT_LAUNCH_DIR", "QSPLIT_PROJECT_ROOT", "PWD", "OLDPWD", "INIT_CWD"):
-        monkeypatch.delenv(name, raising=False)
+        monkeypatch.delitem(configuration.current(), name, raising=False)
     monkeypatch.setattr(module, "_repo_root", lambda: tmp_path / "absent")
     expected = tmp_path / "solutions"
     raw = "solutions"
@@ -35,13 +36,13 @@ def test_solution_directory_resolution(module, source, tmp_path, monkeypatch):
         (project / "streamflow").mkdir()
         expected = project / "solutions"
         if source == "launch":
-            monkeypatch.setenv("QSPLIT_PROJECT_ROOT", str(project))
+            monkeypatch.setitem(configuration.current(), "QSPLIT_PROJECT_ROOT", str(project))
         else:
             monkeypatch.setattr(module, "_repo_root", lambda: project)
     elif source == "fallback":
         launch = tmp_path / "launch"
         launch.mkdir()
-        monkeypatch.setenv("INIT_CWD", str(launch))
+        monkeypatch.setitem(configuration.current(), "QSPLIT_LAUNCH_DIR", str(launch))
         expected = launch / "solutions"
     assert module._resolve_solutions_dir(raw) == expected
     assert module._is_ephemeral_solutions_dir(Path("/tmp/streamflow/run/solutions"))

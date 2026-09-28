@@ -4,6 +4,14 @@ class: CommandLineTool
 baseCommand: [cli_split]
 
 inputs:
+  configs:
+    type:
+      type: array
+      items: File
+      inputBinding:
+        prefix: --config
+    default: []
+    inputBinding: {}
   barrier:
     type:
       - "null"

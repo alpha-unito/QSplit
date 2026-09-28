@@ -1,8 +1,10 @@
 import numpy as np
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 
 
+@configuration.configured
 def split_problem(qubo: QUBO) -> tuple[QUBO, QUBO, QUBO]:
     """
     Splits the QUBO matrix into three sub-problems:
@@ -35,13 +37,13 @@ def split_problem(qubo: QUBO) -> tuple[QUBO, QUBO, QUBO]:
     return ul, ur, lr
 
 
+@configuration.configured
 def split_leaves(qubo: QUBO) -> list[QUBO]:
-    import os
     from copy import deepcopy
 
     from qsplit.halting_heuristic.stop import is_empty, is_sparse
 
-    cut_dim = int(os.environ["CUT_DIM"])
+    cut_dim = int(configuration.require("CUT_DIM"))
     leaves = []
 
     def visit(node):

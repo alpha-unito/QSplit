@@ -1,13 +1,13 @@
-import os
-
 import numpy as np
 
+from qsplit import configuration
 from qsplit.qubo import QUBO
 from qsplit.refinement.propagation import collect_beliefs
 
 
+@configuration.configured
 def refine_problems(subproblems: list[QUBO], qubo: QUBO) -> list[QUBO]:
-    strength = float(os.environ.get("REFINEMENT_STRENGTH", "0.1"))
+    strength = float(configuration.get("REFINEMENT_STRENGTH", "0.1"))
     if not np.isfinite(strength) or strength < 0:
         raise ValueError("REFINEMENT_STRENGTH must be finite and non-negative")
     beliefs = collect_beliefs(subproblems, qubo)
