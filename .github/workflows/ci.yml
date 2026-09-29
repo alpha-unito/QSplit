@@ -23,7 +23,7 @@ jobs:
       OPENBLAS_NUM_THREADS: "1"
       PYTHONUTF8: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
@@ -114,7 +114,7 @@ jobs:
             --cov-report=json:reports/coverage.json --cov-report=html
       - name: Upload test results and cumulative coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: local-test-reports-${{ matrix.os }}-py${{ matrix.python }}
           include-hidden-files: true
@@ -141,7 +141,7 @@ jobs:
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
@@ -159,7 +159,7 @@ jobs:
           --cov-report=term-missing --cov-report=xml:reports/coverage-${{ matrix.extra }}.xml
       - name: Upload simulator reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: simulator-${{ matrix.extra }}-${{ matrix.os }}-py3.12-reports
           path: reports/
