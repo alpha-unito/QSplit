@@ -30,3 +30,8 @@ coverage.xml
 !/streamflow/cwl/config.template.yml
 !/.pre-commit-config.yaml
 !/.github/workflows/ci.yml
+
+# Native extension and distribution artifacts
+*.so
+*.dylib
+dist/

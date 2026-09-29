@@ -12,12 +12,12 @@ CI exercises Python 3.12, 3.13 and 3.14. For example, to use Python 3.12:
 ```bash
 uv venv --python 3.12
 uv pip install -e ".[dev,streamflow,quantinuum,dataset]"
-uv run --no-sync python -m pytest
+uv run pytest
 ```
 
 `--no-sync` preserves the extras installed in the environment. No provider tokens,
 SLURM installation, GPU, containers or HPC access are needed. Tests use temporary
-directories, clear provider selection/credentials from their environment and
+directories, isolate YAML configuration, clear inherited provider credentials and
 block non-local socket connections in the pytest process. Subprocess tests use
 explicit local deployments and CPU backend selections. Tests do not modify the
 production StreamFlow configuration or the repository's solution caches.
@@ -26,10 +26,11 @@ Optional SDK tests are skipped when their dependencies are absent. The CI instal
 the required extras, including separate jobs for IQM and CUDA-Q, so those paths
 are exercised rather than silently omitted.
 
-On native Windows, PyMetis is installed from conda-forge because PyPI does not
-provide Windows wheels. CI uses `mamba-org/setup-micromamba` to create an environment
-with the selected Python and PyMetis, then installs QSplit and its test extras with
-`uv pip install --python python`. Commands run in the activated environment.
+The C++23 extension is compiled by the installation command. See the native build
+requirements in [README.md](README.md). After installing the test extras,
+`uv run pytest` automatically rebuilds when C++ sources or headers change. To force
+a rebuild, use `uv pip install --no-deps --reinstall -e .`. Linux and macOS are supported;
+Windows jobs have been removed.
 
 ## Test levels
 
@@ -84,8 +85,9 @@ tests do. Repeatedly executing a line does not raise coverage: higher-level test
 increase it when they exercise previously untested paths. Coverage is useful for
 finding gaps, but does not measure optimization quality or prove correctness.
 
-The configuration includes both **line and branch coverage**, for all of `qsplit`
-and the repository's `streamflow.quantum` plugin. Hardware adapters remain in the
+The configuration includes both **line and branch coverage** for the Python code
+in `qsplit` and the repository's `streamflow.quantum` plugin. `pytest-cov` does not
+measure C++ coverage; its percentage must not be interpreted as native core coverage. Hardware adapters remain in the
 report even when their real hardware cannot be exercised. The subprocess patch
 requires `coverage >= 7.10.6` and records the CLI processes launched by CWL.
 
@@ -119,22 +121,18 @@ not to each individual level. Separate IQM/CUDA-Q jobs publish their own coverag
 and JUnit reports; their percentages describe those isolated runs and are not
 added arithmetically to the main report.
 
-The main matrix has nine required jobs: Linux, macOS and Windows, each with
+The main matrix has six required jobs: Linux and macOS, each with
 Python 3.12, 3.13 and 3.14. Each job runs unit, integration and E2E tests and
 produces its own cumulative coverage report with the 75% gate. `fail-fast: false`
 lets other combinations finish when one fails; no combination is allowed to
 fail silently.
 
-The native Windows jobs explicitly skip only the actual StreamFlow CWL E2E:
-StreamFlow's local executor generates POSIX commands (including `export`), which
-cannot execute through Windows `cmd`. The installed CLI E2E and the plugin's
-unit tests still run on Windows. Linux and macOS run both E2E tests.
 IQM and CUDA-Q retain their isolated Linux/Python 3.12 jobs. In particular, the
-IQM extra currently pins its SDK to Python < 3.13; the nine-job main matrix does
+IQM extra currently pins its SDK to Python < 3.13; the six-job main matrix does
 not claim coverage of these two optional SDKs.
 
 On Linux, the end-to-end step uses at most two CPUs (`taskset`) to exercise
-resource contention. macOS and Windows do not invoke this Linux-specific tool.
+resource contention. macOS does not invoke this Linux-specific tool.
 The local CWL test configures the scheduler's `retry_delay` to one
 second: local deployments share CPU capacity, but StreamFlow's default scheduler
 only notifies waiting jobs on the deployment that released resources. Without a
@@ -162,3 +160,52 @@ CI also runs Ruff lint and format checks. Run them locally with:
 uv run --no-sync ruff check .
 uv run --no-sync ruff format --check .
 ```
+
+The configuration regression tests cover YAML validation and layering, scoped local
+samplers, ignored legacy environment values, explicit provider authentication,
+secret-free QUBO serialization, Git ignore rules and per-step CWL routing. The
+StreamFlow E2E runs both with defaults and with two staged solver YAML files, then
+checks persisted results and resume in both modes.
+
+## Native core checks and benchmarks
+
+The original algorithm tests run against the compiled implementation. Additional
+`tests/unit/test_native_core.py` cases check strided arrays, invalid mutable shapes,
+legacy pickle states, metadata/deepcopy, exact conflict resolution against exhaustive
+enumeration, solver callbacks and fractional conditioning against the full expected
+objective. Native failures propagate as Python exceptions. CI also runs `uv build`
+to verify that the source distribution includes everything needed for compilation,
+then installs and imports the wheel outside the source tree.
+
+```bash
+uv run --no-sync python -m pytest tests/unit/test_native_core.py tests/unit/test_algorithms.py
+uv run --no-sync python benchmarks/core.py --repeat 5
+```
+
+For a comparison, use the same interpreter, dependencies and machine, pointing the
+benchmark at a separate checkout containing the Python implementation:
+
+```bash
+uv run --no-sync python benchmarks/core.py --source-root /path/to/pre-port-checkout --repeat 5
+```
+
+Inputs use a fixed seed, include NumPy/Pandas boundary conversion, and report median
+wall-clock milliseconds after a warm-up. There are no timing assertions in CI.
+The benchmark does not exercise providers, the network or large quantum simulators.
+
+Measured locally on 2026-09-29, macOS 27 arm64, Python 3.12.7, NumPy 2.3.4,
+Pandas 2.3.3 and Clang 23.1.0, against the Python core from `e14ddf8`. These are
+medians of five runs after warm-up, without concurrent builds or tests:
+
+| Operation | Python (ms) | C++ binding (ms) | Speedup |
+| --- | ---: | ---: | ---: |
+| QUBO construction (128 variables) | 0.165 | 0.038 | 4.3× |
+| Conditioning (128 variables, window 16) | 0.366 | 0.091 | 4.0× |
+| Active variable count (128 variables) | 0.270 | 0.049 | 5.5× |
+| Linear aggregation (8 × 128 samples × 128 variables) | 539.012 | 6.911 | 78.0× |
+| Closest assignments (64 × 128 candidates, 32 variables) | 277.307 | 0.444 | 624.6× |
+| Exact conflicts (8 samples, 10 missing variables) | 72.376 | 1.288 | 56.2× |
+| Quadtree splitting (128 variables, cut 16) | 72.246 | 5.925 | 12.2× |
+
+These component timings do not predict total workflow speedup when backend
+simulation, cloud latency or filesystem operations dominate.

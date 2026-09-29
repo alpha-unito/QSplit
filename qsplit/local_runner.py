@@ -4,7 +4,8 @@ from copy import deepcopy
 
 import numpy as np
 
-from qsplit import configuration
+from qsplit import _core, configuration
+from qsplit._core import logical_expansion as logical_expansion
 from qsplit.adapters.all_zero import solve as zero_solve
 from qsplit.adapters.dummy import solve as dummy_solve
 
@@ -43,53 +44,6 @@ def solve(qubo):
 
 LOGICAL_EXPANSION = False
 BP = False
-
-
-def logical_expansion(subs: tuple[QUBO, QUBO, QUBO]) -> tuple[QUBO, QUBO, QUBO]:
-    ul, ur, lr = subs
-    hints = __extract_logical_hints(ur)
-    if not hints:
-        return subs
-
-    ul_diagonal = {idx: pos for pos, idx in enumerate(ul.rows_idx) if idx >= 0}
-    lr_diagonal = {idx: pos for pos, idx in enumerate(lr.rows_idx) if idx >= 0}
-
-    for row_pos, row_idx in enumerate(ur.rows_idx):
-        for col_pos, col_idx in enumerate(ur.cols_idx):
-            coefficient = ur.mat[row_pos, col_pos]
-            if coefficient == 0:
-                continue
-
-            col_hint = hints.get(col_idx)
-            if row_idx in ul_diagonal and col_hint is not None:
-                ul_pos = ul_diagonal[row_idx]
-                ul.mat[ul_pos, ul_pos] += coefficient * col_hint
-
-            row_hint = hints.get(row_idx)
-            if col_idx in lr_diagonal and row_hint is not None:
-                lr_pos = lr_diagonal[col_idx]
-                lr.mat[lr_pos, lr_pos] += coefficient * row_hint
-
-    return subs
-
-
-def __extract_logical_hints(qubo: QUBO) -> dict[int, float]:
-    if qubo.solutions is None or qubo.solutions.empty or "energy" not in qubo.solutions.columns:
-        return {}
-
-    best_energy = qubo.solutions["energy"].min()
-    best_solutions = qubo.solutions[qubo.solutions["energy"] == best_energy]
-    hints = {}
-
-    for col in best_solutions.columns:
-        if col == "energy" or col < 0:
-            continue
-
-        values = best_solutions[col].replace([np.inf, -np.inf], np.nan).dropna()
-        if not values.empty:
-            hints[col] = float(values.mean())
-
-    return hints
 
 
 @configuration.configured
@@ -204,14 +158,7 @@ def _qsplit_sampler_refined(
                     sub.solutions = solve(sub)
             result = aggregate(subs, qubo)
             candidates = result.solutions.copy(deep=True)
-        if candidates.empty:
-            raise ValueError("Refinement requires a complete global solution")
-        for label, candidate in candidates.iterrows():
-            rows = np.array([candidate[idx] if idx >= 0 else 0 for idx in original.rows_idx])
-            cols = np.array([candidate[idx] if idx >= 0 else 0 for idx in original.cols_idx])
-            if not np.all(np.isin(rows, [0, 1])) or not np.all(np.isin(cols, [0, 1])):
-                raise ValueError("Refinement requires binary assignments for every real variable")
-            candidates.loc[label, "energy"] = float(rows @ original.mat @ cols + original.offset)
+        candidates = _core.validate_solutions(candidates, original)
         energy = float(candidates["energy"].min())
         if not np.isfinite(energy):
             raise ValueError("Refinement requires finite global energies")

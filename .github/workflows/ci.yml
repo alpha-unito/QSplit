@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         python: ["3.12", "3.13", "3.14"]
     timeout-minutes: 30
     env:
@@ -27,40 +27,15 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
-      - name: Set up Windows Python and PyMetis
-        if: runner.os == 'Windows'
-        uses: mamba-org/setup-micromamba@v3
-        with:
-          environment-name: qsplit-ci
-          create-args: >-
-            python=${{ matrix.python }}
-            pymetis>=2025.2.2
-          init-shell: bash
-      - name: Verify Windows Python environment
-        if: runner.os == 'Windows'
-        run: |
-          echo "CONDA_PREFIX=$CONDA_PREFIX"
-          echo "CONDA_DEFAULT_ENV=$CONDA_DEFAULT_ENV"
-          command -v python
-          python -c "import sys; print(sys.executable)"
-          micromamba info
       - name: Set up Linux/macOS Python
-        if: runner.os != 'Windows'
         run: |
           uv python install "${{ matrix.python }}"
           uv venv --python "${{ matrix.python }}"
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
       - name: Select and validate CI Python
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            # Usa Python dell'ambiente micromamba.
-            ci_python="python"
-            uv_python="$(python -c 'import sys; print(sys.executable)')"
-          else
-            # Usa direttamente l'ambiente creato da uv.
-            ci_python="$GITHUB_WORKSPACE/.venv/bin/python"
-            uv_python="$ci_python"
-          fi
+          ci_python="$GITHUB_WORKSPACE/.venv/bin/python"
+          uv_python="$ci_python"
           "$ci_python" -c "
           import sys
           print('Python:', sys.executable)
@@ -71,12 +46,26 @@ jobs:
           echo "UV_PYTHON=$uv_python" >> "$GITHUB_ENV"
       - name: Install local test dependencies
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            extras="dev,quantinuum,dataset"
-          else
-            extras="dev,streamflow,quantinuum,dataset"
-          fi
+          extras="dev,streamflow,quantinuum,dataset"
           uv pip install --python "$UV_PYTHON" -e ".[$extras]"
+      - name: Build wheel from source distribution
+        run: uv build
+      - name: Check installed wheel outside the source tree
+        run: |
+          uv pip install --python "$UV_PYTHON" --no-deps --target "$RUNNER_TEMP/qsplit-wheel" dist/*.whl
+          "$CI_PYTHON" -I -c '
+          import os, pickle, sys
+          from pathlib import Path
+          target = Path(os.environ["RUNNER_TEMP"]) / "qsplit-wheel"
+          sys.path.insert(0, str(target))
+          import numpy as np
+          import qsplit._core
+          from qsplit.qubo import QUBO
+          from qsplit.halting_heuristic.stop import vars_count
+          assert Path(qsplit._core.__file__).is_relative_to(target)
+          q = QUBO(np.eye(2), np.arange(2), np.arange(2))
+          assert vars_count(pickle.loads(pickle.dumps(q))) == 2
+          '
       - name: Record platform and dependency versions
         run: |
           mkdir -p reports
@@ -95,27 +84,22 @@ jobs:
           import pennylane
           import pymetis
           "
-          if [[ "$RUNNER_OS" != "Windows" ]]; then
-            "$CI_PYTHON" -c "import streamflow.main"
-          fi
+          "$CI_PYTHON" -c "import streamflow.main; import qsplit._core"
       - name: Lint and format
         run: |
           "$CI_PYTHON" -m ruff check .
           "$CI_PYTHON" -m ruff format --check .
       - name: Unit tests and unit coverage
-        if: runner.os != 'Windows'
         run: >-
           "$CI_PYTHON" -m pytest -m "unit and not iqm and not cudaq"
           --junitxml=reports/unit.xml --cov
           --cov-report=term-missing --cov-report=json:reports/coverage-unit.json
       - name: Integration tests (CPU simulators)
-        if: runner.os != 'Windows'
         run: >-
           "$CI_PYTHON" -m pytest -m "integration and not iqm and not cudaq"
           --junitxml=reports/integration.xml --cov --cov-append
           --cov-report=term-missing --cov-report=json:reports/coverage-unit-integration.json
       - name: End-to-end CLI and local StreamFlow workflows
-        if: runner.os != 'Windows'
         run: |
           e2e_prefix=()
           if [[ "$RUNNER_OS" == "Linux" ]]; then

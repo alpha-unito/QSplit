@@ -1,33 +1,8 @@
+"""Public NumPy-compatible interface to the compiled QUBO class."""
+
 import numpy as np
-import pandas as pd
+
+from qsplit._core import QUBO as QUBO
 
 int_arr = np.ndarray[tuple[int], np.dtype[int]]
 flt_mat = np.ndarray[tuple[int, int], np.dtype[np.float64]]
-
-
-class QUBO:
-    def __init__(self, mat: flt_mat, rows_idx: int_arr, cols_idx: int_arr, offset: float = 0.0):
-        assert mat.shape[0] == mat.shape[1], "Problem matrix must be square"
-        assert mat.shape[1] == cols_idx.shape[0], "Invalid numer of columns, must be as long as cols_idx array"
-        assert mat.shape[0] == rows_idx.shape[0], "Invalid numer of rows, must be as long as rows_idx array"
-        mat, cols_idx, rows_idx = QUBO.sanitize(mat, cols_idx, rows_idx)
-        self.mat: np.ndarray[tuple[int, int], np.dtype[np.float64]] = mat
-        self.cols_idx: np.ndarray[tuple[int], np.dtype[int]] = cols_idx
-        self.rows_idx: np.ndarray[tuple[int], np.dtype[int]] = rows_idx
-        self.offset: float = offset
-        self.problem_size: int = mat.shape[0]
-        self.solutions: pd.DataFrame | None = None
-
-    def __str__(self) -> str:
-        return f"QUBO(cols: {self.cols_idx}, rows: {self.rows_idx}, offset: {self.offset}, size: {self.problem_size})"
-
-    @staticmethod
-    def sanitize(mat: flt_mat, cols_idx: int_arr, rows_idx: int_arr) -> tuple[flt_mat, int_arr, int_arr]:
-        if not np.allclose(mat, np.triu(mat)):
-            diag = np.diag(np.diag(mat))
-            mat = np.triu(mat + mat.T) - diag
-
-        mat = np.round(mat, decimals=9)
-        mat[np.abs(mat) < 1e-12] = 0.0
-
-        return mat, cols_idx, rows_idx
