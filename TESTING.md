@@ -63,11 +63,15 @@ This exercises circuit construction, IQM transpilation, optimization and samplin
 using `IQMFakeAdonis`, backed by a local simulator. It does not instantiate a
 remote IQM provider.
 
-CUDA-Q tests require a platform with CUDA-Q wheels (the CI uses Linux):
+CUDA-Q tests use Linux and Python 3.12. The `cudaq` extra installs NVIDIA's
+`cuda-quantum-cu12` binary distribution directly, so the lockfile includes the
+actual `cudaq` module and its dependencies. The `cudaq` metapackage chooses its
+binary dependency dynamically and previously produced an incomplete lockfile.
+This extra targets CUDA 12; the CPU test does not require a GPU.
 
 ```bash
-uv venv .venv-cudaq --python 3.12
-uv pip install --python .venv-cudaq/bin/python -e ".[dev,cudaq]"
+UV_PROJECT_ENVIRONMENT=.venv-cudaq uv sync --locked --python 3.12 --extra dev --extra cudaq
+.venv-cudaq/bin/python -c "import cudaq"
 .venv-cudaq/bin/python -m pytest tests/integration -m cudaq
 ```
 
