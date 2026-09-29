@@ -104,12 +104,14 @@ from qsplit.qubo import QUBO
 # and REFINEMENT_TOLERANCE: 1.0e-9 (one key per YAML line).
 config = configuration.load("configs/refinement.yaml")
 
-matrix = np.array([
-    [-2.0, 1.0, -3.0, 0.0],
-    [0.0, -1.0, 2.0, -2.0],
-    [0.0, 0.0, 1.0, -3.0],
-    [0.0, 0.0, 0.0, -1.0],
-])
+matrix = np.array(
+    [
+        [-2.0, 1.0, -3.0, 0.0],
+        [0.0, -1.0, 2.0, -2.0],
+        [0.0, 0.0, 1.0, -3.0],
+        [0.0, 0.0, 0.0, -1.0],
+    ]
+)
 ids = np.arange(len(matrix))
 
 # Use separate inputs because splitting can pad a QUBO in place.
@@ -250,8 +252,7 @@ without calling the backend. This keeps undefined dummy samples out of aggregati
 Implement the same function shape as the built-in strategies:
 
 ```python
-def refine_problems(subproblems: list[QUBO], qubo: QUBO) -> list[QUBO]:
-    ...
+def refine_problems(subproblems: list[QUBO], qubo: QUBO) -> list[QUBO]: ...
 ```
 
 `subproblems` contains the previous round's solved problems. `qubo` contains the

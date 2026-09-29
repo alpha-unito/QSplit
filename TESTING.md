@@ -10,8 +10,7 @@ fixture data instead of downloading a dataset.
 CI exercises Python 3.12, 3.13 and 3.14. For example, to use Python 3.12:
 
 ```bash
-uv venv --python 3.12
-uv pip install -e ".[dev,streamflow,quantinuum,dataset]"
+uv sync --locked --python 3.12 --extra dev --extra streamflow --extra quantinuum --extra dataset
 uv run pytest
 ```
 
@@ -154,7 +153,10 @@ zero-matrix graph partitions: their dummy solutions contain `NaN` (no vote),
 which aggregators must ignore rather than convert to an integer or count as a
 vote for zero.
 
-CI also runs Ruff lint and format checks. Run them locally with:
+CI installs dependencies from `uv.lock` with `uv sync --locked`, including Ruff.
+The pre-commit Ruff revision matches the locked version; update it together with
+any Ruff lockfile upgrade. `uv pip install -e ".[dev]"` resolves dependencies anew
+and can select a newer formatter. Run the same lint and format checks locally with:
 
 ```bash
 uv run --no-sync ruff check .

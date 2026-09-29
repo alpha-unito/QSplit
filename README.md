@@ -93,7 +93,7 @@ from qsplit.qubo import QUBO
 from qsplit.splitting.split_linear import split_problem
 
 ids = np.arange(3)
-qubo = QUBO(np.array([[-1., 2., 0.], [0., -2., 1.], [0., 0., -3.]]), ids, ids)
+qubo = QUBO(np.array([[-1.0, 2.0, 0.0], [0.0, -2.0, 1.0], [0.0, 0.0, -3.0]]), ids, ids)
 subproblems = split_problem(qubo, config={"CUT_DIM": 2})
 ```
 
@@ -157,7 +157,6 @@ python3 -m venv /beegfs/home/fmedina/.venvs/qsplit-gpu
 /beegfs/home/fmedina/.venvs/qsplit-gpu/bin/pip install -e "/beegfs/home/fmedina/QSplit[ibm-gpu]"
 ```
 
-
 ### 2. Preparing configuration
 
 QSplit reads runtime settings from explicitly supplied YAML files. The old
@@ -188,9 +187,7 @@ from qsplit.local_runner import qsplit_sampler_refined_iterative
 
 result = qsplit_sampler_refined_iterative(qubo, config="configs/local.yaml")
 # Split settings and credentials if needed; later files override earlier keys.
-result = qsplit_sampler_refined_iterative(
-    qubo, config=["configs/algorithm.yaml", "configs/solver.yaml"]
-)
+result = qsplit_sampler_refined_iterative(qubo, config=["configs/algorithm.yaml", "configs/solver.yaml"])
 ```
 
 `QSPLIT_BACKEND` selects the local solver (`dwave` by default, simulated annealing).

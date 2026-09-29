@@ -46,8 +46,8 @@ jobs:
           echo "UV_PYTHON=$uv_python" >> "$GITHUB_ENV"
       - name: Install local test dependencies
         run: |
-          extras="dev,streamflow,quantinuum,dataset"
-          uv pip install --python "$UV_PYTHON" -e ".[$extras]"
+          uv sync --locked --python "$UV_PYTHON" \
+            --extra dev --extra streamflow --extra quantinuum --extra dataset
       - name: Build wheel from source distribution
         run: uv build
       - name: Check installed wheel outside the source tree
@@ -87,6 +87,7 @@ jobs:
           "$CI_PYTHON" -c "import streamflow.main; import qsplit._core"
       - name: Lint and format
         run: |
+          "$CI_PYTHON" -m ruff --version
           "$CI_PYTHON" -m ruff check .
           "$CI_PYTHON" -m ruff format --check .
       - name: Unit tests and unit coverage
@@ -148,7 +149,7 @@ jobs:
         run: |
           uv python install 3.12
           uv venv --python 3.12
-          uv pip install -e ".[dev,${{ matrix.extra }}]"
+          uv sync --locked --python 3.12 --extra dev --extra "${{ matrix.extra }}"
       - name: Verify simulator is installed
         run: uv run --no-sync python -c "import ${{ matrix.module }}"
       - name: Run simulator tests
