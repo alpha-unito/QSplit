@@ -244,7 +244,7 @@ def test_integral_yaml_float_is_normalized_before_consumers_parse_it():
 
 
 @pytest.mark.parametrize("tune", [False, True])
-def test_iqm_adapter_passes_yaml_credentials_and_tuning_to_sdk(tmp_path, monkeypatch, make_qubo, tune):
+def test_iqm_adapter_uses_final_backend_even_with_legacy_tuning_setting(tmp_path, monkeypatch, make_qubo, tune):
     import runpy
 
     provider_module = ModuleType("iqm.qiskit_iqm")
@@ -270,11 +270,8 @@ def test_iqm_adapter_passes_yaml_credentials_and_tuning_to_sdk(tmp_path, monkeyp
         url="https://resonance.meetiqm.com/", token="yaml-token", quantum_computer="garnet"
     )
     optimizer_backend = util_module.get_qaoa_circuit_optimized.call_args.kwargs["backend"]
-    assert optimizer_backend is (
-        provider_module.IQMProvider.return_value.get_backend.return_value
-        if tune
-        else fake_module.IQMFakeGarnet.return_value
-    )
+    assert optimizer_backend is provider_module.IQMProvider.return_value.get_backend.return_value
+    fake_module.IQMFakeGarnet.assert_not_called()
 
 
 def test_cache_only_never_submits_when_cache_is_disabled(tmp_path, monkeypatch, make_qubo):

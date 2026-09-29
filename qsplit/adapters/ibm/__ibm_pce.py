@@ -5,20 +5,58 @@ import numpy as np
 import pandas as pd
 from qiskit import QuantumCircuit, generate_preset_pass_manager
 from qiskit.circuit.library import qaoa_ansatz
-from qiskit.passmanager import BasePassManager
+from qiskit.primitives import BackendEstimatorV2, StatevectorEstimator
 from qiskit.quantum_info import SparsePauliOp
-from qiskit_ibm_runtime import EstimatorV2
+from qiskit_ibm_runtime import EstimatorV2, IBMBackend
 from scipy.optimize import minimize
 
 from qsplit.adapters.ibm.util import get_variables_mapping, to_dataframe
+from qsplit.adapters.training import training_subproblem
 from qsplit.qubo import QUBO
 
 
 def ibm_solve(qubo: QUBO, backend) -> pd.DataFrame:
-    var_to_qubit, all_vars = get_variables_mapping(qubo)
+    training_qubo = training_subproblem(qubo, pce_k=3)
+    training_circuit, training_ops, training_edges, training_Q = _build_pce_problem(training_qubo)
+    training_circuit = training_circuit.decompose(reps=10)
+    estimator = StatevectorEstimator()
+
+    def objective(params):
+        return __pce_loss(
+            params,
+            training_circuit,
+            training_ops,
+            estimator,
+            training_edges,
+            len(training_Q) + 1,
+            training_circuit.num_qubits,
+        )["loss"]
+
+    reps = 3
+    delta_t = 0.25
+    initial_params = [(1 - i / reps) * delta_t for i in range(1, reps + 1)]
+    initial_params += [(i / reps) * delta_t for i in range(1, reps + 1)]
+    params = minimize(
+        objective,
+        initial_params,
+        method="COBYLA",
+        options={"rhobeg": 1.0, "maxiter": len(initial_params) + 2},
+        tol=1e-4,
+    ).x
+
+    circuit, observables, edges, Q = _build_pce_problem(qubo)
+    num_qubits = circuit.num_qubits
+    bound = circuit.assign_parameters(params)
     pm = generate_preset_pass_manager(backend=backend, optimization_level=2)
-    quantum_results = __run_quantum_optimizer(var_to_qubit, all_vars, qubo, backend, pm, k=3)
-    return to_dataframe(quantum_results, qubo, var_to_qubit, all_vars)
+    bound = pm.run(bound)
+    mapped = [[op.apply_layout(bound.layout) for op in group] for group in observables]
+    final_estimator = (
+        EstimatorV2(mode=backend) if isinstance(backend, IBMBackend) else BackendEstimatorV2(backend=backend)
+    )
+    exp_map = __pce_loss([], bound, mapped, final_estimator, edges, len(Q) + 1, num_qubits)["exp_map"]
+    counts = _decode_solution(Q, exp_map)
+    var_to_qubit, all_vars = get_variables_mapping(qubo)
+    return to_dataframe(counts, qubo, var_to_qubit, all_vars)
 
 
 def __build_pce(pauli: str, node_list: list, n_qubits: int, k: int) -> list[SparsePauliOp]:
@@ -46,7 +84,7 @@ def __pce_loss(
     num_nodes: int,
     num_qubits: int,
 ) -> dict[str, float | dict]:
-    job = estimator.run([(ansatz, hamiltonians[0], x), (ansatz, hamiltonians[1], x), (ansatz, hamiltonians[2], x)])
+    job = estimator.run([(ansatz, group, x) for group in hamiltonians if group])
     result = job.result()
 
     node_exp_map = {}
@@ -76,14 +114,14 @@ def __pce_loss(
     return {"loss": loss_val, "exp_map": node_exp_map}
 
 
-def __run_quantum_optimizer(
-    var_to_qubit, all_vars, qubo: QUBO, backend, pm: BasePassManager, k: int = 3
-) -> dict[int, int]:
+def _build_pce_problem(qubo: QUBO, k: int = 3):
+    var_to_qubit, all_vars = get_variables_mapping(qubo)
     n = len(all_vars)
     Q = np.zeros((n, n))
     row_indices = [var_to_qubit[r] for r in qubo.rows_idx]
     col_indices = [var_to_qubit[c] for c in qubo.cols_idx]
     Q[np.ix_(row_indices, col_indices)] = qubo.mat
+    Q = np.triu(Q + Q.T) - np.diag(np.diag(Q))
     J_prime = {}
 
     u_idx, v_idx = np.triu_indices(n, k=1)
@@ -130,37 +168,14 @@ def __run_quantum_optimizer(
     base_cost_op = SparsePauliOp.from_list(cost_ops)
     reps = 3
     qc = qaoa_ansatz(cost_operator=base_cost_op, reps=reps)
-    qc = pm.run(qc)
+    return qc, [pce_x, pce_y, pce_z], J_prime, Q
 
-    pce_mapped = [
-        [op.apply_layout(qc.layout) if getattr(qc, "layout", None) else op for op in pce_x],
-        [op.apply_layout(qc.layout) if getattr(qc, "layout", None) else op for op in pce_y],
-        [op.apply_layout(qc.layout) if getattr(qc, "layout", None) else op for op in pce_z],
-    ]
 
-    estimator = EstimatorV2(mode=backend)
-    exp_result = []
-
-    def loss_wrapper(x_params):
-        exp = __pce_loss(x_params, qc, pce_mapped, estimator, J_prime, num_nodes, num_qubits)
-        exp_result.append(exp)
-        return exp["loss"]
-
-    delta_t = 0.25
-    gamma_list = [(i / reps) * delta_t for i in range(1, reps + 1)]
-    beta_list = [(1 - (i / reps)) * delta_t for i in range(1, reps + 1)]
-    initial_params = beta_list + gamma_list
-
-    minimize(
-        loss_wrapper,
-        initial_params,
-        method="COBYLA",
-        options={"rhobeg": 1.0, "maxiter": len(initial_params) + 2},
-        tol=1e-4,
-    )
-
-    best_exp_map = min(exp_result, key=lambda val: val["loss"])["exp_map"]
-    best_exp_arr = np.array([best_exp_map[idx] for idx in range(num_nodes)])
+def _decode_solution(Q, exp_map):
+    n = len(Q)
+    dummy_index = n
+    diag_Q = np.diag(Q)
+    best_exp_arr = np.array([exp_map[idx] for idx in range(n + 1)])
     x_raw = np.where(best_exp_arr >= 0, 1, -1)
     x_dummy = x_raw[dummy_index]
     x = ((1 - (x_raw[:n] * x_dummy)) // 2).astype(int)
@@ -178,7 +193,6 @@ def __run_quantum_optimizer(
                 H += (Q[u, :] + Q[:, u]) * delta_z
                 H[u] -= 2 * Q[u, u] * delta_z
 
-    powers_of_two = 2 ** np.arange(n)
-    state_int = int(np.dot(x, powers_of_two))
+    state_int = sum(int(bit) << idx for idx, bit in enumerate(x))
 
     return {state_int: 1}

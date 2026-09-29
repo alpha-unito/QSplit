@@ -53,15 +53,17 @@ def load(source) -> dict:
         raise ValueError("QSplit configuration must be a mapping with string keys")
     if any(v is not None and not isinstance(v, (str, int, float, bool)) for v in data.values()):
         raise ValueError("QSplit configuration values must be scalars")
-    if "CUT_DIM" in data:
+    for key in ("CUT_DIM", "LOCAL_TRAINING_QUBITS"):
+        if key not in data:
+            continue
         try:
-            cut = int(data["CUT_DIM"])
-            valid = not isinstance(data["CUT_DIM"], bool) and cut > 0 and float(data["CUT_DIM"]) == cut
+            cut = int(data[key])
+            valid = not isinstance(data[key], bool) and cut > 0 and float(data[key]) == cut
         except (TypeError, ValueError, OverflowError):
             valid = False
         if not valid:
-            raise ValueError("CUT_DIM must be a positive integer")
-        data["CUT_DIM"] = cut
+            raise ValueError(f"{key} must be a positive integer")
+        data[key] = cut
     return data
 
 

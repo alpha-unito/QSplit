@@ -3,9 +3,11 @@ import pandas as pd
 from iqm.qiskit_iqm import IQMProvider, transpile_to_IQM
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import QAOAAnsatz
+from qiskit.primitives import StatevectorSampler
 from qiskit.quantum_info import SparsePauliOp
 from scipy.optimize import minimize
 
+from qsplit.adapters.training import training_subproblem
 from qsplit.qubo import QUBO
 
 
@@ -59,17 +61,21 @@ def __compute_expectation(counts: dict[str, int], qubo: QUBO, var_to_qubit: dict
 
 def get_qaoa_circuit_optimized(backend, qubo: QUBO) -> tuple[QuantumCircuit, dict[int, int], list[int]]:
     circuit, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
-    transpiled_circuit = transpile_to_IQM(circuit, backend=backend)
+    training_qubo = training_subproblem(qubo)
+    training_circuit, training_mapping, _ = __from_qubo_matrix_to_circuit(training_qubo)
+    training_circuit = training_circuit.decompose(reps=10)
+    sampler = StatevectorSampler()
 
     def objective_function(theta: list[float]) -> float:
-        bound_circ = transpiled_circuit.assign_parameters(theta)
-        job = backend.run(bound_circ, shots=500)
-        counts = job.result().get_counts()
-        return __compute_expectation(counts, qubo, var_to_qubit)
+        bound_circ = training_circuit.assign_parameters(theta)
+        counts = sampler.run([bound_circ], shots=500).result()[0].data.meas.get_counts()
+        return __compute_expectation(counts, training_qubo, training_mapping)
 
     init_params = [1.0, -1.0, 1.0, -1.0]
-    result = minimize(objective_function, init_params, method="COBYLA", options={"maxiter": 100}, tol=1e-2)
-    optimized_circ = transpiled_circuit.assign_parameters(result.x)
+    params = np.array(init_params)
+    if training_circuit.num_parameters == len(init_params):
+        params = minimize(objective_function, init_params, method="COBYLA", options={"maxiter": 100}, tol=1e-2).x
+    optimized_circ = transpile_to_IQM(circuit.assign_parameters(dict(zip(circuit.parameters, params))), backend=backend)
 
     return optimized_circ, var_to_qubit, all_vars
 

@@ -117,6 +117,6 @@ def test_iqm_cache_store_hit_and_probe_miss_without_provider(tmp_path, monkeypat
 
 def test_cache_coordinates_sanitize_paths(monkeypatch):
     monkeypatch.setitem(configuration.current(), "IQM_QUANTUM_COMPUTER", "machine / one")
-    monkeypatch.setitem(configuration.current(), "QUANTUM_TUNE_IQM", "yes")
+    monkeypatch.setitem(configuration.current(), "LOCAL_TRAINING_QUBITS", "25")
     coords = scatter._iqm_cache_coordinates(SimpleNamespace(instance_id="../../escape"), "root.pkl")
-    assert coords == ("escape", "root", "machine_one", "yes")
+    assert coords == ("escape", "root", "machine_one", "local_training_v1_25")

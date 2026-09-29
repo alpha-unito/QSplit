@@ -13,6 +13,18 @@ def test_cpu_simulator_returns_valid_energy(module, make_qubo, assert_solution):
     assert_solution(qubo, solve(qubo))
 
 
+@pytest.mark.parametrize(
+    ("module", "limit"),
+    [("ibm.ibm_qaoa_cpu_noiseless", 2), ("ibm.ibm_pce_cpu_noiseless", 3)],
+)
+def test_local_training_limit_preserves_full_solution(module, limit, make_qubo, assert_solution, tmp_path):
+    solve = importlib.import_module(f"qsplit.adapters.{module}").solve
+    qubo = make_qubo(np.diag([-1, -2, -3, -4, -5]), ids=[7, 11, 15, 19, 23], offset=3)
+    config = tmp_path / "training.yaml"
+    config.write_text(f"LOCAL_TRAINING_QUBITS: {limit}\n")
+    assert_solution(qubo, solve(qubo, config=config))
+
+
 @pytest.mark.quantinuum
 def test_quantinuum_cpu_simulator(make_qubo, assert_solution):
     pytest.importorskip("pytket.extensions.qiskit")

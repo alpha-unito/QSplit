@@ -5,37 +5,20 @@
 # Modifications have been made to tailor the implementation to local requirements.
 
 import numpy as np
-from qiskit import QuantumCircuit, generate_preset_pass_manager
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.passmanager import BasePassManager
-from qiskit.primitives import BackendEstimatorV2, BackendSamplerV2
+from qiskit.primitives import BackendSamplerV2, StatevectorEstimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit_aer import AerSimulator
 from qiskit_algorithms.optimizers import SPSA
 from qiskit_ibm_runtime import IBMBackend
+from qiskit_ibm_runtime import SamplerV2 as RuntimeSamplerV2
 
 from qsplit.adapters.ibm.util import get_variables_mapping
+from qsplit.adapters.training import training_subproblem
 from qsplit.qubo import QUBO
-
-try:
-    from qiskit_aer import AerSimulator
-except Exception:
-    AerSimulator = None
-
-try:
-    from qiskit_ibm_runtime import EstimatorV2 as RuntimeEstimatorV2
-    from qiskit_ibm_runtime import IBMBackend
-    from qiskit_ibm_runtime import SamplerV2 as RuntimeSamplerV2
-except Exception:
-    RuntimeEstimatorV2 = None
-    RuntimeSamplerV2 = None
-    IBMBackend = None
-
-try:
-    from qiskit.primitives import StatevectorEstimator
-except Exception:
-    StatevectorEstimator = None
 
 
 def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePauliOp, dict[int, int], list[int]]:
@@ -66,54 +49,25 @@ def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePau
     return circuit, cost_hamiltonian, var_to_qubit, all_vars
 
 
-__objective_func_vals = []
-
-
 def _is_ibm_backend(backend) -> bool:
-    return IBMBackend is not None and isinstance(backend, IBMBackend)
+    return isinstance(backend, IBMBackend)
 
 
 def _is_aer_backend(backend) -> bool:
-    return AerSimulator is not None and isinstance(backend, AerSimulator)
+    return isinstance(backend, AerSimulator)
 
 
-def __optimize_circuit(
-    backend,
-    candidate_circuit: QuantumCircuit,
-    cost_hamiltonian: SparsePauliOp,
-    optimize_on_backend: bool = True,
-) -> QuantumCircuit:
-    initial_gamma = np.pi
-    initial_beta = np.pi / 2
-    init_params = [initial_beta, initial_beta, initial_gamma, initial_gamma]
-    if not optimize_on_backend:
-        if StatevectorEstimator is not None:
-            estimator = StatevectorEstimator()
-        elif AerSimulator is not None:
-            estimator = BackendEstimatorV2(
-                backend=AerSimulator(method="matrix_product_state", matrix_product_state_max_bond_dimension=None)
-            )
-        else:
-            raise RuntimeError("Local estimator backend is required when optimize_on_backend=False.")
-    elif _is_ibm_backend(backend) and RuntimeEstimatorV2 is not None:
-        estimator = RuntimeEstimatorV2(backend)
-    else:
-        estimator = BackendEstimatorV2(backend=backend)
-    if optimize_on_backend and _is_ibm_backend(backend) and hasattr(estimator, "options"):
-        if hasattr(estimator.options, "default_shots"):
-            estimator.options.default_shots = 500
-        estimator.options.dynamical_decoupling.enable = True
-        estimator.options.dynamical_decoupling.sequence_type = "XY4"
-        estimator.options.twirling.enable_gates = True
-        estimator.options.twirling.num_randomizations = "auto"
+def __optimize_circuit(candidate_circuit: QuantumCircuit, cost_hamiltonian: SparsePauliOp) -> np.ndarray:
+    init_params = [np.pi / 2, np.pi / 2, np.pi, np.pi]
+    if candidate_circuit.num_parameters < len(init_params):
+        return np.array(init_params)
+    candidate_circuit = candidate_circuit.decompose(reps=10)
+    estimator = StatevectorEstimator()
 
     def objective_function(params: list[float]) -> float:
         return __cost_func_estimator(params, candidate_circuit, cost_hamiltonian, estimator)
 
-    optimizer = SPSA()
-    result = optimizer.minimize(fun=objective_function, x0=init_params)
-    optimized_circuit = candidate_circuit.assign_parameters(result.x)
-    return optimized_circuit
+    return SPSA().minimize(fun=objective_function, x0=init_params).x
 
 
 def __cost_func_estimator(
@@ -125,7 +79,6 @@ def __cost_func_estimator(
     job = estimator.run([pub])
     results = job.result()[0]
     cost = results.data.evs
-    __objective_func_vals.append(cost)
     return cost
 
 
@@ -133,32 +86,21 @@ def get_qaoa_circuit_optimized(
     backend,
     pm: BasePassManager,
     qubo: QUBO,
-    *,
-    optimize_on_backend: bool = True,
 ) -> tuple[QuantumCircuit, dict[int, int], list[int]]:
-    circuit, cost_hamiltonian, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
-    if optimize_on_backend:
-        try:
-            candidate_circuit = pm.run(circuit)
-        except TranspilerError as exc:
-            if _is_aer_backend(backend) and "not in Target" in str(exc):
-                try:
-                    candidate_circuit = generate_preset_pass_manager(optimization_level=1).run(circuit)
-                except TranspilerError:
-                    candidate_circuit = circuit.decompose(reps=10)
-            else:
-                raise
-        if _is_aer_backend(backend) and any(
-            str(inst.operation.name).lower() == "qaoa" for inst in candidate_circuit.data
-        ):
-            candidate_circuit = candidate_circuit.decompose(reps=10)
-        optimized_circ = __optimize_circuit(backend, candidate_circuit, cost_hamiltonian, optimize_on_backend=True)
-    else:
-        optimized_logical = __optimize_circuit(backend, circuit, cost_hamiltonian, optimize_on_backend=False)
-        try:
-            optimized_circ = pm.run(optimized_logical)
-        except TranspilerError:
-            optimized_circ = optimized_logical.decompose(reps=10)
+    training_qubo = training_subproblem(qubo)
+    training_circuit, cost_hamiltonian, _, _ = __from_qubo_matrix_to_circuit(training_qubo)
+    params = __optimize_circuit(training_circuit, cost_hamiltonian)
+    circuit, _, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
+    optimized_logical = circuit.assign_parameters(dict(zip(circuit.parameters, params)))
+    optimized_logical.measure_all()
+    try:
+        optimized_circ = pm.run(optimized_logical)
+    except TranspilerError as exc:
+        if not (_is_aer_backend(backend) and "not in Target" in str(exc)):
+            raise
+        optimized_circ = optimized_logical.decompose(reps=10)
+    if _is_aer_backend(backend) and any(str(inst.operation.name).lower() == "qaoa" for inst in optimized_circ.data):
+        optimized_circ = optimized_circ.decompose(reps=10)
     measured_circ = optimized_circ.copy()
     if measured_circ.num_clbits == 0:
         measured_circ.measure_all()

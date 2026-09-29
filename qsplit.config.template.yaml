@@ -5,6 +5,9 @@ CUT_DIM: 16
 STRIDE: -1
 EXACT_RATIO: 0.75
 QSPLIT_BACKEND: dwave
+# Gate-based adapters train classically on at most this many qubits, then
+# transfer the layer angles to the full circuit for one final backend run.
+LOCAL_TRAINING_QUBITS: 20
 # QSPLIT_SOLVER_MODULE: qsplit.adapters.all_zero
 REFINEMENT_METHOD: conditioned
 REFINEMENT_LOOPS: 0
@@ -23,7 +26,6 @@ REFINEMENT_STRENGTH: 0.1
 IQM_SERVER_URL: https://resonance.meetiqm.com/
 IQM_TOKEN: ""
 IQM_QUANTUM_COMPUTER: garnet
-QUANTUM_TUNE_IQM: false
 QSPLIT_IQM_SUBPROBLEM_CACHE: true
 QSPLIT_IQM_CACHE_ONLY: false
 # QSPLIT_IQM_STATE_DIR: /absolute/path/to/shared/iqm_state

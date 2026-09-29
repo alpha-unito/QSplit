@@ -142,8 +142,8 @@ def _iqm_cache_coordinates(qubo: QUBO, input_qubo_path: str) -> tuple[str, str, 
     if node_id == "node_unknown":
         node_id = _safe_cache_component(Path(input_qubo_path).stem, "node_unknown")
     quantum_computer = _safe_cache_component(configuration.get("IQM_QUANTUM_COMPUTER", ""), "qc_default")
-    quantum_tune = _safe_cache_component(configuration.get("QUANTUM_TUNE_IQM", ""), "qt_default")
-    return instance_id, node_id, quantum_computer, quantum_tune
+    training = f"local_training_v1_{configuration.get('LOCAL_TRAINING_QUBITS', 20)}"
+    return instance_id, node_id, quantum_computer, training
 
 
 def _same_subproblem(a: QUBO, b: QUBO) -> bool:
@@ -205,11 +205,11 @@ def main() -> None:
     iqm_cache_label: str | None = None
     if backend == "iqm" and _iqm_cache_enabled():
         cache_dir = _resolve_iqm_subproblem_dir()
-        instance_id, node_id, qc_name, qt_mode = _iqm_cache_coordinates(qubo, args.input_qubo)
+        instance_id, node_id, qc_name, training = _iqm_cache_coordinates(qubo, args.input_qubo)
         instance_dir = cache_dir / instance_id
         instance_dir.mkdir(parents=True, exist_ok=True)
-        iqm_cache_path = instance_dir / f"{node_id}__qc_{qc_name}__qt_{qt_mode}.pkl"
-        iqm_cache_label = f"instance={instance_id} node={node_id} qc={qc_name} qt={qt_mode}"
+        iqm_cache_path = instance_dir / f"{node_id}__qc_{qc_name}__{training}.pkl"
+        iqm_cache_label = f"instance={instance_id} node={node_id} qc={qc_name} training={training}"
         cached_df = _load_cached_iqm_dataframe(iqm_cache_path, qubo)
         if cached_df is not None:
             qubo.solutions = cached_df
