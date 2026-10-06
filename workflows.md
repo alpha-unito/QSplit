@@ -68,19 +68,3 @@ For real variable `i`, the shared belief is the mean of its global incumbent bit
 and its mean estimate across the best finite-energy samples of each solved local
 problem. Each local problem contributes once. Negative IDs are local to their
 problem and are never combined across problems.
-
-Ready-to-run samplers use these aggregators for subsequent consensus rounds:
-
-| Initialization | Subsequent consensus aggregation |
-| --- | --- |
-| Linear | Linear votes; `BP = True` selects BP for `consensus` and `soft_consensus` |
-| Quadtree | Quadtree weighting for `consensus` / `soft_consensus`; linear votes for `mean_field` |
-| Interactions | Linear votes: normalized windows no longer retain the original positional-centre contract |
-| Graph | Graph votes for `soft_consensus`; linear votes for `mean_field` / `consensus` |
-| Recursive, including logical expansion | Linear votes |
-
-Explicit `mean_field` uses linear votes on ready-to-run samplers, including when
-initialization used BP. Use the composition API to choose BP for these rounds.
-The generic composition API and `refine_result` default to linear votes for all
-consensus methods. Their `consensus` selector chooses soft-consensus if any
-macrovariable template exists, and mean-field otherwise.
