@@ -25,6 +25,49 @@ def test_local_training_limit_preserves_full_solution(module, limit, make_qubo, 
     assert_solution(qubo, solve(qubo, config=config))
 
 
+@pytest.mark.parametrize("matrix", [[[1, -3], [0, 1]], [[2, -4, 1], [0, -1, 3], [0, 0, -2]]])
+def test_pce_trains_a_nonconstant_loss_and_solves_small_qubos(
+    matrix, make_qubo, exact_solver, assert_solution, monkeypatch
+):
+    from qiskit_aer import AerSimulator
+
+    from qsplit.adapters.ibm import __ibm_pce as pce
+
+    optimize = pce.minimize
+    training = []
+
+    def record(fun, start, **kwargs):
+        initial_loss = fun(start)
+        result = optimize(fun, start, **kwargs)
+        training.append((initial_loss, result.fun))
+        return result
+
+    monkeypatch.setattr(pce, "minimize", record)
+    qubo = make_qubo(matrix, ids=[7, 11, 19][: len(matrix)], offset=5)
+    result = pce.ibm_solve(qubo, AerSimulator(seed_simulator=42))
+    assert_solution(qubo, result)
+    assert result.energy.min() == pytest.approx(exact_solver(qubo).energy.min())
+    assert len(training) == 2
+    assert min(loss for _, loss in training) < min(initial for initial, _ in training) - 1e-3
+
+
+def test_pce_simulator_handles_padding_and_distinct_row_column_ids(assert_solution, exact_solver):
+    from qiskit_aer import AerSimulator
+
+    from qsplit.adapters.ibm import __ibm_pce as pce
+    from qsplit.qubo import QUBO
+
+    qubo = QUBO(
+        np.array([[2, -3, 4], [0, -2, -5], [0, 0, 1.0]]),
+        np.array([7, -1, 19]),
+        np.array([-2, 7, 5]),
+        offset=5,
+    )
+    result = pce.ibm_solve(qubo, AerSimulator(seed_simulator=42))
+    assert_solution(qubo, result)
+    assert result.energy.min() == pytest.approx(exact_solver(qubo).energy.min())
+
+
 @pytest.mark.quantinuum
 def test_quantinuum_cpu_simulator(make_qubo, assert_solution):
     pytest.importorskip("pytket.extensions.qiskit")
@@ -39,7 +82,6 @@ def test_cudaq_cpu_simulator(make_qubo, assert_solution, monkeypatch):
     pytest.importorskip("cudaq")
     from qsplit.adapters.nvidia import cudaq_qaoa
 
-    # The production adapter tries GPU targets; exercise its algorithm on qpp CPU.
     monkeypatch.setattr(cudaq_qaoa, "TARGET_SEQUENCE", [("qpp-cpu", "")])
     solve = cudaq_qaoa.solve
     qubo = make_qubo([[-1, 2], [0, -2]], ids=[7, 11], offset=3)

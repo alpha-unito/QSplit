@@ -137,8 +137,10 @@ def test_pce_trains_with_pce_and_evaluates_full_problem_once(make_qubo, monkeypa
 
     def optimize(fun, x0, **kwargs):
         assert np.isfinite(fun(x0))
-        assert np.isfinite(fun(learned))
-        return SimpleNamespace(x=learned)
+        loss = fun(learned)
+        assert np.isfinite(loss)
+        assert kwargs["options"]["maxiter"] >= 100
+        return SimpleNamespace(x=learned, fun=loss)
 
     monkeypatch.setattr(pce, "minimize", optimize)
     hardware = Mock(spec=pce.IBMBackend)
@@ -150,16 +152,37 @@ def test_pce_trains_with_pce_and_evaluates_full_problem_once(make_qubo, monkeypa
         assert len(pubs) == 3
         assert sum(len(pub[1]) for pub in pubs) == 6
         assert all(pub[0].num_qubits == 4 and pub[0].num_parameters == 0 for pub in pubs)
-        return local.run([(c.decompose(reps=10), ops, params) for c, ops, params in pubs])
+        result = local.run([(c.decompose(reps=10), ops, params) for c, ops, params in pubs]).result()
+        for pub_result in result:
+            pub_result.metadata["target_precision"] = 0.02
+        return SimpleNamespace(result=lambda: result)
 
     runtime = Mock(return_value=SimpleNamespace(run=final_run))
+    decode = Mock(wraps=pce._decode_solution)
+    monkeypatch.setattr(pce, "_decode_solution", decode)
     monkeypatch.setattr(pce, "EstimatorV2", runtime)
     with configuration.use({"LOCAL_TRAINING_QUBITS": 3}):
         assert_solution(qubo, pce.ibm_solve(qubo, hardware))
-    assert len(local_calls) == 2 and len(final_calls) == 1
+    assert len(local_calls) == 4 and len(final_calls) == 1
+    assert decode.call_args.kwargs["atol"] == pytest.approx(0.04)
     runtime.assert_called_once_with(mode=hardware)
     expected = pce._build_pce_problem(qubo)[0].assign_parameters(learned)
     assert final_calls[0][0][0] == generate_preset_pass_manager().run(expected)
+
+
+def test_constant_induced_pce_problem_skips_regularizer_only_training(make_qubo, monkeypatch, assert_solution):
+    matrix = np.zeros((8, 8))
+    matrix[0, 2:5] = 10
+    matrix[1, 5:8] = 9
+    qubo = make_qubo(matrix)
+    optimizer = Mock(side_effect=AssertionError("Training subproblem has no couplings"))
+    monkeypatch.setattr(pce, "minimize", optimizer)
+    with configuration.use({"LOCAL_TRAINING_QUBITS": 3}):
+        sub = training_subproblem(qubo, pce_k=3)
+        assert not sub.mat.any()
+        result = pce.ibm_solve(qubo, AerSimulator(seed_simulator=42))
+    assert_solution(qubo, result)
+    optimizer.assert_not_called()
 
 
 def test_pce_decode_preserves_bits_above_64():

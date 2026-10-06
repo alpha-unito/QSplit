@@ -207,10 +207,25 @@ zero during training. The learned beta/gamma angles are shared by layer and reus
 on every qubit of the complete final circuit. This transfer is a heuristic and
 does not guarantee the same solution quality as training on the full problem.
 
-PCE + QAOA uses the same PCE encoding and loss during local training. Its limit
-counts encoded qubits, including capacity for the auxiliary Ising node, and must
-be at least 3. Only the final sampling/observable evaluation is submitted to the
-selected backend; PCE batches the X/Y/Z observables in that final evaluation.
+PCE + QAOA encodes the canonical binary objective (including linear terms) using
+three-body X/Y/Z correlations and an auxiliary Ising node. Negative variable IDs
+are padding fixed to zero; repeated IDs are accumulated. It uses a QAOA-style
+ansatz with three layers, an X mixer and a phase separator consisting of a ZZ
+chain plus distinct Z fields. The fields remove the global-X parity and chain
+reflection restrictions of a ZZ-only circuit. The actual QUBO objective is in
+the nonlinear PCE loss, not the expectation of the phase separator. This is a
+heuristic variational solver, with no guarantee of finding the global optimum.
+
+The same six layer angles, encoding and normalized loss are used during local
+training, with two reproducible COBYLA starts and up to 200 function evaluations
+per start. Positive rescaling of all QUBO coefficients leaves the loss unchanged.
+The training limit counts encoded qubits, including capacity for the auxiliary
+node, and must be at least 3. Only the final observable evaluation is submitted
+to the selected backend; PCE batches the X/Y/Z observables in that evaluation.
+Decoding treats means within twice the backend's requested precision (at least
+`1e-8`) as uncertain, tries at most four sign assignments, applies one-bit local
+search, and selects the candidate with the lowest original QUBO energy. Constant
+objectives return immediately without optimization or backend execution.
 Simulator adapters also apply the training cap, but still simulate the full
 circuit for their final result. `QUANTUM_TUNE_IQM` is obsolete and ignored; IQM
 cache entries are separated by the local-training version and qubit limit.

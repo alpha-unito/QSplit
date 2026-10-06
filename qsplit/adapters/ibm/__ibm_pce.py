@@ -16,7 +16,14 @@ from qsplit.qubo import QUBO
 
 
 def ibm_solve(qubo: QUBO, backend) -> pd.DataFrame:
-    training_qubo = training_subproblem(qubo, pce_k=3)
+    circuit, observables, edges, Q = _build_pce_problem(qubo)
+    var_to_qubit, all_vars = _variables_mapping(qubo)
+    if not edges:
+        return to_dataframe({0: 1}, qubo, var_to_qubit, all_vars)
+
+    variable_ids = np.asarray(all_vars, dtype=int)
+    canonical_qubo = QUBO(Q, variable_ids, variable_ids, offset=qubo.offset)
+    training_qubo = training_subproblem(canonical_qubo, pce_k=3)
     training_circuit, training_ops, training_edges, training_Q = _build_pce_problem(training_qubo)
     training_circuit = training_circuit.decompose(reps=10)
     estimator = StatevectorEstimator()
@@ -36,15 +43,15 @@ def ibm_solve(qubo: QUBO, backend) -> pd.DataFrame:
     delta_t = 0.25
     initial_params = [(1 - i / reps) * delta_t for i in range(1, reps + 1)]
     initial_params += [(i / reps) * delta_t for i in range(1, reps + 1)]
-    params = minimize(
-        objective,
-        initial_params,
-        method="COBYLA",
-        options={"rhobeg": 1.0, "maxiter": len(initial_params) + 2},
-        tol=1e-4,
-    ).x
+    params = np.asarray(initial_params)
+    if training_edges:
+        starts = [params, np.random.default_rng(42).uniform(-np.pi, np.pi, len(params))]
+        results = [
+            minimize(objective, start, method="COBYLA", options={"rhobeg": 0.5, "maxiter": 200}, tol=1e-4)
+            for start in starts
+        ]
+        params = min(results, key=lambda result: result.fun).x
 
-    circuit, observables, edges, Q = _build_pce_problem(qubo)
     num_qubits = circuit.num_qubits
     bound = circuit.assign_parameters(params)
     pm = generate_preset_pass_manager(backend=backend, optimization_level=2)
@@ -53,9 +60,8 @@ def ibm_solve(qubo: QUBO, backend) -> pd.DataFrame:
     final_estimator = (
         EstimatorV2(mode=backend) if isinstance(backend, IBMBackend) else BackendEstimatorV2(backend=backend)
     )
-    exp_map = __pce_loss([], bound, mapped, final_estimator, edges, len(Q) + 1, num_qubits)["exp_map"]
-    counts = _decode_solution(Q, exp_map)
-    var_to_qubit, all_vars = get_variables_mapping(qubo)
+    result = __pce_loss([], bound, mapped, final_estimator, edges, len(Q) + 1, num_qubits)
+    counts = _decode_solution(Q, result["exp_map"], atol=max(1e-8, 2 * result["precision"]))
     return to_dataframe(counts, qubo, var_to_qubit, all_vars)
 
 
@@ -94,11 +100,14 @@ def __pce_loss(
             node_exp_map[idx] = ev
             idx += 1
 
+    weight_scale = max((abs(weight) for weight in J_prime.values()), default=1.0)
     loss_val = 0
     alpha = num_qubits
 
     for (edge0, edge1), weight in J_prime.items():
-        loss_val += weight * np.tanh(alpha * node_exp_map[edge0]) * np.tanh(alpha * node_exp_map[edge1])
+        loss_val += (weight / weight_scale) * (
+            np.tanh(alpha * node_exp_map[edge0]) * np.tanh(alpha * node_exp_map[edge1])
+        )
 
     regulation_term = 0
     for i in range(num_nodes):
@@ -106,22 +115,32 @@ def __pce_loss(
     regulation_term = (regulation_term / num_nodes) ** 2
 
     beta = 1 / 2
-    v = len(J_prime) / 2 + (num_nodes - 1) / 4
+    v = sum(abs(weight) / weight_scale for weight in J_prime.values()) / 2 + (num_nodes - 1) / 4
     regulation_term = beta * v * regulation_term
 
     loss_val += regulation_term
 
-    return {"loss": loss_val, "exp_map": node_exp_map}
+    precision = max((r.metadata.get("target_precision", 0.0) for r in result), default=0.0)
+    return {"loss": float(loss_val), "exp_map": node_exp_map, "precision": precision}
+
+
+def _variables_mapping(qubo: QUBO):
+    all_vars = [var for var in get_variables_mapping(qubo)[1] if var >= 0]
+    return {var: i for i, var in enumerate(all_vars)}, all_vars
 
 
 def _build_pce_problem(qubo: QUBO, k: int = 3):
-    var_to_qubit, all_vars = get_variables_mapping(qubo)
+    if not np.isfinite(qubo.mat).all() or not np.isfinite(qubo.offset):
+        raise ValueError("PCE requires finite QUBO coefficients and offset")
+    var_to_qubit, all_vars = _variables_mapping(qubo)
     n = len(all_vars)
     Q = np.zeros((n, n))
-    row_indices = [var_to_qubit[r] for r in qubo.rows_idx]
-    col_indices = [var_to_qubit[c] for c in qubo.cols_idx]
-    Q[np.ix_(row_indices, col_indices)] = qubo.mat
-    Q = np.triu(Q + Q.T) - np.diag(np.diag(Q))
+    rows = [i for i, var in enumerate(qubo.rows_idx) if var >= 0]
+    cols = [i for i, var in enumerate(qubo.cols_idx) if var >= 0]
+    row_indices = np.asarray([var_to_qubit[qubo.rows_idx[i]] for i in rows], dtype=int)
+    col_indices = np.asarray([var_to_qubit[qubo.cols_idx[i]] for i in cols], dtype=int)
+    np.add.at(Q, (row_indices[:, None], col_indices[None, :]), qubo.mat[np.ix_(rows, cols)])
+    Q = np.triu(Q, 1) + np.triu(Q.T, 1) + np.diag(np.diag(Q))
     J_prime = {}
 
     u_idx, v_idx = np.triu_indices(n, k=1)
@@ -165,21 +184,47 @@ def _build_pce_problem(qubo: QUBO, k: int = 3):
         paulis[i + 1] = "Z"
         cost_ops.append(("".join(paulis)[::-1], 1.0))
 
+    for i in range(num_qubits):
+        paulis = ["I"] * num_qubits
+        paulis[i] = "Z"
+        cost_ops.append(("".join(paulis)[::-1], 0.5 + (i + 1) / (num_qubits + 1)))
+
     base_cost_op = SparsePauliOp.from_list(cost_ops)
     reps = 3
     qc = qaoa_ansatz(cost_operator=base_cost_op, reps=reps)
     return qc, [pce_x, pce_y, pce_z], J_prime, Q
 
 
-def _decode_solution(Q, exp_map):
+def _decode_solution(Q, exp_map, *, atol=1e-8):
     n = len(Q)
     dummy_index = n
-    diag_Q = np.diag(Q)
     best_exp_arr = np.array([exp_map[idx] for idx in range(n + 1)])
+    if not np.isfinite(best_exp_arr).all():
+        raise ValueError("PCE decoding requires finite expectation values")
     x_raw = np.where(best_exp_arr >= 0, 1, -1)
-    x_dummy = x_raw[dummy_index]
-    x = ((1 - (x_raw[:n] * x_dummy)) // 2).astype(int)
+    uncertain = np.abs(best_exp_arr) <= atol
+    auxiliary_signs = (-1, 1) if uncertain[dummy_index] else (x_raw[dummy_index],)
+    fillings = (-1, 1) if uncertain[:n].any() else (1,)
+    best_x = None
+    best_energy = np.inf
+    for auxiliary in auxiliary_signs:
+        for filling in fillings:
+            spins = np.where(uncertain[:n], filling, x_raw[:n])
+            x = ((1 - spins * auxiliary) // 2).astype(int)
+            x = _polish_solution(Q, x)
+            energy = x @ Q @ x
+            if energy < best_energy:
+                best_x, best_energy = x, energy
+
+    state_int = sum(int(bit) << idx for idx, bit in enumerate(best_x))
+    return {state_int: 1}
+
+
+def _polish_solution(Q, x):
+    n = len(Q)
+    diag_Q = np.diag(Q)
     H = Q @ x + x @ Q - 2 * diag_Q * x
+    tolerance = 1e-12 * np.max(np.abs(Q), initial=0.0)
 
     improved = True
     while improved:
@@ -187,12 +232,10 @@ def _decode_solution(Q, exp_map):
         for u in range(n):
             delta_z = 1 - 2 * x[u]
             delta_E = (Q[u, u] + H[u]) * delta_z
-            if delta_E < -1e-6:
+            if delta_E < -tolerance:
                 x[u] = 1 - x[u]
                 improved = True
                 H += (Q[u, :] + Q[:, u]) * delta_z
                 H[u] -= 2 * Q[u, u] * delta_z
 
-    state_int = sum(int(bit) << idx for idx, bit in enumerate(x))
-
-    return {state_int: 1}
+    return x

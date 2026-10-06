@@ -49,6 +49,69 @@ reported energies. Tiny exact enumeration checks mathematical invariants and
 provides lower bounds. Stochastic solvers are checked for valid assignments and
 correct energies, without requiring identical samples or a global optimum.
 
+## PCE + QAOA regressions
+
+Run the exact local regressions independently of backend smoke tests:
+
+```bash
+uv run --no-sync python -m pytest tests/unit/test_pce_symmetry.py -q -s
+```
+
+The original PCE circuit combined `k=3`, a uniform ZZ chain, the default X mixer
+and `|+>^q`. It preserved global-X parity, forcing every three-body all-Y and
+all-Z mean to zero; at three qubits XXX was fixed at +1 and the loss was constant.
+The corrected phase separator adds distinct longitudinal Z fields
+`0.5 + (i + 1)/(q + 1)`. This breaks both global-X parity and chain reflection
+while retaining three QAOA layers and six shared angles for subproblem transfer.
+The driver is problem-independent: the QUBO is optimized through the nonlinear
+PCE loss, not through the driver's energy expectation.
+
+The suite now checks:
+
+- Every encoded observable, including the auxiliary spin, varies with the
+  parameters on 1, 2, 5, 11 and 29 binary variables. The former expected failure
+  is now a normal regression test. Mirror-related X observables can differ.
+- The three-qubit loss is nonconstant, diagonal coefficients affect it, and
+  positive rescaling preserves it. Couplings are normalized by their largest
+  absolute value; the regularizer uses the sum of normalized absolute weights.
+  This regularization is a heuristic, not an optimality bound for signed QUBOs.
+- Exhaustive enumeration preserves the QUBO-to-auxiliary-Ising energy identity
+  with offsets, both auxiliary signs, asymmetric coefficients, disjoint or
+  repeated variable IDs and negative padding. Output energies are recomputed
+  against the original objective.
+- Tiny sign perturbations do not arbitrarily change decoding. Uncertain spins
+  use two common fillings, and an uncertain auxiliary spin uses both orientations,
+  yielding at most four candidates. Each receives the same one-bit local search;
+  the lowest original QUBO energy wins. The tolerance uses twice the backend's
+  requested precision, with a roundoff floor of `1e-8`. This does not enumerate
+  every combination of ambiguous bits or guarantee the best possible decoding.
+- One-bit polishing lowers energy, ends at a local minimum, and handles small
+  coefficient scales. Constant objectives bypass the optimizer and backend.
+- Local training uses the canonical objective, honors the encoded-qubit cap and
+  transfers the six angles to one final full-problem evaluation. A constant
+  induced training problem uses the initial angles without optimizing a
+  regularizer-only objective.
+
+To check actual simulator execution and tiny instances with known optima:
+
+```bash
+uv run --no-sync python -m pytest tests/integration/test_simulators.py -k pce -q
+```
+
+Small exact-optimum regressions verify selected cases, not a general guarantee.
+For broader quality experiments, use several instances and seeds and report
+`E - E_opt` separately for raw sign decoding and after one-bit search. Compare
+against all-zero and random starts with the same polishing, under the same
+training evaluation budget. Measure capped-subproblem transfer separately from
+full-problem training; a passing symmetry regression does not establish quantum
+advantage or good approximation ratios on larger instances.
+
+Qiskit's [QAOA API](https://quantum.cloud.ibm.com/docs/en/api/qiskit/2.3/qiskit.circuit.library.qaoa_ansatz)
+documents the default state and mixer. The
+[IBM PCE tutorial](https://quantum.cloud.ibm.com/docs/en/tutorials/pauli-correlation-encoding-for-qaoa)
+uses an RY/RZ `efficient_su2` ansatz; the suite retains this as an independent
+control with the same observables.
+
 ## Isolated simulators
 
 IQM has dependency conflicts with StreamFlow and Quantinuum. Install it separately:

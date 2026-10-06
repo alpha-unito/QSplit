@@ -1,5 +1,3 @@
-"""Public NumPy-compatible interface to the compiled QUBO class."""
-
 import numpy as np
 
 from qsplit._core import QUBO as QUBO
