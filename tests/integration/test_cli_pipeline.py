@@ -161,3 +161,51 @@ def test_workspace_recovery_uses_only_matching_instance_and_indices(tmp_path, ma
     recovered = aggregate._discover_solved_for_instance([root], "case", {"root_0"}, set(), specs)
     assert len(recovered) == 1 and recovered[0][0] == paths[0]
     assert aggregate._discover_solved_for_instance([root], "case", {"root_0"}, {paths[0]}, specs) == []
+
+
+@pytest.mark.parametrize("method", ["conditioned", "consensus", "mean_field", "soft_consensus"])
+@pytest.mark.parametrize("constant", [False, True])
+def test_cli_optional_refinement(method, constant, tmp_path, monkeypatch, exact_solver):
+    monkeypatch.chdir(tmp_path)
+    matrix = np.zeros((5, 5)) if constant else np.triu(-np.ones((5, 5)))
+    np.savetxt("case.csv", matrix, delimiter=",")
+    invoke(monkeypatch, split, "--input-matrix", "case.csv", "--cut-dim", 2)
+    solved = list(Path("solved_dummy").glob("*.pkl"))
+    monkeypatch.setattr(scatter, "load_solver", lambda _: exact_solver)
+    for i, sub in enumerate(Path("planned/parallel").glob("*.pkl")):
+        result = Path(f"solved_{i}.pkl")
+        invoke(monkeypatch, scatter, "--input-qubo", sub, "--output-qubo", result)
+        solved.append(result)
+    config = Path("refinement.yaml")
+    config.write_text(f"CUT_DIM: 2\nREFINEMENT_LOOPS: 2\nREFINEMENT_METHOD: {method}\n")
+    sizes = []
+
+    def solve(sub):
+        sizes.append(sub.problem_size)
+        return exact_solver(sub)
+
+    monkeypatch.setattr(aggregate, "load_solver", lambda _: solve)
+    invoke(
+        monkeypatch,
+        aggregate,
+        "--input-qubo",
+        "initial_qubo.pkl",
+        "--tree-file",
+        "tree.json",
+        "--solved-list",
+        *solved,
+        "--config",
+        config,
+    )
+    history = json.loads(Path("refinement_history.json").read_text())
+    roots = pd.read_csv("solutions.csv", dtype={"bitstring": str})
+    roots = roots[(roots.node_id == "root") & (roots.backend == "aggregate")]
+    assert not roots.empty
+    assert roots.energy.min() == min(history)
+    assert len(history) <= 3
+    assert all(size <= 2 for size in sizes)
+    if constant:
+        assert not sizes
+    for row in roots.itertuples():
+        x = np.array(list(row.bitstring), dtype=int)
+        assert row.energy == pytest.approx(x @ matrix @ x)

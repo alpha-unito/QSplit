@@ -90,6 +90,8 @@ double calculate_energy(Array x, Array mat);
 std::map<Id, double> collect_beliefs(py::list subs, const Qubo &q);
 Qubo condition(const Qubo &q, const std::vector<Id> &window, const std::map<Id, double> &beliefs);
 py::list refine_linear(py::list subs, const Qubo &q);
+py::list refine_mean_field(py::list subs, const Qubo &q, int block);
+py::list refine_soft_consensus(py::list subs, const Qubo &q, double strength, int block);
 py::list refine_quadtree(py::list subs, const Qubo &q, double strength);
 py::object refine_conditioned(const Qubo &q, py::function solve, int block, py::object rng);
 } // namespace qs

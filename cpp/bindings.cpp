@@ -71,6 +71,9 @@ PYBIND11_MODULE(_core, m) {
     m.def("collect_beliefs", &collect_beliefs, "subproblems"_a, "qubo"_a);
     m.def("condition_subproblem", &condition, "qubo"_a, "window"_a, "beliefs"_a);
     m.def("refine_linear", &refine_linear, "subproblems"_a, "qubo"_a);
+    m.def("refine_mean_field", &refine_mean_field, "subproblems"_a, "qubo"_a, "block_size"_a = 0);
+    m.def("refine_soft_consensus", &refine_soft_consensus, "subproblems"_a, "qubo"_a, "strength"_a,
+          "block_size"_a = 0);
     m.def("refine_quadtree", &refine_quadtree, "subproblems"_a, "qubo"_a, "strength"_a);
     m.def("refine_conditioned", &refine_conditioned, "qubo"_a, "solve"_a, "block_size"_a, "rng"_a);
 }

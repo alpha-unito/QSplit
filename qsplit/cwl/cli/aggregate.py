@@ -6,7 +6,9 @@ from typing import Dict, List, Set, Tuple
 import numpy as np
 
 from qsplit import configuration
+from qsplit.adapters.all_zero import solve as zero_solve
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions
+from qsplit.cwl.cli.scatter import load_solver, resolve_backend
 from qsplit.cwl.cli.utils import (
     bitstring_from_row,
     build_index_maps,
@@ -16,7 +18,9 @@ from qsplit.cwl.cli.utils import (
     map_indices,
     parse_solved_paths,
 )
+from qsplit.halting_heuristic.stop import is_empty
 from qsplit.qubo import QUBO
+from qsplit.refinement.runner import refine_result
 
 
 def _workspace_roots_from_paths(paths: List[Path]) -> List[Path]:
@@ -298,9 +302,20 @@ def main() -> None:
             and not aggregated_root.solutions.empty
         ):
             full_qubo.solutions = aggregated_root.solutions
+            if int(configuration.get("REFINEMENT_LOOPS", "0")) > 0:
+                if is_empty(full_qubo):
+                    full_qubo.solutions = zero_solve(full_qubo)
+                    full_qubo.solutions["energy"] = full_qubo.offset
+                leaves = [solved_by_id[node_id] for node_id in leaf_nodes]
+                refine_result(
+                    full_qubo,
+                    solve=load_solver(resolve_backend(configuration.get("QSPLIT_BACKEND", "dwave"))),
+                    subproblems=leaves,
+                )
+                Path("refinement_history.json").write_text(json.dumps(full_qubo.refinement_history), encoding="utf-8")
             agg_cols = [int(v) for v in full_qubo.cols_idx if v >= 0]
             agg_entries: List[Tuple[float, str]] = []
-            for _, row in aggregated_root.solutions.reset_index(drop=True).iterrows():
+            for _, row in full_qubo.solutions.reset_index(drop=True).iterrows():
                 bits = bitstring_from_row(row, agg_cols)
                 try:
                     energy = float(row["energy"])

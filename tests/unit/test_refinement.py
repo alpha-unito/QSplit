@@ -10,6 +10,7 @@ from dimod import ExactSolver
 from qsplit import configuration, local_runner
 from qsplit.adapters.dwave.util import from_qubo_matrix_to_bqm, to_dataframe
 from qsplit.qubo import QUBO
+from qsplit.refinement import runner as refinement_runner
 from qsplit.refinement.propagation import collect_beliefs, condition_subproblem
 from qsplit.refinement.refine_conditioned import refine_solutions
 from qsplit.refinement.refine_linear import refine_problems as refine_linear
@@ -256,9 +257,7 @@ class TestRefinedSamplers(unittest.TestCase):
             with (
                 patch.dict(configuration.current(), env, clear=True),
                 patch.object(local_runner, "solve", return_value=initial),
-                patch.object(
-                    local_runner, "refine_solutions_conditioned", side_effect=[initial, initial, improved]
-                ) as refine,
+                patch.object(refinement_runner, "refine_solutions", side_effect=[initial, initial, improved]) as refine,
             ):
                 result = local_runner.qsplit_sampler_refined_quadtree(make_qubo([[-1]]))
             self.assertEqual(refine.call_count, expected_calls)

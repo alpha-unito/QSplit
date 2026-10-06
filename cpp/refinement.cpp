@@ -100,29 +100,79 @@ std::map<Id, double> collect_beliefs(py::list subs, const Qubo &q) {
     return beliefs;
 }
 
-py::list refine_linear(py::list subs, const Qubo &q) {
-    auto beliefs = collect_beliefs(subs, q);
+namespace {
+py::list soft_consensus(py::list subs, const Qubo &q, double strength, const std::map<Id, double> &beliefs);
+
+std::vector<std::vector<Id>> real_windows(py::list subs, int block) {
+    if (block < 0)
+        throw py::value_error("Refinement block_size must be non-negative");
     std::set<std::vector<Id>> seen;
-    py::list result;
+    std::vector<std::vector<Id>> result;
     for (auto obj : subs) {
         auto &sub = obj.cast<Qubo &>();
+        View validated(sub);
         for (auto ids : {sub.rows_idx, sub.cols_idx}) {
             auto a = ids.unchecked<1>();
             std::vector<Id> window;
             for (py::ssize_t i = 0; i < a.shape(0); ++i)
                 if (a(i) >= 0)
                     window.push_back(a(i));
-            if (!window.empty() && seen.insert(window).second)
-                result.append(condition(q, window, beliefs));
+            auto size = block ? static_cast<std::size_t>(block) : window.size();
+            for (std::size_t start = 0; start < window.size(); start += size) {
+                std::vector<Id> part(window.begin() + start, window.begin() + std::min(window.size(), start + size));
+                if (seen.insert(part).second)
+                    result.push_back(std::move(part));
+            }
         }
     }
     return result;
 }
+} // namespace
 
-py::list refine_quadtree(py::list subs, const Qubo &q, double strength) {
+py::list refine_mean_field(py::list subs, const Qubo &q, int block) {
+    auto beliefs = collect_beliefs(subs, q);
+    py::list result;
+    for (const auto &window : real_windows(subs, block))
+        result.append(condition(q, window, beliefs));
+    return result;
+}
+
+py::list refine_linear(py::list subs, const Qubo &q) { return refine_mean_field(subs, q, 0); }
+
+py::list refine_soft_consensus(py::list subs, const Qubo &q, double strength, int block) {
+    py::list templates, real;
+    for (auto obj : subs) {
+        auto members = py::getattr(obj, "macro_members", py::dict()).cast<py::dict>();
+        if (py::len(members)) {
+            auto &sub = obj.cast<Qubo &>();
+            View s(sub);
+            for (py::ssize_t i = 0; i < s.n; ++i)
+                if (s.r(i) != s.c(i))
+                    throw py::value_error("Macrovariable refinement requires principal templates");
+            if (block > 0 && s.n > block)
+                throw py::value_error("Macrovariable template exceeds refinement block_size");
+            templates.append(obj);
+        } else
+            real.append(obj);
+    }
+    auto rows = positions(q.rows_idx), cols = positions(q.cols_idx);
+    for (const auto &window : real_windows(real, block)) {
+        std::vector<py::ssize_t> rr, cc;
+        for (auto id : window) {
+            if (!rows.contains(id) || !cols.contains(id))
+                throw py::key_error("Unknown refinement variable");
+            rr.push_back(rows.at(id));
+            cc.push_back(cols.at(id));
+        }
+        templates.append(subqubo(q, rr, cc, q.offset));
+    }
+    return soft_consensus(templates, q, strength, collect_beliefs(subs, q));
+}
+
+namespace {
+py::list soft_consensus(py::list subs, const Qubo &q, double strength, const std::map<Id, double> &beliefs) {
     if (!std::isfinite(strength) || strength < 0)
         throw py::value_error("REFINEMENT_STRENGTH must be finite and non-negative");
-    auto beliefs = collect_beliefs(subs, q);
     View v(q);
     auto rows = positions(q.rows_idx), cols = positions(q.cols_idx);
     py::list result;
@@ -180,6 +230,11 @@ py::list refine_quadtree(py::list subs, const Qubo &q, double strength) {
         result.append(bound);
     }
     return result;
+}
+} // namespace
+
+py::list refine_quadtree(py::list subs, const Qubo &q, double strength) {
+    return soft_consensus(subs, q, strength, collect_beliefs(subs, q));
 }
 
 py::object refine_conditioned(const Qubo &q, py::function solve, int block, py::object rng) {

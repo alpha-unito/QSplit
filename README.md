@@ -20,8 +20,10 @@ At a high level, the workflow does the following:
 The orchestration is expressed in **CWL** and executed with **Streamflow**, which runs the stages (split, solve, aggregate)
 as separate steps.
 
-The Python local runner also supports optional refinement for iterative and quadtree splitting.
-See [refinement.md](refinement.md) for configuration, propagation methods, and usage examples.
+All five Python pipelines support optional, reusable refinement strategies. The recursive
+CWL/StreamFlow workflow also supports refinement after tree aggregation.
+Browse [workflows.md](workflows.md) for valid split/aggregate/refinement combinations and
+examples; see [refinement.md](refinement.md) for the numerical methods.
 
 ## Why QUBO splitting is useful today
 

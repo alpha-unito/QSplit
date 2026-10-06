@@ -63,9 +63,16 @@ def test_recursive_leaf_api_matches_recursive_runner(make_qubo, exact_solver, mo
     assert result.solutions.energy.min() == expected.solutions.energy.min()
 
 
-@pytest.mark.parametrize("method", ["conditioned", "consensus"])
+@pytest.mark.parametrize("method", ["conditioned", "consensus", "mean_field", "soft_consensus"])
 @pytest.mark.parametrize(
-    "sampler", [local_runner.qsplit_sampler_refined_iterative, local_runner.qsplit_sampler_refined_quadtree]
+    "sampler",
+    [
+        local_runner.qsplit_sampler_refined_iterative,
+        local_runner.qsplit_sampler_refined_quadtree,
+        local_runner.qsplit_sampler_refined_recursive,
+        local_runner.qsplit_sampler_refined_interactions,
+        local_runner.qsplit_sampler_refined_graph_partitioning,
+    ],
 )
 def test_refinement_with_real_annealing(method, sampler, monkeypatch, make_qubo, assert_solution):
     monkeypatch.setitem(configuration.current(), "REFINEMENT_METHOD", method)
