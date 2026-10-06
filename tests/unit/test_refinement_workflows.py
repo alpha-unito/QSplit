@@ -1,5 +1,3 @@
-"""Cross-pipeline refinements, independent composition and native strategy invariants."""
-
 from copy import deepcopy
 
 import numpy as np
@@ -174,7 +172,7 @@ def test_native_macro_templates_validate_shape_and_actual_size(make_qubo, exact_
     qubo = make_qubo(-np.eye(5))
     qubo.solutions = exact_solver(qubo)
     sub = quadtree(qubo, config={"CUT_DIM": 4})[0]
-    sub.problem_size = 1  # Mutable metadata must not bypass the actual window limit.
+    sub.problem_size = 1
     with pytest.raises(ValueError, match="problem_size"):
         _core.refine_soft_consensus([sub], qubo, 0.1, 2)
     sub.problem_size = 4

@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from qsplit.cwl.cli.utils import load_qubo
+
 REPO = Path(__file__).resolve().parents[2]
 
 
@@ -89,14 +91,30 @@ def test_installed_commands_split_scatter_aggregate(tmp_path, run_command):
     reason="StreamFlow's local CWL execution uses POSIX shell commands; native Windows runs the CLI E2E instead",
 )
 @pytest.mark.parametrize("with_yaml", [False, True])
-def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command, with_yaml):
+@pytest.mark.parametrize(
+    "split_method,aggregate_method,refinement_method",
+    [
+        ("recursive", "auto", "none"),
+        ("linear", "linear_belief_propagation", "conditioned"),
+        ("recursive", "linear", "mean_field"),
+        ("k_interactions", "recursive_graph", "soft_consensus"),
+        ("recursive_graph", "linear_belief_propagation", "consensus"),
+        ("quadtree", "quadtree", "soft_consensus"),
+    ],
+)
+def test_actual_cwl_dataset_workflow_and_resume(
+    tmp_path, run_command, with_yaml, split_method, aggregate_method, refinement_method
+):
     pytest.importorskip("streamflow.main")
-    matrix = np.triu(-np.ones((3, 3)))
+    matrices = {
+        "first": np.triu(-np.ones((3, 3))),
+        "second": np.diag([-2.0, -4.0, -6.0]),
+    }
     records = [
         {
             "id": name,
-            "dim": len(matrix),
-            "qubo_mat": [[i, j, float(matrix[i, j])] for i in range(3) for j in range(i, 3)],
+            "dim": len(matrices[name]),
+            "qubo_mat": [[i, j, float(matrices[name][i, j])] for i in range(3) for j in range(i, 3)],
         }
         for name in ["first", "second"]
     ]
@@ -106,6 +124,8 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command, with_yaml
     private = tmp_path / "solver-private.yaml"
     common.write_text("QSPLIT_SOLVER_MODULE: invalid.module\n")
     private.write_text("QSPLIT_SOLVER_MODULE: qsplit.adapters.all_zero\nIQM_TOKEN: test-private-sentinel\n")
+    refinement_solver = tmp_path / "refinement-solver.yaml"
+    refinement_solver.write_text("QSPLIT_BACKEND: dwave\nIQM_TOKEN: refinement-private-sentinel\n")
     settings = tmp_path / "settings.json"
     store = tmp_path / "store"
     settings.write_text(
@@ -113,6 +133,11 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command, with_yaml
             {
                 "dataset": {"class": "File", "path": str(dataset)},
                 "cut_dim": 2,
+                "split_method": split_method,
+                "aggregate_method": aggregate_method,
+                "refinement_method": refinement_method,
+                "refinement_loops": 0 if refinement_method == "none" else 2,
+                "refinement_solver_configs": [{"class": "File", "path": str(refinement_solver)}],
                 "parallel_configs": [{"class": "File", "path": str(path)} for path in [common, private]]
                 if with_yaml
                 else [],
@@ -134,12 +159,24 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command, with_yaml
                         "type": "cwl",
                         "config": {"file": str(REPO / "streamflow/cwl/main.cwl"), "settings": str(settings)},
                         "bindings": [
-                            {"step": "/qsplit_instances/parallelize", "target": {"deployment": "cpu-simulator"}}
+                            {"step": f"/qsplit_instances/{step}", "target": {"deployment": "cpu-simulator"}}
+                            for step in ["parallelize", "refine/solve"]
+                        ]
+                        + [
+                            {"step": f"/qsplit_instances/{step}", "target": {"deployment": "classical"}}
+                            for step in [
+                                "split",
+                                "aggregate",
+                                "initialize_refinement",
+                                "refine/prepare",
+                                "refine/update",
+                            ]
                         ],
                     }
                 },
                 "deployments": {
                     "local": {"type": "local", "workdir": str(tmp_path / "work"), "config": {}},
+                    "classical": {"type": "local", "workdir": str(tmp_path / "classical"), "config": {}},
                     "cpu-simulator": {
                         "type": "qsplit.quantum_connector",
                         "wraps": "local",
@@ -157,10 +194,35 @@ def test_actual_cwl_dataset_workflow_and_resume(tmp_path, run_command, with_yaml
     run_command("streamflow", "run", "--debug", "--outdir", tmp_path / "output", config)
     assert len(list(store.glob("solutions_*.csv"))) == 2
     for path in store.glob("solutions_*.csv"):
-        check_result(path, matrix)
+        check_result(path, matrices[path.stem.removeprefix("solutions_")])
         assert "test-private-sentinel" not in path.read_text()
-        if with_yaml:
-            assert (pd.read_csv(path).energy == 0).all()
+        assert "refinement-private-sentinel" not in path.read_text()
+        if with_yaml and refinement_method == "none":
+            frame = pd.read_csv(path)
+            assert (frame[frame.backend == "dwave"].energy == 0).all()
+    history_files = list((tmp_path / "output").rglob("refinement_history*.json"))
+    assert len(history_files) == 2
+    for history_file in history_files:
+        history = json.loads(history_file.read_text())
+        assert 1 <= len(history) <= 3
+        if refinement_method == "none":
+            assert len(history) == 1
+        else:
+            assert len(history) >= 2
+            if with_yaml:
+                assert history[0] == 0
+                assert min(history) < history[0]
+            if refinement_method == "conditioned":
+                assert np.all(np.diff(history) <= 0)
+    states = list((tmp_path / "output").rglob("state*.pkl"))
+    assert len(states) == 2
+    assert {load_qubo(path).instance_id for path in states} == set(matrices)
+    for path in states:
+        state = load_qubo(path)
+        np.testing.assert_array_equal(state.mat[:3, :3], matrices[state.instance_id])
+        assert state.solutions.energy.min() == min(state.refinement_history)
+        assert b"test-private-sentinel" not in path.read_bytes()
+        assert b"refinement-private-sentinel" not in path.read_bytes()
     original = {path.name: (path.read_bytes(), path.stat().st_mtime_ns) for path in store.glob("*.csv")}
     run_command("streamflow", "run", "--debug", "--outdir", tmp_path / "resumed", config)
     assert {path.name: (path.read_bytes(), path.stat().st_mtime_ns) for path in store.glob("*.csv")} == original

@@ -28,7 +28,6 @@ def _safe_id(value: str, fallback: int) -> str:
 def _strip_numeric_prefixes(value: str) -> str:
     candidate = value
     while True:
-        # Only strip fixed-width staging prefixes (000000_...).
         match = re.match(r"^\d{6}_(.+)$", candidate)
         if not match:
             break
@@ -106,8 +105,6 @@ def _is_valid_solution_file(path: Path) -> bool:
         return False
     if not header:
         return False
-    # Support both canonical and historical CSV variants:
-    # if at least one data row exists and the last column is numeric, accept it.
     if not row:
         return False
     if len(row) < 4:
@@ -124,8 +121,6 @@ def _resolve_existing_solution_file(solutions_dir: Path, safe_id: str) -> Path:
     if _is_valid_solution_file(expected):
         return expected
 
-    # Backward compatibility for legacy persisted names that accidentally
-    # contained StreamFlow staging numeric prefixes.
     for candidate in sorted(solutions_dir.glob("solutions_*.csv")):
         if candidate == expected:
             continue

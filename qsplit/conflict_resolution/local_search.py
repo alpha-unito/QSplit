@@ -8,7 +8,6 @@ EXACT_CONFLICT_LIMIT = 10
 
 
 def solve(qubo: QUBO) -> pd.DataFrame:
-    # Only large conflicts need the optional Python sampler.
     from qsplit.adapters.dwave.dwave_sa import solve as sample
 
     return sample(qubo)

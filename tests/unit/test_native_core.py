@@ -29,7 +29,6 @@ def test_strided_arrays_and_mutable_views():
     assert vars_count(q) == 4
     q.mat[:] = 0
     assert is_empty(q)
-    # The extension owns references, even when Python releases the source names.
     del backing, raw, ids
     q.mat[0, 1] = -5
     assert not is_empty(q)
@@ -66,7 +65,7 @@ def test_pre_port_pickle_dictionary_is_readable(monkeypatch, protocol):
         serialized = pickle.dumps(old, protocol=protocol)
     restored = pickle.loads(serialized)
     assert isinstance(restored, _core.QUBO)
-    assert restored.mat[0, 0] == old.mat[0, 0]  # Loading must not round again.
+    assert restored.mat[0, 0] == old.mat[0, 0]
     assert restored.macro_members == old.macro_members
     pd.testing.assert_frame_equal(restored.solutions, old.solutions)
 
@@ -150,6 +149,5 @@ def test_vote_ties_keep_existing_strategy_semantics(make_qubo, mode, expected):
 def test_exact_conflicts_do_not_skip_nonfinite_coefficients(coefficient, make_qubo):
     q = make_qubo([[-1, coefficient], [0, -1]])
     result = nan_subqubo(pd.DataFrame({0: [np.nan], 1: [np.nan], "energy": [np.nan]}), q)
-    # Every objective is NaN or +inf, so the existing solver retains its zero default.
     assert result.loc[0, [0, 1]].tolist() == [0, 0]
     assert np.isnan(result.loc[0, "energy"])

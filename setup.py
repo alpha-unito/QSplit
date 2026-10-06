@@ -1,5 +1,3 @@
-"""Build the Python extension; UV installs the isolated build dependencies."""
-
 import sys
 
 from pybind11.setup_helpers import Pybind11Extension

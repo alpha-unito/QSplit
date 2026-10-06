@@ -28,6 +28,18 @@ workflows:
       - step: /collect_results
         target:
           deployment: qsplit-maintenance-local
+      - step: /qsplit_instances/initialize_refinement
+        target:
+          deployment: qsplit-cpu
+      - step: /qsplit_instances/refine/prepare
+        target:
+          deployment: qsplit-cpu
+      - step: /qsplit_instances/refine/solve
+        target:
+          deployment: qsplit-base
+      - step: /qsplit_instances/refine/update
+        target:
+          deployment: qsplit-cpu
 
 failureManager:
   type: default

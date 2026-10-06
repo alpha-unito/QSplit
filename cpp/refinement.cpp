@@ -237,46 +237,35 @@ py::list refine_quadtree(py::list subs, const Qubo &q, double strength) {
     return soft_consensus(subs, q, strength, collect_beliefs(subs, q));
 }
 
-py::object refine_conditioned(const Qubo &q, py::function solve, int block, py::object rng) {
-    if (block <= 0)
-        throw py::value_error("Refinement block_size must be positive");
-    View v(q);
-    Table global(q.solutions);
+py::object accept_conditioned(const Qubo &q, const Qubo &sub, py::object df) {
+    View v(q), local(sub);
+    Table global(q.solutions), samples(df);
     auto best = global.best();
     auto current = global.assignment(best);
-    auto a = global.values.unchecked<2>();
-    double current_energy = a(best, global.energy_col);
-    std::vector<Id> ids;
-    for (py::ssize_t i = 0; i < v.n; ++i)
-        if (v.r(i) >= 0)
-            ids.push_back(v.r(i));
-    auto order = rng.attr("permutation")(ids).attr("tolist")().cast<std::vector<Id>>();
-    for (std::size_t start = 0; start < order.size(); start += block) {
-        std::vector<Id> window(order.begin() + start, order.begin() + std::min(order.size(), start + block));
-        auto sub = condition(q, window, current);
-        if (empty(sub))
-            continue;
-        Table samples(solve(py::cast(std::move(sub))));
-        auto s = samples.values.unchecked<2>();
-        for (py::ssize_t row = 0; row < s.shape(0); ++row) {
-            auto candidate = current;
-            for (auto id : window) {
-                if (!samples.by_id.contains(id))
-                    throw py::value_error("Conditioned refinement requires binary samples for every local variable");
-                auto value = s(row, samples.by_id.at(id));
-                if (value != 0 && value != 1)
-                    throw py::value_error("Conditioned refinement requires binary samples for every local variable");
-                candidate[id] = value;
-            }
-            double e;
-            {
-                py::gil_scoped_release release;
-                e = energy(v, candidate) + q.offset;
-            }
-            if (e <= current_energy) {
-                current = std::move(candidate);
-                current_energy = e;
-            }
+    auto a = global.values.unchecked<2>(), s = samples.values.unchecked<2>();
+    double current_energy = energy(v, current) + q.offset;
+    for (py::ssize_t i = 0; i < local.n; ++i)
+        if (local.r(i) < 0 || local.r(i) != local.c(i) || !current.contains(local.r(i)))
+            throw py::value_error("Conditioned updates require principal real-variable blocks");
+    for (py::ssize_t row = 0; row < s.shape(0); ++row) {
+        auto candidate = current;
+        for (py::ssize_t i = 0; i < local.n; ++i) {
+            auto id = local.r(i);
+            if (!samples.by_id.contains(id))
+                throw py::value_error("Conditioned refinement requires binary samples for every local variable");
+            auto value = s(row, samples.by_id.at(id));
+            if (value != 0 && value != 1)
+                throw py::value_error("Conditioned refinement requires binary samples for every local variable");
+            candidate[id] = value;
+        }
+        double e;
+        {
+            py::gil_scoped_release release;
+            e = energy(v, candidate) + q.offset;
+        }
+        if (e <= current_energy) {
+            current = std::move(candidate);
+            current_energy = e;
         }
     }
     Array result({py::ssize_t(1), a.shape(1)});
@@ -287,5 +276,30 @@ py::object refine_conditioned(const Qubo &q, py::function solve, int block, py::
         out(0, col) = current.at(id);
     out(0, global.energy_col) = current_energy;
     return dataframe(result, global.columns);
+}
+
+py::object refine_conditioned(const Qubo &q, py::function solve, int block, py::object rng) {
+    if (block <= 0)
+        throw py::value_error("Refinement block_size must be positive");
+    View v(q);
+    auto working = q;
+    Table global(q.solutions);
+    auto best = global.best();
+    py::list selected;
+    selected.append(best);
+    working.solutions = global.frame.attr("iloc")[selected].attr("copy")();
+    std::vector<Id> ids;
+    for (py::ssize_t i = 0; i < v.n; ++i)
+        if (v.r(i) >= 0)
+            ids.push_back(v.r(i));
+    auto order = rng.attr("permutation")(ids).attr("tolist")().cast<std::vector<Id>>();
+    for (std::size_t start = 0; start < order.size(); start += block) {
+        std::vector<Id> window(order.begin() + start, order.begin() + std::min(order.size(), start + block));
+        Table incumbent(working.solutions);
+        auto sub = condition(q, window, incumbent.assignment(incumbent.best()));
+        if (!empty(sub))
+            working.solutions = accept_conditioned(working, sub, solve(py::cast(sub)));
+    }
+    return working.solutions.attr("reset_index")("drop"_a = true);
 }
 } // namespace qs

@@ -1,11 +1,9 @@
 cwlVersion: v1.2
 class: Workflow
-
 requirements:
-  - class: ScatterFeatureRequirement
-  - class: MultipleInputFeatureRequirement
-  - class: SubworkflowFeatureRequirement
-
+- class: ScatterFeatureRequirement
+- class: MultipleInputFeatureRequirement
+- class: SubworkflowFeatureRequirement
 inputs:
   split_configs:
     type: File[]
@@ -47,17 +45,43 @@ inputs:
     default: false
   iqm_real_jobs:
     type: string
-    default: "1"
+    default: '1'
   quantinuum_h2_real_jobs:
     type: string
-    default: "1"
+    default: '1'
   quantinuum_h2e_real_jobs:
     type: string
-    default: "1"
+    default: '1'
   solutions_store_dir:
     type: string
     default: solutions
-
+  split_method:
+    type: string
+    default: recursive
+  aggregate_method:
+    type: string
+    default: auto
+  refinement_method:
+    type: string
+    default: none
+  refinement_loops:
+    type: int
+    default: 0
+  refinement_aggregate_method:
+    type: string
+    default: linear
+  refinement_configs:
+    type: File[]
+    default: []
+  refinement_solver_configs:
+    type: File[]
+    default: []
+  refinement_backend:
+    type: string?
+    default: null
+  refinement_cut_dim:
+    type: int?
+    default: null
 outputs:
   dataset_manifest:
     type: File
@@ -71,7 +95,12 @@ outputs:
   solutions_manifest:
     type: File
     outputSource: collect_results/results_manifest
-
+  refinement_histories:
+    type: File[]
+    outputSource: qsplit_instances/final_history
+  final_states:
+    type: File[]
+    outputSource: qsplit_instances/final_state
 steps:
   prepare_dataset:
     run: clt/dataset_prepare.cwl
@@ -80,8 +109,9 @@ steps:
       dataset_jsonl: dataset
       max_instances: max_instances
       solutions_dir: solutions_store_dir
-    out: [matrix_files, dataset_manifest]
-
+    out:
+    - matrix_files
+    - dataset_manifest
   qsplit_instances:
     run: instance.cwl
     in:
@@ -102,9 +132,21 @@ steps:
       quantinuum_h2_real_jobs: quantinuum_h2_real_jobs
       quantinuum_h2e_real_jobs: quantinuum_h2e_real_jobs
       solutions_dir: solutions_store_dir
-    out: [final_solutions]
-    scatter: [input_matrix]
-
+      split_method: split_method
+      aggregate_method: aggregate_method
+      refinement_method: refinement_method
+      refinement_loops: refinement_loops
+      refinement_aggregate_method: refinement_aggregate_method
+      refinement_configs: refinement_configs
+      refinement_solver_configs: refinement_solver_configs
+      refinement_backend: refinement_backend
+      refinement_cut_dim: refinement_cut_dim
+    out:
+    - final_solutions
+    - final_state
+    - final_history
+    scatter:
+    - input_matrix
   collect_results:
     run: clt/collect_dataset_results.cwl
     in:
@@ -112,4 +154,6 @@ steps:
       dataset_manifest: prepare_dataset/dataset_manifest
       solutions_dir: solutions_store_dir
       solution_csv_list: qsplit_instances/final_solutions
-    out: [results_dir, results_manifest]
+    out:
+    - results_dir
+    - results_manifest

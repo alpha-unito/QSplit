@@ -1,5 +1,3 @@
-"""Scheduling, retries and job lifecycle without contacting SLURM or a QPU."""
-
 import asyncio
 import logging
 from types import SimpleNamespace

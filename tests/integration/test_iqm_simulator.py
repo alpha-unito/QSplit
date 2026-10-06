@@ -1,5 +1,3 @@
-"""IQM circuit/transpilation/optimization on a local noisy fake-device simulator."""
-
 import pytest
 
 pytestmark = pytest.mark.iqm

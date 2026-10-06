@@ -1,5 +1,3 @@
-"""Local-only test defaults and shared, independent correctness oracles."""
-
 import os
 import socket
 from itertools import product
@@ -31,8 +29,6 @@ def local_environment(monkeypatch, tmp_path):
     monkeypatch.setitem(configuration.current(), "QSPLIT_LAUNCH_DIR", str(tmp_path))
     monkeypatch.setenv("MPLCONFIGDIR", str(tmp_path / "matplotlib"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    # Never let an accidental provider call use the network. Local IPC is needed
-    # by simulators and the local workflow engine.
     connect = socket.socket.connect
 
     def local_connect(sock, address):
@@ -62,8 +58,6 @@ def make_qubo():
 
 @pytest.fixture
 def exact_solver():
-    """Enumerate the original binary objective, independently of any adapter."""
-
     def solve(qubo):
         ids = sorted((set(qubo.rows_idx) | set(qubo.cols_idx)) - {-1})
         samples = []

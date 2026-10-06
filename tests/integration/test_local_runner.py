@@ -29,7 +29,6 @@ def test_decomposition_solution_has_correct_global_energy(
     result = sampler(qubo)
     assert_solution(result)
     np.testing.assert_array_equal(result.mat[:size, :size], original)
-    # Decomposition is heuristic; it may not reach the exact optimum.
     optimum = exact_solver(make_qubo(matrix, ids=ids, offset=7)).energy.min()
     assert result.solutions.energy.min() >= optimum
 

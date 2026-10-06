@@ -1,5 +1,3 @@
-"""Result parsing and transpilation recovery using real circuits and fake jobs."""
-
 from types import SimpleNamespace
 from unittest.mock import Mock
 

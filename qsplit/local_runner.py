@@ -218,7 +218,6 @@ def qsplit_sampler(
     refinement: Callable | None = None,
     refinement_aggregate: Callable = aggregate_solutions_linear,
 ) -> QUBO:
-    """Compose a compatible splitter and aggregator, with optional independent refinement."""
     loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
     original = deepcopy(qubo) if loops > 0 else None
     subs = split(qubo)

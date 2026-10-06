@@ -75,5 +75,6 @@ PYBIND11_MODULE(_core, m) {
     m.def("refine_soft_consensus", &refine_soft_consensus, "subproblems"_a, "qubo"_a, "strength"_a,
           "block_size"_a = 0);
     m.def("refine_quadtree", &refine_quadtree, "subproblems"_a, "qubo"_a, "strength"_a);
+    m.def("accept_conditioned", &accept_conditioned, "qubo"_a, "subproblem"_a, "samples"_a);
     m.def("refine_conditioned", &refine_conditioned, "qubo"_a, "solve"_a, "block_size"_a, "rng"_a);
 }

@@ -272,14 +272,6 @@ def dwave_simulator_metrics(_):
     return {"name": "simulated_annealing", "active": True, "qubits": 150, "fidelity": 1.0, "queue": 0}
 
 
-# def iqm_qpu_metrics(backend):
-#     """
-#     num_qubits and fidelity are hardcoded since there is no API to access this kind of information
-#     """
-#     return {"name": "iqm_", "active": backend.get_health()["healthy"],
-#             "qubits": 20, "fidelity": 0.98265, "queue": 0}  # TODO queue
-
-
 def get_quantum_metrics(backend, backend_type: BackendType):
     if backend_type == BackendType.IBM_QPU:
         return ibm_qpu_metrics(backend)

@@ -93,5 +93,6 @@ py::list refine_linear(py::list subs, const Qubo &q);
 py::list refine_mean_field(py::list subs, const Qubo &q, int block);
 py::list refine_soft_consensus(py::list subs, const Qubo &q, double strength, int block);
 py::list refine_quadtree(py::list subs, const Qubo &q, double strength);
+py::object accept_conditioned(const Qubo &q, const Qubo &sub, py::object df);
 py::object refine_conditioned(const Qubo &q, py::function solve, int block, py::object rng);
 } // namespace qs

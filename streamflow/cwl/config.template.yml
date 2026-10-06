@@ -2,7 +2,16 @@ dataset:
   class: File
   path: ../../qubo_max_cut.jsonl
 
+# Canonical method names; auto chooses the aggregator matching the splitter.
+split_method: recursive
+aggregate_method: auto
 cut_dim: 10
+# Set both a refinement method and a positive budget to enable distributed rounds.
+refinement_method: none  # conditioned, mean_field, soft_consensus, or consensus
+refinement_loops: 0
+refinement_cut_dim: null  # null uses cut_dim; set independently for the refinement backend
+refinement_aggregate_method: linear  # or linear_belief_propagation / recursive_graph
+refinement_backend: null  # connector-selected provider, otherwise configured backend
 enable_sparse_check: false
 enable_iqm: false
 enable_quantinuum_h2: false
@@ -24,3 +33,8 @@ quantinuum_h2_configs: []
 quantinuum_h2e_configs: []
 aggregate_configs: []
 storage_configs: []
+
+# Classical refinement settings: tolerance, patience, seed and strength only.
+refinement_configs: []
+# Solver credentials/parameters go only to the refinement scatter step.
+refinement_solver_configs: []

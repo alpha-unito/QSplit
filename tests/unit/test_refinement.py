@@ -43,7 +43,6 @@ class TestPropagation(unittest.TestCase):
         qubo = make_qubo([[-1, 3], [0, -1]])
         qubo.solutions = pd.DataFrame({0: [0], 1: [0], "energy": [0.0]})
         result = refine_solutions(qubo, exact_solve, 1, np.random.default_rng(0))
-        # Either isolated flip improves energy, but taking both would give +1.
         self.assertEqual(result.iloc[0]["energy"], -1)
         self.assertEqual(result.iloc[0][0] + result.iloc[0][1], 1)
         self.assertEqual(qubo.solutions.iloc[0]["energy"], 0)
@@ -83,7 +82,6 @@ class TestPropagation(unittest.TestCase):
 
         refined = refine_linear([first, second], qubo)
         self.assertEqual(len(refined), 2)
-        # p_10 = (global 1 + local mean 0.5) / 2 = 0.75.
         self.assertEqual(refined[0].mat[0, 0], 2 - 4 * 0.75)
         self.assertEqual(refined[0].offset, 7 + 3 * 0.75)
         self.assertEqual(refined[0].rows_idx.tolist(), [20])

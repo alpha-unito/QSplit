@@ -1,0 +1,19 @@
+# Local demo uses the bundled CSV. Paths are relative to this settings file.
+input_matrix:
+  class: File
+  path: data/32x32_a.csv
+split_method: linear
+aggregate_method: linear_belief_propagation
+cut_dim: 8
+refinement_method: conditioned
+refinement_loops: 2
+refinement_cut_dim: 8
+refinement_aggregate_method: linear
+refinement_backend: null
+solutions_dir: solutions
+split_configs: []
+parallel_configs: []
+aggregate_configs: []
+refinement_configs: []
+refinement_solver_configs: []
+storage_configs: []

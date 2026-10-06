@@ -1,5 +1,3 @@
-"""Exercise the same entry points used by CWL, with real files and samplers."""
-
 import json
 import sys
 from pathlib import Path
