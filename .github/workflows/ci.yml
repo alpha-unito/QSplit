@@ -47,7 +47,7 @@ jobs:
       - name: Install local test dependencies
         run: |
           uv sync --locked --python "$UV_PYTHON" \
-            --extra dev --extra streamflow --extra quantinuum --extra dataset
+            --extra dev --extra streamflow --extra quantinuum --extra dataset --extra benchmark
       - name: Build wheel from source distribution
         run: uv build
       - name: Check installed wheel outside the source tree
@@ -83,6 +83,8 @@ jobs:
           import pytket.extensions.qiskit
           import pennylane
           import pymetis
+          import qoblib
+          import pyscipopt
           "
           "$CI_PYTHON" -c "import streamflow.main; import qsplit._core"
       - name: Lint and format
