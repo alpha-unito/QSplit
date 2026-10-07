@@ -81,3 +81,11 @@ these results and adds manifests for the completed instances.
 
 Python users can access the same algorithms through `qsplit.splitting`,
 `qsplit.aggregation` and `qsplit.refinement`; see the [Python entry points](workflows.md#python-entry-points).
+
+The `benchmark` extra provides QOBLIB conversion and result export without solver
+dependencies. Install your chosen backend separately:
+`uv sync --extra benchmark --extra dwave` for `local_benchmark` with simulated annealing, or
+`uv sync --extra benchmark --extra ibm-cpu --extra streamflow` for a workflow using
+the IBM CPU adapter. Select the workflow backend in its solver configuration and
+StreamFlow bindings. Start from the [benchmark request](streamflow/cwl/benchmark.request.template.yaml)
+and [workflow settings](streamflow/cwl/benchmark.config.template.yml).

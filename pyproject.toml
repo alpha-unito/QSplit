@@ -59,6 +59,11 @@ dataset = [
 
 streamflow = ["streamflow>=0.2.0dev13"]
 
+benchmark = [
+    "qoblib @ git+https://github.com/ZIB-AOPT/qoblib-python.git@6de56e92df6dfbf352c269662a66f4ceddd37bf2",
+    "pyscipopt>=6.2.1,<7",
+]
+
 [tool.uv]
 cache-keys = [
     { file = "pyproject.toml" },
@@ -98,6 +103,8 @@ cli_refine = "qsplit.cwl.cli.refine:main"
 cli_dataset_prepare = "qsplit.cwl.cli.dataset_prepare:main"
 cli_collect_dataset_results = "qsplit.cwl.cli.collect_dataset_results:main"
 cli_persist_instance_solution = "qsplit.cwl.cli.persist_instance_solution:main"
+local_benchmark = "qsplit.benchmark.local_benchmark:main"
+cli_benchmark = "qsplit.benchmark.cli:main"
 
 [project.entry-points."unito.streamflow.plugin"]
 qsplit = "streamflow.quantum.plugin.plugin:QSplitStreamFlowPlugin"
