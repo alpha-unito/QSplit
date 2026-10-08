@@ -7,13 +7,13 @@ Qubo condition(const Qubo &q, const std::vector<Id> &window, const std::map<Id, 
     std::set<Id> inside(window.begin(), window.end());
     std::vector<Id> outside;
     for (py::ssize_t i = 0; i < v.n; ++i)
-        if (v.r(i) >= 0 && !inside.contains(v.r(i)))
+        if (v.r(i) >= 0 && !inside.count(v.r(i)))
             outside.push_back(v.r(i));
     for (auto id : window)
-        if (!rows.contains(id) || !cols.contains(id))
+        if (!rows.count(id) || !cols.count(id))
             throw py::key_error("Unknown refinement variable");
     for (auto id : outside)
-        if (!cols.contains(id) || !beliefs.contains(id))
+        if (!cols.count(id) || !beliefs.count(id))
             throw py::key_error("Missing outside belief or column");
     std::vector<py::ssize_t> window_rows, window_cols, outside_rows, outside_cols;
     std::vector<double> probabilities;
@@ -61,7 +61,7 @@ std::map<Id, double> collect_beliefs(py::list subs, const Qubo &q) {
     auto assignment = global.assignment(global.best());
     std::map<Id, double> beliefs, votes, counts;
     for (auto id : variables(q)) {
-        if (!assignment.contains(id))
+        if (!assignment.count(id))
             throw py::key_error("Missing global assignment");
         beliefs[id] = assignment.at(id);
     }
@@ -79,7 +79,7 @@ std::map<Id, double> collect_beliefs(py::list subs, const Qubo &q) {
         auto a = local.values.unchecked<2>();
         py::gil_scoped_release release;
         for (auto id : ids) {
-            if (!beliefs.contains(id) || !local.by_id.contains(id))
+            if (!beliefs.count(id) || !local.by_id.count(id))
                 continue;
             auto col = local.by_id.at(id);
             double sum = 0, count = 0;
@@ -159,7 +159,7 @@ py::list refine_soft_consensus(py::list subs, const Qubo &q, double strength, in
     for (const auto &window : real_windows(real, block)) {
         std::vector<py::ssize_t> rr, cc;
         for (auto id : window) {
-            if (!rows.contains(id) || !cols.contains(id))
+            if (!rows.count(id) || !cols.count(id))
                 throw py::key_error("Unknown refinement variable");
             rr.push_back(rows.at(id));
             cc.push_back(cols.at(id));
@@ -184,12 +184,12 @@ py::list soft_consensus(py::list subs, const Qubo &q, double strength, const std
         std::vector<double> targets;
         for (py::ssize_t i = 0; i < s.n; ++i) {
             auto id = s.r(i);
-            if (id < 0 && !members.contains(id))
+            if (id < 0 && !members.count(id))
                 throw py::key_error("Missing macro members");
             auto group = id >= 0 ? std::vector<Id>{id} : members.at(id);
             double sum = 0;
             for (auto member : group) {
-                if (!rows.contains(member) || !cols.contains(member) || !beliefs.contains(member))
+                if (!rows.count(member) || !cols.count(member) || !beliefs.count(member))
                     throw py::key_error("Unknown macro member");
                 sum += beliefs.at(member);
             }
@@ -245,13 +245,13 @@ py::object accept_conditioned(const Qubo &q, const Qubo &sub, py::object df) {
     auto a = global.values.unchecked<2>(), s = samples.values.unchecked<2>();
     double current_energy = energy(v, current) + q.offset;
     for (py::ssize_t i = 0; i < local.n; ++i)
-        if (local.r(i) < 0 || local.r(i) != local.c(i) || !current.contains(local.r(i)))
+        if (local.r(i) < 0 || local.r(i) != local.c(i) || !current.count(local.r(i)))
             throw py::value_error("Conditioned updates require principal real-variable blocks");
     for (py::ssize_t row = 0; row < s.shape(0); ++row) {
         auto candidate = current;
         for (py::ssize_t i = 0; i < local.n; ++i) {
             auto id = local.r(i);
-            if (!samples.by_id.contains(id))
+            if (!samples.by_id.count(id))
                 throw py::value_error("Conditioned refinement requires binary samples for every local variable");
             auto value = s(row, samples.by_id.at(id));
             if (value != 0 && value != 1)

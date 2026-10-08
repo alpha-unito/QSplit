@@ -214,7 +214,7 @@ py::list split_graph(const Qubo &q, int cut, py::function partition) {
         bool has_edges = false;
         for (std::size_t i = 0; i < current.size(); ++i)
             for (auto neighbor : adjacency[current[i]])
-                if (local.contains(neighbor)) {
+                if (local.count(neighbor)) {
                     edges[i].push_back(local.at(neighbor));
                     has_edges = true;
                 }

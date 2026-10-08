@@ -57,7 +57,7 @@ py::object recalculate(py::object df, const Qubo &q, bool validate = false) {
             if (validate) {
                 for (py::ssize_t j = 0; j < v.n; ++j)
                     for (auto id : {v.r(j), v.c(j)})
-                        if (id >= 0 && (!assignment.contains(id) || !binary(assignment.at(id))))
+                        if (id >= 0 && (!assignment.count(id) || !binary(assignment.at(id))))
                             throw py::value_error("Refinement requires binary assignments for every real variable");
             } else {
                 for (auto &[id, x] : assignment)
@@ -120,14 +120,14 @@ py::object aggregate_votes(py::list subs, py::object obj, const std::string &mod
         {
             py::gil_scoped_release release;
             for (auto [id, col] : t.by_id) {
-                if (!ones.contains(id) || (quad && !row_ids.contains(id)))
+                if (!ones.count(id) || (quad && !row_ids.count(id)))
                     continue;
                 double multiplier = (interactions && id == center) || (quad && id == quad_center) ? 2 : 1;
                 for (py::ssize_t i = 0; i < a.shape(0); ++i) {
                     auto value = a(i, col);
                     if (!weights[i] || !binary(value))
                         continue;
-                    if (!first.contains(id))
+                    if (!first.count(id))
                         first[id] = value;
                     auto weight = weights[i] * multiplier;
                     ones[id] += weight * value;
@@ -273,7 +273,7 @@ py::object resolve_conflicts(py::object df, const Qubo &q, py::function solve, i
                     for (py::ssize_t j = 0; j < v.n; ++j) {
                         if (v.c(j) < 0 || v.m(i, j) == 0)
                             continue;
-                        bool r = local.contains(v.r(i)), c = local.contains(v.c(j));
+                        bool r = local.count(v.r(i)), c = local.count(v.c(j));
                         if (r && c)
                             m(local.at(v.r(i)), local.at(v.c(j))) += v.m(i, j);
                         else if (r)
@@ -309,7 +309,7 @@ py::object resolve_conflicts(py::object df, const Qubo &q, py::function solve, i
                     Table samples(solve(py::cast(std::move(sub))));
                     auto best = samples.assignment(samples.best());
                     for (auto id : missing)
-                        assignment[id] = best.contains(id) ? best.at(id) : 0;
+                        assignment[id] = best.count(id) ? best.at(id) : 0;
                 }
             }
         }
@@ -448,9 +448,9 @@ py::tuple logical_expansion(py::tuple subs) {
         for (py::ssize_t j = 0; j < v.n; ++j) {
             if (v.m(i, j) == 0)
                 continue;
-            if (v.r(i) >= 0 && up.contains(v.r(i)) && hints.contains(v.c(j)))
+            if (v.r(i) >= 0 && up.count(v.r(i)) && hints.count(v.c(j)))
                 um(up.at(v.r(i)), up.at(v.r(i))) += v.m(i, j) * hints.at(v.c(j));
-            if (v.c(j) >= 0 && lp.contains(v.c(j)) && hints.contains(v.r(i)))
+            if (v.c(j) >= 0 && lp.count(v.c(j)) && hints.count(v.r(i)))
                 lm(lp.at(v.c(j)), lp.at(v.c(j))) += v.m(i, j) * hints.at(v.r(i));
         }
     return subs;

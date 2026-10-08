@@ -12,7 +12,7 @@ setup(
             "qsplit._core",
             ["cpp/bindings.cpp", "cpp/qubo.cpp", "cpp/splitting.cpp", "cpp/aggregation.cpp", "cpp/refinement.cpp"],
             depends=["cpp/core.hpp"],
-            cxx_std=23,
+            cxx_std=17,
             extra_compile_args=["-O3", "-ffp-contract=off"],
         )
     ],

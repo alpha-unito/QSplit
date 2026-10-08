@@ -5,7 +5,7 @@ quantum backends. It splits a binary objective into smaller problems, solves the
 aggregates their solutions and optionally refines the global result.
 
 [CWL](streamflow/cwl/instance.cwl) defines the workflow; StreamFlow decides where
-its steps run. Numerical algorithms are implemented in C++23 and exposed through
+its steps run. Numerical algorithms are implemented in C++17 and exposed through
 Python. Results are evaluated on the original objective, `x.T @ Q @ x + offset`.
 The methods are heuristics and do not guarantee an optimum.
 
@@ -14,9 +14,9 @@ The methods are heuristics and do not guarantee an optimum.
 
 ## Run your first workflow
 
-Use Linux or macOS, UV, Python 3.12 or newer, and a C++23 compiler. On macOS,
-install the Xcode Command Line Tools; on Linux, install a C++ toolchain and Python
-development headers. Installation builds the native extension automatically.
+Use Linux or macOS, UV, Python 3.12 or newer, and a C++17 compiler (such as GCC 9.4).
+On macOS, install the Xcode Command Line Tools; on Linux, install a C++ toolchain
+and Python development headers. Installation builds the native extension automatically.
 
 From the repository root:
 

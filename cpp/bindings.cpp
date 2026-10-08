@@ -3,7 +3,7 @@
 using namespace qs;
 
 PYBIND11_MODULE(_core, m) {
-    m.doc() = "QSplit C++23 computational core";
+    m.doc() = "QSplit C++17 computational core";
     auto cls =
         py::class_<Qubo>(m, "QUBO", py::dynamic_attr())
             .def(py::init<Array, Indices, Indices, double>(), "mat"_a, "rows_idx"_a, "cols_idx"_a, "offset"_a = 0.0)

@@ -91,9 +91,9 @@ std::vector<Id> variables(const Qubo &q, bool rows_only) {
 double energy(const View &v, const std::map<Id, double> &assignment) {
     std::vector<double> rows(v.n), cols(v.n);
     for (py::ssize_t i = 0; i < v.n; ++i) {
-        if (v.r(i) >= 0 && assignment.contains(v.r(i)))
+        if (v.r(i) >= 0 && assignment.count(v.r(i)))
             rows[i] = assignment.at(v.r(i));
-        if (v.c(i) >= 0 && assignment.contains(v.c(i)))
+        if (v.c(i) >= 0 && assignment.count(v.c(i)))
             cols[i] = assignment.at(v.c(i));
     }
     // Accumulate in row-major order for cache locality, preserving each column's
