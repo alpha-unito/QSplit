@@ -3,9 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import shlex
 from importlib.resources import files
+from pathlib import Path
 from typing import MutableMapping, MutableSequence, Optional
 
+from qsplit import configuration
 from streamflow.core.deployment import Connector, ExecutionLocation
 from streamflow.core.scheduling import AvailableLocation
 from streamflow.deployment.wrapper import ConnectorWrapper, get_inner_location, get_inner_locations
@@ -41,7 +44,8 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         providerPool: Optional[MutableSequence[str] | str] = None,
         providerServiceMap: Optional[MutableMapping[str, str]] = None,
         providerServiceFallbackMap: Optional[MutableMapping[str, MutableSequence[str] | str]] = None,
-        providerEnvMap: Optional[MutableMapping[str, MutableMapping[str, str]]] = None,
+        providerConfigMap: Optional[MutableMapping[str, str | list[str]]] = None,
+        providerPythonMap: Optional[MutableMapping[str, str]] = None,
         maxConcurrentJobs: Optional[MutableMapping[str, int]] = None,
         maxProviderJobs: Optional[int] = None,
         transferBufferSize: int = 2**16,
@@ -56,9 +60,6 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         self._default_provider = str(provider or "dwave").strip().lower() or "dwave"
         if self._default_provider == "auto":
             self._default_provider = "dwave"
-        env_pool = os.getenv("QSPLIT_PROVIDER_POOL")
-        if env_pool:
-            providerPool = env_pool
         self._provider_pool = parseProviderPool(
             providerPool,
             default_pool=[self._default_provider, "ibm_gpu", "iqm"],
@@ -89,27 +90,13 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         self._service_provider_map: dict[str, str] = {
             service: provider for provider, service in self._provider_service_map.items()
         }
-        self._provider_env_map: dict[str, dict[str, str]] = {}
-        if providerEnvMap:
-            for provider_key, provider_env in providerEnvMap.items():
-                provider_name = str(provider_key).strip().lower()
-                if not provider_name or not isinstance(provider_env, MutableMapping):
-                    continue
-                env_map: dict[str, str] = {}
-                for env_key, env_value in provider_env.items():
-                    if env_value is None:
-                        continue
-                    env_name = str(env_key).strip()
-                    if not env_name:
-                        continue
-                    raw_value = str(env_value)
-                    expanded_value = os.path.expandvars(raw_value)
-                    if "${" in expanded_value and expanded_value == raw_value:
-                        continue
-                    if expanded_value:
-                        env_map[env_name] = expanded_value
-                if env_map:
-                    self._provider_env_map[provider_name] = env_map
+        self._provider_config_map = {}
+        for name, paths in (providerConfigMap or {}).items():
+            paths = [paths] if isinstance(paths, str) else paths
+            self._provider_config_map[name.strip().lower()] = configuration.load(
+                [Path(config_dir) / Path(path).expanduser() for path in paths]
+            )
+        self._provider_python_map = dict(providerPythonMap or {})
         self._provider_max_jobs: dict[str, int] = {}
         if maxConcurrentJobs:
             for key, value in maxConcurrentJobs.items():
@@ -138,15 +125,15 @@ class QuantumConnectorWrapper(ConnectorWrapper):
     def _prepare_iqm_runtime_state(self) -> None:
         if "iqm" not in self._provider_pool:
             return
-        env = self._provider_env_map.get("iqm", {})
+        config = self._provider_config_map.get("iqm", {})
         logger.warning("IQM WMS init start for deployment '%s'.", self.deployment_name)
-        install_supervisor_cleanup_handlers(env=env)
-        init_cleanup = os.getenv("QSPLIT_IQM_INIT_CLEANUP", "").strip().lower() in {"1", "true", "yes"}
+        install_supervisor_cleanup_handlers(config=config)
+        init_cleanup = str(config.get("QSPLIT_IQM_INIT_CLEANUP", "")).strip().lower() in {"1", "true", "yes"}
         if init_cleanup:
             try:
                 cleanup_active_iqm_jobs(
                     "connector_init_cleanup",
-                    env=env,
+                    config=config,
                     include_all_pids=True,
                 )
             except Exception as exc:
@@ -154,7 +141,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         else:
             logger.warning("IQM init cleanup skipped (QSPLIT_IQM_INIT_CLEANUP not enabled).")
         try:
-            reset_iqm_runtime_state(env=env)
+            reset_iqm_runtime_state(config=config)
             logger.warning("IQM WMS state reset for deployment '%s'.", self.deployment_name)
         except Exception as exc:
             logger.warning("IQM state reset failed: %s", exc)
@@ -194,7 +181,8 @@ class QuantumConnectorWrapper(ConnectorWrapper):
             provider,
             self._provider_pool,
             self._provider_has_capacity,
-            self._provider_env_map,
+            self._provider_config_map,
+            self._provider_python_map,
         )
 
     def _pick_auto_provider(self) -> str:
@@ -238,15 +226,14 @@ class QuantumConnectorWrapper(ConnectorWrapper):
         )
 
     @staticmethod
-    def _wrap_iqm_command(command: MutableSequence[str], env: MutableMapping[str, str]) -> MutableSequence[str]:
+    def _wrap_iqm_command(command: MutableSequence[str], python_bin: str = "python") -> MutableSequence[str]:
         if not command:
             return command
         executable = os.path.basename(str(command[0]).strip().lower())
         if executable not in {"cli_scatter", "cli_scatter.exe"}:
             return command
-        python_bin = str(env.get("PYTHON_BIN", "")).strip() or "python"
         return [
-            python_bin,
+            shlex.quote(python_bin),
             "-m",
             "streamflow.quantum.plugin.connector.iqm_scatter_wrapper",
             *list(command[1:]),
@@ -360,12 +347,15 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                 continue
 
             env = dict(base_env)
-            env["QSPLIT_BACKEND"] = backend
-            if backend in self._provider_env_map:
-                env.update(self._provider_env_map[backend])
-            command_to_run = command
-            if backend == "iqm":
-                command_to_run = self._wrap_iqm_command(command, env)
+            config = self._provider_config_map.get(backend, {})
+            command_to_run = list(command)
+            if self._is_iqm_scatter_command(command):
+                command_to_run += ["--backend", backend]
+                python_bin = self._provider_python_map.get(backend)
+                if backend == "iqm":
+                    command_to_run = self._wrap_iqm_command(command_to_run, python_bin or "python")
+                elif python_bin:
+                    command_to_run = [shlex.quote(python_bin), "-m", "qsplit.cwl.cli.scatter", *command_to_run[1:]]
             effective_timeout = timeout
             if backend == "iqm":
                 effective_timeout = None
@@ -394,10 +384,11 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                 target_location: ExecutionLocation,
                 run_env: MutableMapping[str, str],
                 run_timeout: int | None,
+                cache_only: bool = False,
             ):
                 return await self.connector.run(
                     location=target_location,
-                    command=command_to_run,
+                    command=[*command_to_run, "--cache-only"] if cache_only else command_to_run,
                     environment=run_env,
                     workdir=workdir,
                     stdin=stdin,
@@ -409,14 +400,14 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                 )
 
             if backend == "iqm" and self._is_iqm_scatter_command(command):
-                probe_env = dict(env)
-                probe_env["QSPLIT_IQM_CACHE_ONLY"] = "1"
                 try:
                     probe_result = await run_with_slurm_cancellation_retry(
                         logger=logger,
                         service_candidates=service_candidates,
                         get_location_for_service=_resolve_target_location,
-                        run_on_location=lambda target_location: _run_on_location(target_location, probe_env, None),
+                        run_on_location=lambda target_location: _run_on_location(
+                            target_location, env, None, cache_only=True
+                        ),
                     )
                     if isinstance(probe_result, tuple) and len(probe_result) == 2 and isinstance(probe_result[1], int):
                         probe_code = probe_result[1]
@@ -449,7 +440,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                         )
                         cleanup_active_iqm_jobs(
                             "connector_timeout",
-                            env=env,
+                            config=config,
                             include_all_pids=True,
                         )
                         raise
@@ -457,7 +448,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                         logger.warning("IQM internal server error/timeout detected. Failing current QSplit instance.")
                         cleanup_active_iqm_jobs(
                             "connector_transient_failure",
-                            env=env,
+                            config=config,
                             include_all_pids=True,
                         )
                         raise
@@ -476,7 +467,7 @@ class QuantumConnectorWrapper(ConnectorWrapper):
                         logger.warning("IQM internal server error/timeout detected. Failing current QSplit instance.")
                         cleanup_active_iqm_jobs(
                             "connector_transient_failure",
-                            env=env,
+                            config=config,
                             include_all_pids=True,
                         )
                         return result

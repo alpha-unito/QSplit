@@ -1,124 +1,83 @@
 # QSplit
 
-This repository contains a prototype of a **hybrid workflow for combinatorial optimization** formulated as a
-**Quadratic Unconstrained Binary Optimization (QUBO)** problem. In QUBO form, the objective is to find a binary vector
-$x \in \{0,1\}^n$ that **minimizes a cost function** of the form $x^\top Q x$.
+QSplit is a framework for solving QUBO optimization problems across classical and
+quantum backends. It splits a binary objective into smaller problems, solves them,
+aggregates their solutions and optionally refines the global result.
 
-From a quantum computing perspective, the same objective can be interpreted as minimizing the **energy** of an
-**Ising/QUBO cost Hamiltonian**: solvers such as quantum annealers or QAOA-like approaches aim to return bitstrings
-corresponding to **low-energy configurations** of that Hamiltonian.
+[CWL](streamflow/cwl/instance.cwl) defines the workflow; StreamFlow decides where
+its steps run. Numerical algorithms are implemented in C++17 and exposed through
+Python. Results are evaluated on the original objective, `x.T @ Q @ x + offset`.
+The methods are heuristics and do not guarantee an optimum.
 
-## What this repository does
+- [Choose a pipeline](workflows.md): compatible split, aggregate and refinement methods.
+- [Run tests](TESTING.md): local checks for development.
 
-At a high level, the workflow does the following:
+## Run your first workflow
 
-1. Reads an input CSV matrix and converts it into a QUBO object, stored as a pickled `QUBO` object in `initial_qubo.pkl`.
-2. Uses **QSplit** to decompose the global cost function into several smaller sub-QUBOs (sub-Hamiltonians).
-3. Solves each sub-QUBO on a selected backend (e.g., D-Wave, IQM, or compatible solvers) and collects candidate bitstrings.
-4. Aggregates partial solutions into a global candidate assignment and reports its **energy**, i.e., the value of the global cost function.
+Use Linux or macOS, UV, Python 3.12 or newer, and a C++17 compiler (such as GCC 9.4).
+On macOS, install the Xcode Command Line Tools; on Linux, install a C++ toolchain
+and Python development headers. Installation builds the native extension automatically.
 
-The orchestration is expressed in **CWL** and executed with **Streamflow**, which runs the stages (split, solve, aggregate)
-as separate steps.
-
-## Why QUBO splitting is useful today
-
-Many real-world tasks in combinatorial optimization can be written as QUBOs: routing and scheduling, portfolio selection,
-facility location, graph partitioning, clustering/feature selection, and more. In principle, these problems can be handed to
-quantum or quantum-inspired solvers. In practice:
-
-- current hardware has **limited capacity and non-trivial connectivity**, so a large dense QUBO does not map directly onto a device;
-- even classically, solving a single large QUBO can be slow and difficult to scale.
-
-QSplit provides a controlled way to:
-
-- reduce the optimization into sub-problems that fit backend constraints (e.g., variable limits, embedding constraints);
-- solve sub-problems on heterogeneous resources (quantum and/or quantum-inspired);
-- combine partial results into a global candidate solution and evaluate it via the **global energy/cost**.
-
-The goal is not to claim optimality, but to offer a **reproducible and extensible framework** to study decomposition and hybrid
-execution strategies in a realistic setting.
-
-## Software requirements
-
-On the host machine you need:
-
-- Streamflow
-- Python 3.12
-- Access to the target SLURM partitions (Broadwell/Cascadelake in the provided config)
-
-The runtime no longer depends on Singularity images. Each SLURM template uses
-the requested Python virtual environment (`qsplit-cpu` and `qsplit-gpu`) and
-fails fast if it is missing.
-
-## Run
-
-### 1. Preparing Python environments (optional pre-warm)
-
-Create environments on the cluster login node before running Streamflow:
+From the repository root:
 
 ```bash
-python3 -m venv /beegfs/home/fmedina/.venvs/qsplit-cpu
-/beegfs/home/fmedina/.venvs/qsplit-cpu/bin/pip install -U pip setuptools wheel
-/beegfs/home/fmedina/.venvs/qsplit-cpu/bin/pip install -e "/beegfs/home/fmedina/QSplit[dwave,iqm]"
-
-python3 -m venv /beegfs/home/fmedina/.venvs/qsplit-gpu
-/beegfs/home/fmedina/.venvs/qsplit-gpu/bin/pip install -U pip setuptools wheel
-/beegfs/home/fmedina/.venvs/qsplit-gpu/bin/pip install -e "/beegfs/home/fmedina/QSplit[ibm-gpu]"
+uv sync --locked --python 3.12 --extra dwave --extra streamflow
+cp streamflow/streamflow.local.template.yml streamflow/streamflow.local.yml
+cp streamflow/cwl/instance.config.template.yml streamflow/cwl/instance.config.yml
+mkdir -p streamflow/work
+uv run --no-sync streamflow run --debug \
+  --outdir reports/local-workflow streamflow/streamflow.local.yml
 ```
 
+This example uses the bundled CSV, simulated annealing, linear splitting,
+belief-propagation aggregation and two conditioned refinement sweeps.
+It runs entirely locally and requires no QPU or cluster access.
 
-### 2. Preparing the input QUBO
+## Configure your run
 
-The repository ships an example matrix declared in the `cwl/config.yml` that will be QUBO serialised in `initial_qubo.pkl` during the first step. To experiment with different inputs, you can edit `cwl/config.yml`.
+There are two configuration layers:
 
-Each backend defines its own `cut_dim` in `cwl/config.yml`, because different devices/samplers have different effective limits and embedding constraints.
+| File | What to change |
+| --- | --- |
+| `streamflow/cwl/instance.config.yml` | Input CSV, pipeline methods, block sizes, refinement budget and solver settings files |
+| `streamflow/streamflow.local.yml` | Deployments, step bindings, provider selection and concurrency |
 
-Example:
+Start by changing `input_matrix.path` in the instance settings to your square CSV
+matrix. See [workflows.md](workflows.md) for valid method combinations.
+Set `refinement_method: none` or `refinement_loops: 0` for a single pass.
 
-```yml
-input_matrix:
-  class: File
-  path: data/32x32_b.csv
+To run on other machines, change the StreamFlow deployments and bindings.
+The [HPC template](streamflow/streamflow.template.yml) provides an example.
+Install QSplit and the required backend extras on the workers. Keep credentials
+in private solver YAML files, supplied through the corresponding solver config
+inputs; use [qsplit.config.template.yaml](qsplit.config.template.yaml) as a reference.
+Settings are supplied explicitly through YAML, rather than environment variables.
 
-cut_dim: 16
-```
+## Run a dataset
 
-### 3. Executing the workflow
+[main.cwl](streamflow/cwl/main.cwl) runs the same configurable pipeline over a JSONL
+dataset. Copy [config.template.yml](streamflow/cwl/config.template.yml) to
+`streamflow/cwl/config.yml`, then set `dataset` and an absolute
+`solutions_store_dir` accessible to the storage steps.
 
-To run the full hybrid workflow:
+In the StreamFlow configuration, select `cwl/main.cwl` and `cwl/config.yml`.
+Prefix instance step bindings with `/qsplit_instances`, as in the HPC template.
+Completed instances are skipped on subsequent runs using the same solutions store.
+Use a new store when comparing pipeline configurations.
 
-```bash
-streamflow run streamflow/streamflow.yml
-```
+## Read the results
 
-On successful completion, Streamflow will output the `solutions.csv` file on the root of the project.
+The single-instance workflow exports:
 
-## Output
+| Output | Contents |
+| --- | --- |
+| `final_solutions` | CSV with `node_id`, `backend`, `bitstring` and `energy`; the `root,aggregate` rows describe the global result |
+| `final_history` | Initial global energy followed by energies of completed refinement rounds |
+| `final_state` | Serialized QUBO, best solutions and refinement state |
 
-The file `solutions.csv` reports candidate solutions (bitstrings) together with their associated **energy**.
-In QUBO/Ising terms, the energy is the value of the **global cost function** for the reported bitstring; equivalently, it is
-the energy of the corresponding configuration under the **cost Hamiltonian**.
+Lower global energy is better. With refinement enabled, the returned result is the
+best encountered, even if a later round worsens. The dataset workflow collects
+these results and adds manifests for the completed instances.
 
-Columns:
-
-- `node_id`: identifier of the node/sub-problem (e.g., `root`, `root_0`, `root_1`, ...)
-- `backend`: backend that produced the solution (e.g., `dwave`, `iqm`, `aggregate`)
-- `bitstring`: binary assignment returned by the backend
-- `energy`: cost/energy value (lower is better)
-
-Example:
-
-```csv
-node_id,backend,bitstring,energy
-root,aggregate,10111100010110101110100100100000,-80.27
-root_0,iqm,1011110001011010,-188.07
-root_1,dwave,0100000000001111,-209.422003363
-root_2,iqm,1110110100100000,-154.85
-```
-
-Interpretation:
-
-- Each `root_k` line is a backend-produced candidate for a sub-QUBO.
-- The `root,aggregate,...` line is the aggregated global candidate assignment.
-- Optimization quality is assessed by the **energy**: the workflow is designed to drive the overall solution towards
-  lower values of the global cost function / cost Hamiltonian.
+Python users can access the same algorithms through `qsplit.splitting`,
+`qsplit.aggregation` and `qsplit.refinement`; see the [Python entry points](workflows.md#python-entry-points).

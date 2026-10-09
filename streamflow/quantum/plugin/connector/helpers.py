@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import subprocess
-from pathlib import Path
 from typing import MutableSequence
+
+from qsplit import configuration
 
 logger = logging.getLogger(__name__)
 _PROBED_QPU_PROVIDERS = {"iqm"}
@@ -179,7 +179,8 @@ def fetchProviderStateFor(
     provider: str | None,
     provider_pool: list[str],
     has_capacity,
-    provider_env_map: dict[str, dict[str, str]] | None = None,
+    provider_config_map: dict[str, dict] | None = None,
+    provider_python_map: dict[str, str] | None = None,
 ) -> tuple[bool, int]:
     metrics_active = True
     metrics_queue = 0
@@ -202,7 +203,8 @@ def fetchProviderStateFor(
                     candidate,
                     provider_pool,
                     has_capacity,
-                    provider_env_map,
+                    provider_config_map,
+                    provider_python_map,
                 )
                 if not active:
                     continue
@@ -219,12 +221,15 @@ def fetchProviderStateFor(
             match normalized:
                 case "iqm":
                     try:
-                        backend = qmetrics.get_iqm_quantum_backend()
-                        metrics = qmetrics.get_quantum_metrics(backend, qmetrics.BackendType.IQM_QPU)
+                        with configuration.use((provider_config_map or {}).get("iqm", {})):
+                            backend = qmetrics.get_iqm_quantum_backend()
+                            metrics = qmetrics.get_quantum_metrics(backend, qmetrics.BackendType.IQM_QPU)
                     except ModuleNotFoundError as missing_exc:
                         if not str(getattr(missing_exc, "name", "") or "").startswith("iqm"):
                             raise
-                        metrics = _probe_iqm_metrics_via_subprocess(provider_env_map)
+                        metrics = _probe_iqm_metrics_via_subprocess(
+                            provider_config_map, (provider_python_map or {}).get("iqm", "python3")
+                        )
                 case _:
                     metrics = None
             if isinstance(metrics, dict):
@@ -252,40 +257,18 @@ def fetchProviderStateFor(
 
 
 def _probe_iqm_metrics_via_subprocess(
-    provider_env_map: dict[str, dict[str, str]] | None,
+    provider_config_map: dict[str, dict] | None,
+    python_bin: str = "python3",
 ) -> dict | None:
-    env = dict(os.environ)
-    iqm_env = (provider_env_map or {}).get("iqm", {})
-    env.update(iqm_env)
-    env["QSPLIT_QMETRICS_PROVIDER"] = "iqm"
-    python_bin = _resolve_probe_python_bin(iqm_env)
-    script = Path(__file__).resolve().parents[2] / "qmetrics.py"
     output = subprocess.run(
-        [python_bin, str(script)],
+        [python_bin, "-m", "streamflow.quantum.qmetrics", "--config-stdin", "--provider", "iqm"],
+        input=json.dumps((provider_config_map or {}).get("iqm", {})),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        env=env,
         timeout=20,
     )
     if output.returncode != 0:
-        err = (output.stderr or "").strip() or "no stderr"
-        raise RuntimeError(f"IQM probe command failed ({output.returncode}): {err}")
+        raise RuntimeError(f"IQM probe command failed ({output.returncode})")
     payload = (output.stdout or "").strip()
-    if not payload:
-        return None
-    return json.loads(payload)
-
-
-def _resolve_probe_python_bin(iqm_env: dict[str, str]) -> str:
-    explicit = str(iqm_env.get("PYTHON_BIN", "")).strip()
-    if explicit:
-        return explicit
-    venv_path = str(iqm_env.get("VIRTUAL_ENV", "")).strip()
-    if not venv_path:
-        venv_path = str(os.getenv("QSPLIT_IQM_VENV", "")).strip()
-    if venv_path:
-        candidate = Path(venv_path) / "bin" / "python"
-        if candidate.exists():
-            return str(candidate)
-    return "python3"
+    return json.loads(payload) if payload else None

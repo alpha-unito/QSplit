@@ -1,0 +1,56 @@
+version: v1.0
+scheduling:
+  scheduler:
+    type: default
+    config:
+      retry_delay: 1
+workflows:
+  qsplit:
+    type: cwl
+    config:
+      file: cwl/instance.cwl
+      settings: cwl/instance.config.yml
+    bindings:
+    - step: /split
+      target:
+        deployment: qsplit-classical
+    - step: /parallelize
+      target:
+        deployment: qsplit-solvers
+    - step: /aggregate
+      target:
+        deployment: qsplit-classical
+    - step: /initialize_refinement
+      target:
+        deployment: qsplit-classical
+    - step: /refine/prepare
+      target:
+        deployment: qsplit-classical
+    - step: /refine/solve
+      target:
+        deployment: qsplit-solvers
+    - step: /refine/update
+      target:
+        deployment: qsplit-classical
+deployments:
+  qsplit-classical:
+    type: local
+    workdir: work/classical
+    config: {}
+  qsplit-solver-local:
+    type: local
+    workdir: work/solvers
+    config: {}
+  qsplit-solvers:
+    type: qsplit.quantum_connector
+    wraps: qsplit-solver-local
+    config:
+      provider: dwave
+      providerPool:
+      - dwave
+      maxConcurrentJobs:
+        dwave: 2
+database:
+  type: sqlite
+  config:
+    connection: work/streamflow.db

@@ -4,6 +4,14 @@ class: CommandLineTool
 baseCommand: [cli_collect_dataset_results]
 
 inputs:
+  configs:
+    type:
+      type: array
+      items: File
+      inputBinding:
+        prefix: --config
+    default: []
+    inputBinding: {}
   dataset_manifest:
     type: File
     inputBinding:

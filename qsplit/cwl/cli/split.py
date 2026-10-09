@@ -6,8 +6,10 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
+from qsplit import configuration
 from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.cwl.cli.utils import build_qubo_from_matrix, save_qubo
+from qsplit.cwl.methods import SPLIT_METHODS, SPLITTERS, resolve_aggregate
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
@@ -161,13 +163,16 @@ def _instance_id_from_matrix_path(matrix_path: str) -> str:
     return safe or "instance_unknown"
 
 
+@configuration.cli
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--input-matrix", required=True)
     p.add_argument("--adaptive", action="store_true")
-    p.add_argument("--approach", default="dr")
+    p.add_argument("--approach", default="dr", help="Legacy alias: dr means recursive")
+    p.add_argument("--split-method", choices=SPLIT_METHODS)
+    p.add_argument("--aggregate-method", default="auto")
     p.add_argument("--out-dir", default="subproblems")
-    p.add_argument("--cut-dim", type=int, default=16)
+    p.add_argument("--cut-dim", type=int, default=configuration.get("CUT_DIM", 16))
     p.add_argument("--enable-sparse-check", action="store_true")
     p.add_argument("--enable-iqm", action="store_true")
     p.add_argument("--enable-quantinuum-h2", action="store_true")
@@ -175,6 +180,7 @@ def main() -> None:
     p.add_argument("--iqm-real-jobs", default="1")
     p.add_argument("--quantinuum-h2-real-jobs", default="1")
     p.add_argument("--quantinuum-h2e-real-jobs", default="1")
+    p.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = p.parse_args()
 
     out_dir = Path(args.out_dir).resolve()
@@ -184,8 +190,6 @@ def main() -> None:
 
     instance_id = _instance_id_from_matrix_path(args.input_matrix)
     full = build_qubo_from_matrix(args.input_matrix)
-    # Keep the full problem metadata aligned with subproblems so downstream
-    # aggregation can validate instance consistency.
     full.instance_id = instance_id
     full.node_id = "root"
     save_qubo("initial_qubo.pkl", full)
@@ -194,17 +198,40 @@ def main() -> None:
     if cut_dim <= 0:
         raise ValueError(f"cut_dim must be positive, got {cut_dim}")
 
+    method = args.split_method or ("recursive" if args.approach == "dr" else args.approach)
+    resolve_aggregate(method, args.aggregate_method)
+    configuration.current()["CUT_DIM"] = cut_dim
     nodes: Dict[str, Dict] = {}
-    recursively_split(
-        full,
-        "root",
-        instance_id,
-        out_dir,
-        solved_dir,
-        nodes,
-        cut_dim,
-        bool(args.enable_sparse_check),
-    )
+    if method == "recursive":
+        recursively_split(
+            full, "root", instance_id, out_dir, solved_dir, nodes, cut_dim, bool(args.enable_sparse_check)
+        )
+    else:
+        subs = SPLITTERS[method](full)
+        nodes["root"] = {
+            "rows_idx": full.rows_idx.astype(int).tolist(),
+            "cols_idx": full.cols_idx.astype(int).tolist(),
+            "offset": full.offset,
+            "children": [],
+        }
+        if not subs:
+            subs = [full]
+        for index, sub in enumerate(subs):
+            node_id = f"root_{index:06d}"
+            sub.node_id, sub.instance_id = node_id, instance_id
+            nodes["root"]["children"].append(node_id)
+            nodes[node_id] = {
+                "rows_idx": sub.rows_idx.astype(int).tolist(),
+                "cols_idx": sub.cols_idx.astype(int).tolist(),
+                "offset": sub.offset,
+                "children": [],
+            }
+            empty = not sub.mat.any() if getattr(sub, "macro_members", {}) else is_empty(sub)
+            if empty:
+                sub.solutions, sub.backend = dummy_solve(sub), "dummy"
+                save_qubo(solved_dir / f"{node_id}.pkl", sub)
+            else:
+                save_qubo(out_dir / f"{node_id}.pkl", sub)
 
     assignments = _allocate_subproblems(
         sorted(out_dir.glob("*.pkl")),
@@ -221,7 +248,9 @@ def main() -> None:
     _materialize(assignments["quantinuum_h2e"], planned_root / "quantinuum_h2e")
     _materialize(assignments["parallel"], planned_root / "parallel")
 
-    Path("tree.json").write_text(json.dumps({"root": "root", "nodes": nodes}, indent=2), encoding="utf-8")
+    Path("tree.json").write_text(
+        json.dumps({"root": "root", "split_method": method, "nodes": nodes}, indent=2), encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

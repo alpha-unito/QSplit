@@ -4,31 +4,162 @@ on:
   push:
   pull_request:
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 jobs:
   test:
-    name: CI
-    runs-on: ubuntu-latest
-
+    name: Local tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.12", "3.13", "3.14"]
+    timeout-minutes: 30
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONUTF8: "1"
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: false
+      - name: Set up Linux/macOS Python
+        run: |
+          uv python install "${{ matrix.python }}"
+          uv venv --python "${{ matrix.python }}"
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+      - name: Select and validate CI Python
+        run: |
+          ci_python="$GITHUB_WORKSPACE/.venv/bin/python"
+          uv_python="$ci_python"
+          "$ci_python" -c "
+          import sys
+          print('Python:', sys.executable)
+          print('Version:', sys.version)
+          assert '.'.join(map(str, sys.version_info[:2])) == '${{ matrix.python }}'
+          "
+          echo "CI_PYTHON=$ci_python" >> "$GITHUB_ENV"
+          echo "UV_PYTHON=$uv_python" >> "$GITHUB_ENV"
+      - name: Install local test dependencies
+        run: |
+          uv sync --locked --python "$UV_PYTHON" \
+            --extra dev --extra streamflow --extra quantinuum --extra dataset
+      - name: Build wheel from source distribution
+        run: uv build
+      - name: Check installed wheel outside the source tree
+        run: |
+          uv pip install --python "$UV_PYTHON" --no-deps --target "$RUNNER_TEMP/qsplit-wheel" dist/*.whl
+          "$CI_PYTHON" -I -c '
+          import os, pickle, sys
+          from pathlib import Path
+          target = Path(os.environ["RUNNER_TEMP"]) / "qsplit-wheel"
+          sys.path.insert(0, str(target))
+          import numpy as np
+          import qsplit._core
+          from qsplit.qubo import QUBO
+          from qsplit.halting_heuristic.stop import vars_count
+          assert Path(qsplit._core.__file__).is_relative_to(target)
+          q = QUBO(np.eye(2), np.arange(2), np.arange(2))
+          assert vars_count(pickle.loads(pickle.dumps(q))) == 2
+          '
+      - name: Record platform and dependency versions
+        run: |
+          mkdir -p reports
+          "$CI_PYTHON" -c "
+          import platform
+          print(platform.platform())
+          print(platform.machine())
+          print(platform.python_version())
+          " > reports/platform.txt
+          uv pip freeze --python "$UV_PYTHON" \
+            > reports/dependencies.txt
+      - name: Verify optional local dependencies import successfully
+        run: |
+          "$CI_PYTHON" -c "
+          import pytket.extensions.qiskit
+          import pennylane
+          import pymetis
+          "
+          "$CI_PYTHON" -c "import streamflow.main; import qsplit._core"
+      - name: Lint and format
+        run: |
+          "$CI_PYTHON" -m ruff --version
+          "$CI_PYTHON" -m ruff check .
+          "$CI_PYTHON" -m ruff format --check .
+      - name: Unit tests and unit coverage
+        run: >-
+          "$CI_PYTHON" -m pytest -m "unit and not iqm and not cudaq"
+          --junitxml=reports/unit.xml --cov
+          --cov-report=term-missing --cov-report=json:reports/coverage-unit.json
+      - name: Integration tests (CPU simulators)
+        run: >-
+          "$CI_PYTHON" -m pytest -m "integration and not iqm and not cudaq"
+          --junitxml=reports/integration.xml --cov --cov-append
+          --cov-report=term-missing --cov-report=json:reports/coverage-unit-integration.json
+      - name: End-to-end CLI and local StreamFlow workflows
+        run: |
+          e2e_prefix=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            e2e_cpus=$("$CI_PYTHON" -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+            e2e_prefix=(taskset --cpu-list "$e2e_cpus")
+          fi
+          "${e2e_prefix[@]}" "$CI_PYTHON" -m pytest -m e2e -ra \
+            --basetemp=reports/e2e-work --junitxml=reports/e2e.xml \
+            --cov --cov-append --cov-fail-under=75 \
+            --cov-report=term-missing --cov-report=xml:reports/coverage.xml \
+            --cov-report=json:reports/coverage.json --cov-report=html
+      - name: Upload test results and cumulative coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: local-test-reports-${{ matrix.os }}-py${{ matrix.python }}
+          include-hidden-files: true
+          path: |
+            reports/
+            htmlcov/
+            .coverage
 
-      - name: Set up Python
+  optional-simulators:
+    name: ${{ matrix.extra }} CPU simulator (${{ matrix.os }}, Python 3.12)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: iqm
+            module: iqm.qiskit_iqm
+            os: ubuntu-latest
+          - extra: cudaq
+            module: cudaq
+            os: ubuntu-latest
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+      - name: Install isolated simulator dependencies
         run: |
           uv python install 3.12
-          uv venv
-          uv pip install -e ".[dev]"
-
-      - name: Run linter
-        run: uv run ruff check .
-
-      - name: Run formatter
-        run: uv run ruff format --check .
-
-      - name: Run tests
-        run: uv run python -m pytest --cov=qsplit tests/ --cov-report term-missing
+          uv venv --python 3.12
+          uv sync --locked --python 3.12 --extra dev --extra "${{ matrix.extra }}"
+      - name: Verify simulator is installed
+        run: uv run --no-sync python -c "import ${{ matrix.module }}"
+      - name: Run simulator tests
+        run: >-
+          uv run --no-sync python -m pytest tests/integration -m ${{ matrix.extra }}
+          --junitxml=reports/${{ matrix.extra }}.xml --cov
+          --cov-report=term-missing --cov-report=xml:reports/coverage-${{ matrix.extra }}.xml
+      - name: Upload simulator reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: simulator-${{ matrix.extra }}-${{ matrix.os }}-py3.12-reports
+          path: reports/

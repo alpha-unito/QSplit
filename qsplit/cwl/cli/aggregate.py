@@ -5,7 +5,10 @@ from typing import Dict, List, Set, Tuple
 
 import numpy as np
 
+from qsplit import configuration
+from qsplit.adapters.all_zero import solve as zero_solve
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions
+from qsplit.cwl.cli.scatter import load_solver, resolve_backend
 from qsplit.cwl.cli.utils import (
     bitstring_from_row,
     build_index_maps,
@@ -14,8 +17,12 @@ from qsplit.cwl.cli.utils import (
     load_solved_qubos,
     map_indices,
     parse_solved_paths,
+    save_qubo,
 )
+from qsplit.cwl.methods import AGGREGATE_METHODS, AGGREGATORS, resolve_aggregate
+from qsplit.halting_heuristic.stop import is_empty
 from qsplit.qubo import QUBO
+from qsplit.refinement.runner import refine_result
 
 
 def _workspace_roots_from_paths(paths: List[Path]) -> List[Path]:
@@ -144,16 +151,21 @@ def aggregate_tree_solutions(
     return results.get(root_id)
 
 
+@configuration.cli
 def main() -> None:
     parser = argparse.ArgumentParser(description="Aggregate QSplit outputs")
     parser.add_argument("--input-qubo", required=True, help="initial_qubo.pkl (full original QUBO)")
     parser.add_argument("--tree-file", required=True, help="tree.json")
+    parser.add_argument("--aggregate-method", choices=AGGREGATE_METHODS, default="auto")
+    parser.add_argument("--skip-local-refinement", action="store_true")
     parser.add_argument("--solved-list", action="extend", nargs="+", default=[], help="Solved sub-QUBO")
+    parser.add_argument("--config", action="append", help="YAML configuration file; repeat to layer files")
     args = parser.parse_args()
 
     tree = json.loads(Path(args.tree_file).read_text(encoding="utf-8"))
     nodes: Dict[str, Dict] = tree.get("nodes", {})
     root_id = tree.get("root", "root")
+    method = resolve_aggregate(tree.get("split_method", "recursive"), args.aggregate_method)
 
     full_qubo = load_qubo(Path(args.input_qubo))
 
@@ -164,7 +176,10 @@ def main() -> None:
 
     rows_missing = needed_idx - set(full_qubo.rows_idx)
     cols_missing = needed_idx - set(full_qubo.cols_idx)
-    missing_idx = sorted(rows_missing | cols_missing)
+    unknown_real_ids = {idx for idx in rows_missing | cols_missing if idx >= 0}
+    if unknown_real_ids:
+        raise ValueError("Split manifest references unknown real variables")
+    missing_idx = sorted(rows_missing | cols_missing) if method == "recursive" else []
     for idx in missing_idx:
         full_qubo.mat = np.pad(full_qubo.mat, ((0, 1), (0, 1)), mode="constant")
         full_qubo.rows_idx = np.append(full_qubo.rows_idx, idx)
@@ -213,10 +228,7 @@ def main() -> None:
             continue
         solved_by_id[node_id] = qubo
     if duplicate_nodes:
-        print(
-            "QSPLIT AGGREGATE duplicate_node_ids_in_solved_list=" + ",".join(sorted(duplicate_nodes)),
-            flush=True,
-        )
+        raise ValueError("Duplicate solved node IDs: " + ",".join(sorted(duplicate_nodes)))
 
     leaf_nodes = sorted(node_id for node_id, node in nodes.items() if not (node.get("children") or []))
     leaf_specs: Dict[str, Tuple[Tuple[int, ...], Tuple[int, ...]]] = {
@@ -226,6 +238,9 @@ def main() -> None:
         )
         for node_id in leaf_nodes
     }
+    for node_id, sub in solved_by_id.items():
+        if node_id not in leaf_specs or (tuple(sub.rows_idx), tuple(sub.cols_idx)) != leaf_specs[node_id]:
+            raise ValueError("Solved subproblem does not match the split manifest")
     missing_leaf_nodes = sorted(node_id for node_id in leaf_nodes if node_id not in solved_by_id)
     if missing_leaf_nodes:
         workspace_roots = _workspace_roots_from_paths([Path(args.input_qubo), Path(args.tree_file), *solved_paths])
@@ -270,7 +285,7 @@ def main() -> None:
         if df is None or getattr(df, "empty", True):
             continue
 
-        bit_cols = [int(v) for v in qubo.cols_idx]
+        bit_cols = [int(v) for v in qubo.cols_idx if v >= 0]
 
         for _, row in df.reset_index(drop=True).iterrows():
             bits = bitstring_from_row(row, bit_cols)
@@ -288,16 +303,38 @@ def main() -> None:
             rows.append((node_id, backend, bits, f"{energy:.12g}"))
 
     if solved_by_id:
-        aggregated_root = aggregate_tree_solutions(root_id, nodes, solved_by_id, full_qubo.mat, row_map, col_map)
+        if method == "recursive":
+            aggregated_root = aggregate_tree_solutions(root_id, nodes, solved_by_id, full_qubo.mat, row_map, col_map)
+        else:
+            if missing_leaf_nodes:
+                raise RuntimeError("Cannot aggregate an incomplete set of subproblems")
+            ordered_leaves = [solved_by_id[node_id] for node_id in leaf_nodes]
+            aggregated_root = AGGREGATORS[method](ordered_leaves, full_qubo)
         if (
             aggregated_root is not None
             and aggregated_root.solutions is not None
             and not aggregated_root.solutions.empty
         ):
             full_qubo.solutions = aggregated_root.solutions
-            agg_cols = [int(v) for v in full_qubo.cols_idx]
+            if not args.skip_local_refinement and int(configuration.get("REFINEMENT_LOOPS", "0")) > 0:
+                if is_empty(full_qubo):
+                    full_qubo.solutions = zero_solve(full_qubo)
+                    full_qubo.solutions["energy"] = full_qubo.offset
+                leaves = [solved_by_id[node_id] for node_id in leaf_nodes]
+                refine_result(
+                    full_qubo,
+                    solve=load_solver(resolve_backend(configuration.get("QSPLIT_BACKEND", "dwave"))),
+                    subproblems=leaves,
+                )
+                Path("refinement_history.json").write_text(json.dumps(full_qubo.refinement_history), encoding="utf-8")
+            if is_empty(full_qubo):
+                full_qubo.solutions = zero_solve(full_qubo)
+                full_qubo.solutions["energy"] = full_qubo.offset
+            full_qubo.refinement_subproblems = [solved_by_id[node_id] for node_id in leaf_nodes]
+            save_qubo("aggregate_qubo.pkl", full_qubo)
+            agg_cols = [int(v) for v in full_qubo.cols_idx if v >= 0]
             agg_entries: List[Tuple[float, str]] = []
-            for _, row in aggregated_root.solutions.reset_index(drop=True).iterrows():
+            for _, row in full_qubo.solutions.reset_index(drop=True).iterrows():
                 bits = bitstring_from_row(row, agg_cols)
                 try:
                     energy = float(row["energy"])

@@ -1,10 +1,12 @@
 import pandas as pd
 from pytket.extensions.qiskit import AerBackend
 
+from qsplit import configuration
 from qsplit.adapters.quantinuum.__tket_qaoa import __tket_solve
 from qsplit.qubo import QUBO
 
 
+@configuration.configured
 def solve(qubo: QUBO) -> pd.DataFrame:
     backend = AerBackend()
     backend._qiskit_backend.set_options(method="matrix_product_state")

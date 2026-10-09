@@ -4,6 +4,14 @@ class: CommandLineTool
 baseCommand: [cli_dataset_prepare]
 
 inputs:
+  configs:
+    type:
+      type: array
+      items: File
+      inputBinding:
+        prefix: --config
+    default: []
+    inputBinding: {}
   dataset_jsonl:
     type: File
     inputBinding:

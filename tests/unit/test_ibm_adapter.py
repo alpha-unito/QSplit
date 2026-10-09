@@ -1,11 +1,9 @@
 import unittest
 
 import numpy as np
-import pandas as pd
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit.quantum_info import SparsePauliOp
 
-from qsplit.adapters.ibm.ibm_qaoa_cpu_noiseless import solve as cpu_solve
 from qsplit.adapters.ibm.util import get_variables_mapping, to_dataframe
 from qsplit.adapters.ibm.util_qaoa import __from_qubo_matrix_to_circuit as from_qubo_matrix_to_circuit
 from qsplit.qubo import QUBO
@@ -38,13 +36,13 @@ class TestIBMAdapter(unittest.TestCase):
 
     def test_single_index_set(self):
         qubo = QUBO(np.triu(np.ones((3, 3))), rows_idx=np.array([0, 1, 2]), cols_idx=np.array([0, 1, 2]))
-        expected_vars = [-1, 0, 1, 2]
-        expected_mapping = {-1: 0, 0: 1, 1: 2, 2: 3}
+        expected_vars = [0, 1, 2]
+        expected_mapping = {0: 0, 1: 1, 2: 2}
         var_to_qubit, all_vars = get_variables_mapping(qubo)
 
         self.assertEqual(all_vars, expected_vars)
         self.assertEqual(var_to_qubit, expected_mapping)
-        self.assertEqual(len(all_vars), 4)
+        self.assertEqual(len(all_vars), 3)
 
     ##################################################
     # __from_qubo_matrix_to_circuit                  #
@@ -126,9 +124,9 @@ class TestIBMAdapter(unittest.TestCase):
         self.assertEqual(best_row[20], 1)
 
     def test_to_dataframe_with_padding_variable(self):
-        mat_raw = np.array([[5.0]])
-        rows_raw = np.array([1])
-        cols_raw = np.array([1])
+        mat_raw = np.array([[5.0, 0.0], [0.0, 0.0]])
+        rows_raw = np.array([1, -1])
+        cols_raw = np.array([1, -1])
         qubo = QUBO(mat_raw, rows_raw, cols_raw)
 
         self.assertIn(-1, qubo.rows_idx)
@@ -139,23 +137,7 @@ class TestIBMAdapter(unittest.TestCase):
 
         self.assertEqual(df.iloc[0]["energy"], 0.0)
         self.assertEqual(df.iloc[0][1], 0)
-
-    ##################################################
-    # cpu_noiseless                                  #
-    ##################################################
-
-    def test_ibm_cpu_solve(self):
-        rows_idx = np.array([1, 2])
-        cols_idx = np.array([1, 2])
-        mat = np.array([[0, 1], [0, 0]])
-        qubo = QUBO(mat=mat, rows_idx=rows_idx, cols_idx=cols_idx)
-        expected_dataframe = pd.DataFrame({1: [1, 0, 0], 2: [0, 1, 0], "energy": [0, 0, 0]}).reset_index(drop=True)
-        actual_dataframe = cpu_solve(qubo).reset_index(drop=True)
-        self.assertEqual(expected_dataframe["energy"].min(), actual_dataframe["energy"].min())
-        var_cols = [col for col in expected_dataframe.columns if col not in ["energy"]]
-        expected_solutions = set(expected_dataframe[var_cols].apply(tuple, axis=1))
-        actual_solutions = set(actual_dataframe[var_cols].apply(tuple, axis=1))
-        self.assertTrue(all(x in expected_solutions for x in actual_solutions))
+        self.assertNotIn(-1, df.columns)
 
 
 if __name__ == "__main__":

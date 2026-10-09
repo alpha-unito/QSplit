@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "pybind11>=3.0,<4"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,10 +9,11 @@ description = "TODO"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "PyYAML>=6.0.2",
     "numpy==2.3.4",
     "pandas==2.3.3",
     "pymetis>=2025.2.2",
-    "scipy==1.15.3",
+    "scipy==1.17.1",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +30,7 @@ iqm = ["iqm-client[qiskit]==33.0.4; python_version < '3.13'", "qiskit-algorithms
 
 quantinuum = ["qnexus>=0.40.1", "pytket>=2.13.0", "pytket-qiskit>=0.77.0"]
 
-cudaq = ["cudaq>=0.13.0"]
+cudaq = ["cuda-quantum-cu12==0.13.0; sys_platform == 'linux'"]
 
 dev = [
     "dwave-system==1.34.0",
@@ -39,12 +40,14 @@ dev = [
     "qiskit-aer==0.17.2",
     "pytest==9.0.1",
     "pytest-cov==7.0.0",
+    "coverage>=7.10.6",
     "pre-commit>=4.5.1",
     "ruff>=0.14.13",
 ]
 
 dataset = [
     "pennylane==0.44.0",
+    "gast>=0.6.0", 
     "networkx==3.6.1",
     "tqdm==4.67.1",
     "h5py>=3.15.1",
@@ -57,6 +60,12 @@ dataset = [
 streamflow = ["streamflow>=0.2.0dev13"]
 
 [tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "cpp/*.cpp" },
+    { file = "cpp/*.hpp" },
+]
 conflicts = [
     [
         { extra = "ibm-cpu" },
@@ -85,6 +94,7 @@ conflicts = [
 cli_split = "qsplit.cwl.cli.split:main"
 cli_scatter = "qsplit.cwl.cli.scatter:main"
 cli_aggregate = "qsplit.cwl.cli.aggregate:main"
+cli_refine = "qsplit.cwl.cli.refine:main"
 cli_dataset_prepare = "qsplit.cwl.cli.dataset_prepare:main"
 cli_collect_dataset_results = "qsplit.cwl.cli.collect_dataset_results:main"
 cli_persist_instance_solution = "qsplit.cwl.cli.persist_instance_solution:main"
@@ -111,3 +121,30 @@ fixable = ["ALL"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+    "unit: isolated behavior and error handling (no external services)",
+    "integration: real components and CPU simulators working together",
+    "e2e: public CLI and local CWL workflows in subprocesses",
+    "quantinuum: requires the quantinuum extra (CPU Aer backend)",
+    "dataset: dataset generators with local fixture data (requires dataset extra)",
+    "iqm: requires the iqm extra (local fake-device simulator)",
+    "cudaq: requires the cudaq extra (Linux CPU qpp target)",
+    "streamflow: requires the streamflow extra (local execution only)",
+]
+
+[tool.coverage.run]
+source = ["qsplit", "streamflow.quantum"]
+branch = true
+patch = ["subprocess"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"

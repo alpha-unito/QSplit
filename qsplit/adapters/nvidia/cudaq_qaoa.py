@@ -1,12 +1,14 @@
 import cudaq
 import pandas as pd
 
+from qsplit import configuration
 from qsplit.adapters.nvidia.util import (
     from_qubo_matrix_to_circuit,
     optimize_circuit,
     run_quantum_optimizer,
     to_dataframe,
 )
+from qsplit.adapters.training import training_subproblem
 from qsplit.qubo import QUBO
 
 TARGET_SEQUENCE: list[tuple[str, str]] = [
@@ -18,12 +20,14 @@ TARGET_SEQUENCE: list[tuple[str, str]] = [
 
 def _solve_on_target(qubo: QUBO, target: str, option: str) -> pd.DataFrame:
     cudaq.set_target(target, option=option)
-    circuit_bundle, cost_hamiltonian, var_to_qubit, all_vars = from_qubo_matrix_to_circuit(qubo)
-    optimized_params = optimize_circuit(circuit_bundle, cost_hamiltonian)
+    training_bundle, cost_hamiltonian, _, _ = from_qubo_matrix_to_circuit(training_subproblem(qubo))
+    optimized_params = optimize_circuit(training_bundle, cost_hamiltonian)
+    circuit_bundle, _, var_to_qubit, all_vars = from_qubo_matrix_to_circuit(qubo)
     counts = run_quantum_optimizer(circuit_bundle, optimized_params)
     return to_dataframe(counts, qubo, var_to_qubit, all_vars)
 
 
+@configuration.configured
 def solve(qubo: QUBO) -> pd.DataFrame:
     last_size_error: RuntimeError | None = None
     for target, option in TARGET_SEQUENCE:

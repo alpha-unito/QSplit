@@ -1,10 +1,11 @@
-import os
 import warnings
+from collections.abc import Callable
+from copy import deepcopy
 
-import numpy as np
-
+from qsplit import configuration
+from qsplit._core import logical_expansion as logical_expansion
+from qsplit.adapters.all_zero import solve as zero_solve
 from qsplit.adapters.dummy import solve as dummy_solve
-from qsplit.adapters.dwave.dwave_sa import solve
 
 # from qsplit.adapters.ibm.ibm_default import solve
 from qsplit.aggregation.aggregate_k_interactions import aggregate_solutions as aggregate_solutions_interactions
@@ -14,8 +15,13 @@ from qsplit.aggregation.aggregate_quadtree import aggregate_solutions as aggrega
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions as aggregate_solutions_recursive
 from qsplit.aggregation.aggregate_recursive import aggregate_solutions_trivial
 from qsplit.aggregation.aggregate_recursive_graph import aggregate_solutions as aggregate_solutions_recursive_graph
+from qsplit.cwl.cli.scatter import load_solver
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
 from qsplit.qubo import QUBO
+from qsplit.refinement.refine_linear import refine_problems as refine_problems_linear
+from qsplit.refinement.refine_mean_field import refine_problems as refine_problems_mean_field
+from qsplit.refinement.refine_quadtree import refine_problems as refine_problems_quadtree
+from qsplit.refinement.runner import refine_result, select_refinement, solve_problems
 from qsplit.splitting.split_k_interactions import split_problem as split_problem_interactions
 from qsplit.splitting.split_linear import split_problem as split_problem_linear
 from qsplit.splitting.split_quadtree import split_problem as split_problem_quadtree
@@ -30,79 +36,48 @@ warnings.warn(
     stacklevel=1,
 )
 
+
+def solve(qubo):
+    return load_solver(configuration.get("QSPLIT_BACKEND", "dwave"))(qubo)
+
+
 LOGICAL_EXPANSION = False
 BP = False
 
 
-def logical_expansion(subs: tuple[QUBO, QUBO, QUBO]) -> tuple[QUBO, QUBO, QUBO]:
-    ul, ur, lr = subs
-    hints = __extract_logical_hints(ur)
-    if not hints:
-        return subs
-
-    ul_diagonal = {idx: pos for pos, idx in enumerate(ul.rows_idx) if idx >= 0}
-    lr_diagonal = {idx: pos for pos, idx in enumerate(lr.rows_idx) if idx >= 0}
-
-    for row_pos, row_idx in enumerate(ur.rows_idx):
-        for col_pos, col_idx in enumerate(ur.cols_idx):
-            coefficient = ur.mat[row_pos, col_pos]
-            if coefficient == 0:
-                continue
-
-            col_hint = hints.get(col_idx)
-            if row_idx in ul_diagonal and col_hint is not None:
-                ul_pos = ul_diagonal[row_idx]
-                ul.mat[ul_pos, ul_pos] += coefficient * col_hint
-
-            row_hint = hints.get(row_idx)
-            if col_idx in lr_diagonal and row_hint is not None:
-                lr_pos = lr_diagonal[col_idx]
-                lr.mat[lr_pos, lr_pos] += coefficient * row_hint
-
-    return subs
-
-
-def __extract_logical_hints(qubo: QUBO) -> dict[int, float]:
-    if qubo.solutions is None or qubo.solutions.empty or "energy" not in qubo.solutions.columns:
-        return {}
-
-    best_energy = qubo.solutions["energy"].min()
-    best_solutions = qubo.solutions[qubo.solutions["energy"] == best_energy]
-    hints = {}
-
-    for col in best_solutions.columns:
-        if col == "energy" or col < 0:
-            continue
-
-        values = best_solutions[col].replace([np.inf, -np.inf], np.nan).dropna()
-        if not values.empty:
-            hints[col] = float(values.mean())
-
-    return hints
-
-
+@configuration.configured
 def qsplit_sampler_recursive(qubo: QUBO) -> QUBO:
+    return _sample_recursive(qubo)
+
+
+def _sample_recursive(qubo: QUBO, leaves: list[QUBO] | None = None) -> QUBO:
     if is_empty(qubo):
-        qubo.solutions = dummy_solve(qubo)
+        qubo.solutions = dummy_solve(qubo) if leaves is None else zero_solve(qubo)
+        if leaves is not None:
+            qubo.solutions["energy"] = qubo.offset
+            leaves.append(qubo)
         return qubo
-    if (qubo.problem_size <= int(os.environ["CUT_DIM"])) or is_sparse(qubo):
+    if (qubo.problem_size <= int(configuration.require("CUT_DIM"))) or is_sparse(qubo):
         qubo.solutions = solve(qubo)
+        if leaves is not None:
+            leaves.append(qubo)
         return qubo
 
     subs = split_problem_recursive(qubo)
     if LOGICAL_EXPANSION:
-        subs[1].solutions = qsplit_sampler_recursive(subs[1]).solutions
+        subs[1].solutions = _sample_recursive(subs[1], leaves).solutions
         subs = logical_expansion(subs)
-        subs[0].solutions = qsplit_sampler_recursive(subs[0]).solutions
-        subs[2].solutions = qsplit_sampler_recursive(subs[2]).solutions
+        subs[0].solutions = _sample_recursive(subs[0], leaves).solutions
+        subs[2].solutions = _sample_recursive(subs[2], leaves).solutions
         return aggregate_solutions_trivial(subs[0], subs[2], qubo)
     else:
-        subs[0].solutions = qsplit_sampler_recursive(subs[0]).solutions
-        subs[1].solutions = qsplit_sampler_recursive(subs[1]).solutions
-        subs[2].solutions = qsplit_sampler_recursive(subs[2]).solutions
+        subs[0].solutions = _sample_recursive(subs[0], leaves).solutions
+        subs[1].solutions = _sample_recursive(subs[1], leaves).solutions
+        subs[2].solutions = _sample_recursive(subs[2], leaves).solutions
         return aggregate_solutions_recursive(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_iterative(qubo: QUBO) -> QUBO:
     subs = split_problem_linear(qubo)
     for p in subs:
@@ -113,6 +88,7 @@ def qsplit_sampler_iterative(qubo: QUBO) -> QUBO:
     return aggregate_solutions_linear_bp(subs, qubo) if BP else aggregate_solutions_linear(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_interactions(qubo: QUBO) -> QUBO:
     subs = split_problem_interactions(qubo)
     for p in subs:
@@ -123,6 +99,7 @@ def qsplit_sampler_interactions(qubo: QUBO) -> QUBO:
     return aggregate_solutions_interactions(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_graph_partitioning(qubo: QUBO) -> QUBO:
     subs = split_problem_recursive_graph(qubo)
     for p in subs:
@@ -133,6 +110,7 @@ def qsplit_sampler_graph_partitioning(qubo: QUBO) -> QUBO:
     return aggregate_solutions_recursive_graph(subs, qubo)
 
 
+@configuration.configured
 def qsplit_sampler_quadtree(qubo: QUBO) -> QUBO:
     subs = split_problem_quadtree(qubo)
     for p in subs:
@@ -141,3 +119,124 @@ def qsplit_sampler_quadtree(qubo: QUBO) -> QUBO:
         else:
             p.solutions = solve(p)
     return aggregate_solutions_quadtree(subs, qubo)
+
+
+def _qsplit_sampler_refined(
+    qubo: QUBO,
+    split: Callable[[QUBO], list[QUBO]],
+    aggregate: Callable[[list[QUBO], QUBO], QUBO],
+    refinement: Callable[[list[QUBO], QUBO], list[QUBO]] | None,
+) -> QUBO:
+    original = deepcopy(qubo)
+    subs = split(qubo)
+    solve_problems(subs, solve)
+    original.solutions = aggregate(subs, qubo).solutions.copy(deep=True)
+    block_size = int(configuration.require("CUT_DIM"))
+    if split is split_problem_quadtree:
+        block_size -= block_size % 2
+    refinement_aggregate = aggregate
+    if refinement is refine_problems_mean_field or aggregate is aggregate_solutions_interactions:
+        refinement_aggregate = aggregate_solutions_linear
+    result = refine_result(
+        original,
+        solve=solve,
+        subproblems=subs,
+        refinement=refinement,
+        aggregate=refinement_aggregate,
+        block_size=block_size,
+    )
+    qubo.solutions = result.solutions
+    qubo.refinement_history = result.refinement_history
+    return qubo
+
+
+@configuration.configured
+def qsplit_sampler_refined_iterative(
+    qubo: QUBO,
+    *,
+    refinement: Callable[[list[QUBO], QUBO], list[QUBO]] | None = None,
+) -> QUBO:
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
+    if loops <= 0:
+        return qsplit_sampler_iterative(qubo)
+    refinement = select_refinement(refinement, refine_problems_linear)
+    aggregate = aggregate_solutions_linear_bp if BP else aggregate_solutions_linear
+    return _qsplit_sampler_refined(qubo, split_problem_linear, aggregate, refinement)
+
+
+@configuration.configured
+def qsplit_sampler_refined_quadtree(
+    qubo: QUBO,
+    *,
+    refinement: Callable[[list[QUBO], QUBO], list[QUBO]] | None = None,
+) -> QUBO:
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
+    if loops <= 0:
+        return qsplit_sampler_quadtree(qubo)
+    refinement = select_refinement(refinement, refine_problems_quadtree)
+    return _qsplit_sampler_refined(qubo, split_problem_quadtree, aggregate_solutions_quadtree, refinement)
+
+
+@configuration.configured
+def qsplit_sampler_refined_interactions(qubo: QUBO, *, refinement: Callable | None = None) -> QUBO:
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
+    if loops <= 0:
+        return qsplit_sampler_interactions(qubo)
+    refinement = select_refinement(refinement, refine_problems_mean_field)
+    return _qsplit_sampler_refined(qubo, split_problem_interactions, aggregate_solutions_interactions, refinement)
+
+
+@configuration.configured
+def qsplit_sampler_refined_graph_partitioning(qubo: QUBO, *, refinement: Callable | None = None) -> QUBO:
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
+    if loops <= 0:
+        return qsplit_sampler_graph_partitioning(qubo)
+    refinement = select_refinement(refinement, refine_problems_mean_field)
+    return _qsplit_sampler_refined(qubo, split_problem_recursive_graph, aggregate_solutions_recursive_graph, refinement)
+
+
+@configuration.configured
+def qsplit_sampler_refined_recursive(qubo: QUBO, *, refinement: Callable | None = None) -> QUBO:
+    if int(configuration.get("REFINEMENT_LOOPS", "0")) <= 0:
+        return qsplit_sampler_recursive(qubo)
+    original = deepcopy(qubo)
+    refinement = select_refinement(refinement, refine_problems_mean_field)
+    leaves = []
+    original.solutions = _sample_recursive(qubo, leaves).solutions.copy(deep=True)
+    result = refine_result(original, solve=solve, subproblems=leaves, refinement=refinement)
+    qubo.solutions = result.solutions
+    qubo.refinement_history = result.refinement_history
+    return qubo
+
+
+@configuration.configured
+def qsplit_sampler(
+    qubo: QUBO,
+    *,
+    split: Callable,
+    aggregate: Callable,
+    refinement: Callable | None = None,
+    refinement_aggregate: Callable = aggregate_solutions_linear,
+) -> QUBO:
+    loops = int(configuration.get("REFINEMENT_LOOPS", "0"))
+    original = deepcopy(qubo) if loops > 0 else None
+    subs = split(qubo)
+    if loops > 0:
+        solve_problems(subs, solve)
+    else:
+        for sub in subs:
+            sub.solutions = dummy_solve(sub) if is_empty(sub) else solve(sub)
+    result = aggregate(subs, qubo)
+    if loops <= 0:
+        return result
+    original.solutions = result.solutions.copy(deep=True)
+    refined = refine_result(
+        original,
+        solve=solve,
+        subproblems=subs,
+        refinement=refinement,
+        aggregate=refinement_aggregate,
+    )
+    result.solutions = refined.solutions
+    result.refinement_history = refined.refinement_history
+    return result

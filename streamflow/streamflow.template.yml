@@ -28,6 +28,18 @@ workflows:
       - step: /collect_results
         target:
           deployment: qsplit-maintenance-local
+      - step: /qsplit_instances/initialize_refinement
+        target:
+          deployment: qsplit-cpu
+      - step: /qsplit_instances/refine/prepare
+        target:
+          deployment: qsplit-cpu
+      - step: /qsplit_instances/refine/solve
+        target:
+          deployment: qsplit-base
+      - step: /qsplit_instances/refine/update
+        target:
+          deployment: qsplit-cpu
 
 failureManager:
   type: default
@@ -110,16 +122,10 @@ deployments:
       providerPool: ["iqm"]
       maxConcurrentJobs:
         iqm: 1
-      providerEnvMap:
-        iqm:
-          VIRTUAL_ENV: ${QSPLIT_IQM_VENV}
-          PATH: ${QSPLIT_IQM_VENV}/bin:${PATH}
-          PYTHONNOUSERSITE: "1"
-          IQM_SERVER_URL: https://resonance.meetiqm.com/
-          IQM_TOKEN: ${IQM_TOKEN}
-          IQM_QUANTUM_COMPUTER: garnet
-          QSPLIT_IQM_BACKEND: ${QSPLIT_IQM_BACKEND}
-          QSPLIT_IQM_FALLBACK_TIMEOUT_SEC: "0"
+      providerConfigMap:
+        iqm: ../configs/iqm.yaml
+      providerPythonMap:
+        iqm: /absolute/path/to/iqm-venv/bin/python
 
 database:
   type: sqlite

@@ -1,5 +1,4 @@
 import math
-import os
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -8,10 +7,13 @@ import pandas as pd
 import qnexus as qnx
 import sympy as sp
 from pytket import Circuit, Qubit
-from pytket.extensions.qiskit import AerBackend
+from pytket.extensions.qiskit import AerBackend, AerStateBackend
 from pytket.pauli import Pauli, QubitPauliString
 from pytket.utils import QubitPauliOperator, gen_term_sequence_circuit, get_operator_expectation_value
 from scipy.optimize import minimize
+
+from qsplit import configuration
+from qsplit.adapters.training import training_subproblem
 
 
 class TKET_BACKEND(Enum):
@@ -47,7 +49,7 @@ def __from_qubo_matrix_to_circuit(qubo):
     return QubitPauliOperator(op_dict), var_to_qubit, all_vars
 
 
-def get_qaoa_circuit_optimized(qubo, backend, reps: int = 2):
+def _qaoa_circuit(qubo, reps):
     operator, var_to_qubit, all_vars = __from_qubo_matrix_to_circuit(qubo)
     n = len(all_vars)
     circ = Circuit(n)
@@ -65,74 +67,40 @@ def get_qaoa_circuit_optimized(qubo, backend, reps: int = 2):
 
         for q in range(n):
             circ.Rx(2 * betas[r] / sp.pi, q)
+    return circ, operator, var_to_qubit, all_vars
+
+
+def get_qaoa_circuit_optimized(qubo, backend, reps: int = 2):
+    training_circuit, operator, _, _ = _qaoa_circuit(training_subproblem(qubo), reps)
+    params = _optimize(training_circuit, operator)
+    circ, _, var_to_qubit, all_vars = _qaoa_circuit(qubo, reps)
+    circ.symbol_substitution(
+        {s: params.get(s, math.pi / 2 if "beta" in str(s) else math.pi) for s in circ.free_symbols()}
+    )
     circ.measure_all()
-
-    optimized = _optimize(circ, operator, backend)
-    measured = optimized.copy()
-    measured.measure_all()
-
-    return measured, var_to_qubit, all_vars
+    return circ, var_to_qubit, all_vars
 
 
-def __evaluate_pauli_z(bitstring, operator):
-    bitstring = bitstring[::-1]
-    total = 0.0
-
-    for qps, coeff in operator._dict.items():
-        term_val = 1.0
-        for qubit, pauli in qps.map.items():
-            if pauli != Pauli.Z:
-                continue
-            idx = qubit.index[0]
-            bit = bitstring[idx]
-            term_val *= 1 if bit == "0" else -1
-        total += coeff * term_val
-
-    return total
-
-
-def __compute_expectation_from_counts(counts, operator):
-    exp = 0
-    shots = sum(counts.values())
-
-    for bitstring, freq in counts.items():
-        z_val = __evaluate_pauli_z(bitstring, operator)
-        exp += z_val * freq / shots
-
-    return exp
-
-
-def _optimize(circ, operator, backend):
+def _optimize(circ, operator):
     symbols = sorted(circ.free_symbols(), key=str)
 
     if not symbols:
-        return circ
+        return {}
 
     init = [math.pi / 2 if "beta" in str(s) else math.pi for s in symbols]
+    if not any(operator._dict.values()):
+        return dict(zip(symbols, init))
+    backend = AerStateBackend()
 
     def objective(params):
         subs = {s: float(v) for s, v in zip(symbols, params)}
         c = circ.copy()
         c.symbol_substitution(subs)
-        if isinstance(backend, AerBackend):
-            val = get_operator_expectation_value(c, operator, backend, n_shots=100)
-            return float(np.real_if_close(val))
-        else:
-            project = qnx.projects.get_or_create("qsplit-qaoa")
-            config = qnx.QuantinuumConfig(device_name=os.getenv("QNEXUS_QPU"))
-            name = f"qaoa-opt-{datetime.now(timezone.utc).isoformat()}"
-            ref = qnx.circuits.upload(c, name=f"opt-{name}", project=project)
-            compiled = qnx.compile([ref], name=name, backend_config=config, project=project)
-            result = qnx.execute(
-                compiled, n_shots=[100], backend_config=config, name=f"execute-{name}", project=project, timeout=None
-            )[0]
-            return __compute_expectation_from_counts(result.get_counts(), operator)
+        val = get_operator_expectation_value(c, operator, backend)
+        return float(np.real_if_close(val))
 
     res = minimize(objective, np.array(init), method="COBYLA", options={"maxiter": 5}, tol=1e-4)
-    best = res.x
-    final = circ.copy()
-    final.symbol_substitution({s: float(v) for s, v in zip(symbols, best)})
-    return final
+    return {s: float(v) for s, v in zip(symbols, res.x)}
 
 
 def run_quantum_optimizer(optimized_circuit, backend):
@@ -141,7 +109,7 @@ def run_quantum_optimizer(optimized_circuit, backend):
         result = backend.run_circuit(backend_circuit, n_shots=100)
     else:
         project = qnx.projects.get_or_create("qsplit-qaoa")
-        config = qnx.QuantinuumConfig(device_name=os.getenv("QNEXUS_QPU"))
+        config = qnx.QuantinuumConfig(device_name=configuration.get("QNEXUS_QPU"))
         name = f"qaoa-{datetime.now(timezone.utc).isoformat()}"
         ref = qnx.circuits.upload(optimized_circuit, name=f"compile-{name}", project=project)
         compiled = qnx.compile([ref], name=name, backend_config=config, project=project)

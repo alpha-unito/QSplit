@@ -30,9 +30,8 @@ class TestSolveNan(unittest.TestCase):
         qubo = QUBO(mat, rows_idx, cols_idx)
         result_df = dummy_solve(qubo)
 
-        self.assertEqual(result_df.shape, (1, 3))
-        self.assertEqual(list(result_df.columns), [-1, 10, "energy"])
-        self.assertTrue(np.isnan(result_df.loc[0, -1]))
+        self.assertEqual(result_df.shape, (1, 2))
+        self.assertEqual(list(result_df.columns), [10, "energy"])
         self.assertTrue(np.isnan(result_df.loc[0, 10]))
         self.assertTrue(np.isnan(result_df.loc[0, "energy"]))
 
@@ -70,8 +69,8 @@ class TestSolveZero(unittest.TestCase):
         qubo = QUBO(mat, rows_idx, cols_idx)
         result_df = zero_solve(qubo)
 
-        self.assertEqual(result_df.shape, (1, 5))
-        self.assertEqual(list(result_df.columns), [-1, 1, 2, 3, "energy"])
+        self.assertEqual(result_df.shape, (1, 4))
+        self.assertEqual(list(result_df.columns), [1, 2, 3, "energy"])
         self.assertTrue(np.all(result_df.values == 0))
 
 

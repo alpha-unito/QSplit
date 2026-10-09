@@ -7,19 +7,14 @@ requirements:
 inputs:
   parallel_solved:
     type: File[]
-    default: []
   iqm_solved:
     type: File[]
-    default: []
   quantinuum_h2_solved:
     type: File[]
-    default: []
   quantinuum_h2e_solved:
     type: File[]
-    default: []
   split_solved:
     type: File[]
-    default: []
 
 outputs:
   solved_list: File[]

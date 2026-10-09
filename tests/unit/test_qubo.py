@@ -53,19 +53,14 @@ class TestQUBO(unittest.TestCase):
         self.assertTrue(np.allclose(new_mat, np.triu(new_mat)))
         self.assertEqual(new_mat.shape, mat.shape)
 
-    def test_sanitize_odd_size_padding(self):
+    def test_sanitize_odd_size_preserves_shape_and_indices(self):
         mat = np.array([[1.0, 2.0, 3.0], [0.0, 4.0, 5.0], [0.0, 0.0, 6.0]])
         rows = np.array([1, 2, 3])
         cols = np.array([1, 2, 3])
         new_mat, new_cols, new_rows = QUBO.sanitize(mat, cols, rows)
-        self.assertEqual(new_mat.shape, (4, 4))
-        self.assertEqual(new_rows.shape, (4,))
-        self.assertEqual(new_cols.shape, (4,))
-        np.testing.assert_array_equal(new_rows[-1], -1)
-        np.testing.assert_array_equal(new_cols[-1], -1)
-        expected_mat = np.zeros((4, 4))
-        expected_mat[:3, :3] = mat
-        np.testing.assert_array_almost_equal(new_mat, expected_mat)
+        np.testing.assert_array_equal(new_rows, rows)
+        np.testing.assert_array_equal(new_cols, cols)
+        np.testing.assert_array_almost_equal(new_mat, mat)
 
     def test_sanitize_odd_size_after_triangularization(self):
         mat = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
@@ -74,11 +69,9 @@ class TestQUBO(unittest.TestCase):
         new_mat, new_cols, new_rows = QUBO.sanitize(mat, cols, rows)
         diag = np.diag(np.diag(mat))
         triangular_mat = np.triu(mat + mat.T) - diag
-        expected_mat = np.zeros((4, 4))
-        expected_mat[:3, :3] = triangular_mat
-        self.assertEqual(new_mat.shape, (4, 4))
-        np.testing.assert_array_almost_equal(new_mat, expected_mat)
-        np.testing.assert_array_equal(new_rows[-1], -1)
+        np.testing.assert_array_almost_equal(new_mat, triangular_mat)
+        np.testing.assert_array_equal(new_rows, rows)
+        np.testing.assert_array_equal(new_cols, cols)
 
     def test_str_representation(self):
         qubo = QUBO(self.valid_mat, self.valid_rows_idx, self.valid_cols_idx, self.offset)

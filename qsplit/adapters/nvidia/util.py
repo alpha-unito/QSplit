@@ -125,7 +125,7 @@ def to_dataframe(
         sol_dict = {var_name: bits[q_idx] for var_name, q_idx in var_to_qubit.items()}
         vec_row = np.array([sol_dict[r] for r in qubo.rows_idx])
         vec_col = np.array([sol_dict[c] for c in qubo.cols_idx])
-        energy = vec_row @ qubo.mat @ vec_col.T
+        energy = vec_row @ qubo.mat @ vec_col.T + qubo.offset
         row = sol_dict.copy()
         row["energy"] = energy
         data.append(row)
