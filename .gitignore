@@ -42,6 +42,7 @@ benchmark_output
 !/streamflow/streamflow.benchmark.remote.template.yml
 !/.pre-commit-config.yaml
 !/.github/workflows/ci.yml
+!/.github/dependabot.yml
 
 # Native extension and distribution artifacts
 *.so

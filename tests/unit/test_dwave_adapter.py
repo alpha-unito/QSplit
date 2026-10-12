@@ -1,10 +1,38 @@
 import unittest
+from unittest.mock import Mock
 
 import dimod
 import numpy as np
 
 from qsplit.adapters.dwave.util import from_qubo_matrix_to_bqm, to_dataframe
 from qsplit.qubo import QUBO
+
+
+def test_qpu_does_not_open_pickle_cache(monkeypatch, make_qubo):
+    import diskcache
+    from dwave.cloud import Client
+
+    from qsplit.adapters.dwave import dwave_qa
+
+    def forbid_cache(*args, **kwargs):
+        raise AssertionError("QPU client must not open a pickle-backed disk cache")
+
+    def sampler(**options):
+        # Even a user configuration enabling the cache must not override the mitigation.
+        with Client.from_config(
+            config_file=False, endpoint="https://example.invalid/sapi", cache_enabled=True, **options
+        ) as client:
+            assert not client.solvers_session.session._cache_enabled
+        return object()
+
+    qubo = make_qubo([[-1, 0], [0, -2]])
+    composite = Mock()
+    composite.sample.return_value = dimod.SampleSet.from_samples_bqm({0: 1, 1: 1}, from_qubo_matrix_to_bqm(qubo))
+    monkeypatch.setattr(diskcache, "Cache", forbid_cache)
+    monkeypatch.setattr(dwave_qa, "DWaveSampler", sampler)
+    monkeypatch.setattr(dwave_qa, "EmbeddingComposite", Mock(return_value=composite))
+    result = dwave_qa.solve(qubo, config={"DWAVE_API_TOKEN": "test-token"})
+    assert result.iloc[0]["energy"] == -3
 
 
 class TestDWaveAdapter(unittest.TestCase):
