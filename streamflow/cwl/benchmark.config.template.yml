@@ -1,10 +1,9 @@
 benchmark_request:
   class: File
-  path: benchmark.request.template.yaml
-# Optional checkout source: also works when the upstream manifest is unavailable.
-# qoblib_repository:
-#   class: Directory
-#   path: /absolute/path/to/QOBLIB
+  path: benchmark.all.request.template.yaml
+qoblib_repository:
+  class: Directory
+  path: /absolute/path/to/QOBLIB
 solutions_store_dir: /absolute/path/to/benchmark-run/solutions
 cut_dim: 16
 split_method: recursive_graph

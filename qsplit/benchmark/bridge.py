@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import math
 import platform
 import re
 import xml.etree.ElementTree as ET
@@ -14,7 +15,15 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
-from qsplit.benchmark.conversion import decode, encode_model, labs_record, model_evaluation, native_model, read_lp
+from qsplit.benchmark.conversion import (
+    decode,
+    encode_model,
+    labs_record,
+    model_evaluation,
+    native_model,
+    native_qubo_dimension,
+    read_lp,
+)
 from qsplit.benchmark.progress import progress
 from qsplit.benchmark.sources import (
     DIRECTORIES,
@@ -55,12 +64,12 @@ def read_request(path):
     ):
         raise ValueError("Benchmark request must contain a nonempty instances list or instances: all")
     runs = data.get("runs", 5)
-    maximum = data.get("max_variables", 4096)
+    maximum = data.setdefault("max_variables", 100_000)
     if data.get("check") is False:
         data["check"] = "off"
     if type(runs) is not int or runs < 1 or type(maximum) is not int or maximum < 1:
         raise ValueError("runs and max_variables must be positive integers")
-    matrix_bytes = data.get("max_matrix_bytes", 256 * 1024**2)
+    matrix_bytes = data.setdefault("max_matrix_bytes", 80_000_000_000)
     if type(matrix_bytes) is not int or matrix_bytes <= 0:
         raise ValueError("max_matrix_bytes must be a positive integer")
     if data.get("check", "auto") not in {"auto", "required", "off"}:
@@ -68,6 +77,7 @@ def read_request(path):
     if data.get("on_conversion_error", "error") not in {"error", "skip"}:
         raise ValueError("on_conversion_error must be error or skip")
     selection = data["instances"]
+    data.setdefault("on_conversion_error", "skip" if selection == "all" or isinstance(selection[0], str) else "error")
     names = []
     if selection != "all":
         if all(isinstance(e, str) for e in selection):
@@ -109,6 +119,7 @@ def prepare(request_path, output_dir, *, repository=None):
     conversion_errors = []
     seen = set()
     entries = []
+    variable_limit = min(request["max_variables"], math.isqrt(request["max_matrix_bytes"] // 8))
     selection = request["instances"]
     if selection == "all" or isinstance(selection[0], str):
         if repository is None:
@@ -136,8 +147,19 @@ def prepare(request_path, output_dir, *, repository=None):
             matches = [(k, v) for k, v in collection.instances.items() if selected is None or selected in {k, v["id"]}]
             if not matches:
                 raise ValueError(f"No Birkhoff sub-instance {selected!r} in {name}")
+            from qoblib.problems.birkhoff import BirkhoffInstance
+
             for key, data in matches:
-                entries.append({**entry, "instance": data["id"], "source_instance": name, "subinstance": key})
+                dimension = native_qubo_dimension("birkhoff", BirkhoffInstance({key: data}))
+                entries.append(
+                    {
+                        **entry,
+                        "instance": data["id"],
+                        "source_instance": name,
+                        "subinstance": key,
+                        "qubo_dimension": dimension,
+                    }
+                )
             progress("catalog", f"expanded {len(matches)} subinstances", entry=entry)
         except (KeyError, ValueError, NotImplementedError, qoblib.QoblibError) as exc:
             record_error(entry, exc)
@@ -149,6 +171,11 @@ def prepare(request_path, output_dir, *, repository=None):
                 raise ValueError("Invalid instance identifier in source data")
             if slug not in DIRECTORIES:
                 raise ValueError(f"Unknown QOBLIB problem: {slug}")
+            if slug == "birkhoff" and entry["qubo_dimension"] > variable_limit:
+                raise ValueError(
+                    f"Birkhoff permutation formulation needs {entry['qubo_dimension']} QUBO variables; "
+                    f"effective limit={variable_limit} (max_variables and max_matrix_bytes)"
+                )
             problem = get_problem(slug, ref=ref, source_dir=source_dir, repository=repository)
             source_name = entry.get("source_instance", name)
             instance = load_instance(problem, source_name)
@@ -165,8 +192,10 @@ def prepare(request_path, output_dir, *, repository=None):
                 instance = BirkhoffInstance({key: instance.instances[key]}, name=name, path=instance.path)
             options = {
                 "penalty": entry.get("penalty", request.get("penalty")),
-                "max_variables": request.get("max_variables", 4096),
+                "max_variables": variable_limit,
             }
+            if slug in NATIVE and native_qubo_dimension(slug, instance) > variable_limit:
+                raise ValueError(f"{slug}: QUBO exceeds effective variable limit={variable_limit}")
             if slug == "labs":
                 progress("prepare", f"encoding LABS length={instance}", entry=entry)
                 record = labs_record(instance, **options)
@@ -182,7 +211,7 @@ def prepare(request_path, output_dir, *, repository=None):
                     formulation = entry.get("formulation", DEFAULT_FORMULATION[slug])
                     progress("prepare", f"loading LP formulation={formulation}", entry=entry)
                     path = load_model(problem, entry.get("model", name), formulation)
-                    model = read_lp(path)
+                    model = read_lp(path, max_variables=None if entry.get("bounds") else variable_limit)
                     if slug == "portfolio":
                         name = path.stem
                     for variable, bounds in entry.get("bounds", {}).items():

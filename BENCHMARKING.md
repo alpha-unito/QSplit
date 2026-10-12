@@ -1,7 +1,8 @@
 # QOBLIB benchmarks
 
-The [complete request](streamflow/cwl/benchmark.all.request.template.yaml) selects
-the entire catalog of a QOBLIB checkout with `instances: all`. The existing
+The default [catalog request](streamflow/cwl/benchmark.all.request.template.yaml) discovers
+all classes of a QOBLIB checkout with `instances: all`, then keeps compatible
+instances within the configured QUBO budgets. The existing
 [benchmark workflow](streamflow/cwl/benchmark.cwl) expands the catalog, converts
 instances to QUBO, runs QSplit, and exports native QOBLIB solutions and comparisons
 in one `streamflow run`.
@@ -32,14 +33,32 @@ are also discovered from models and reference solutions, since they do not have
 individual instance files. Instances without a supported LP remain in the catalog.
 The checkout commit is recorded in the benchmark provenance.
 
-This selects all instances, but the current bridge cannot solve every instance:
+The default request uses `max_variables: 100000` and
+`max_matrix_bytes: 80000000000`, with one run per instance. This is an HPC
+ceiling of 80 GB for **one** float64 dense matrix, not a total job-memory estimate.
+Set `max_matrix_bytes` to the budget available to a single process on your node;
+other matrices, model metadata, coefficients and solver work require extra RAM.
+For comparison, a cap of 1,000,000 variables would require 8 TB for one matrix.
+
+Selection checks the full QUBO size before expanding coefficients, including
+integer bits, LABS products and inequality slack. Birkhoff's native formulation
+enumerates all `n!` permutations and has `n! * (1 + 2 * scale.bit_length())` QUBO
+variables; oversized subinstances are rejected before enumerating permutations.
+The filter measures compatibility and size, rather than scientific interest or
+difficulty. No class is excluded by name. Default StreamFlow settings use the
+catalog request; the [individual request](streamflow/cwl/benchmark.request.template.yaml)
+remains a small example for testing one instance.
+
+The current bridge cannot solve every instance:
 some lack a compatible LP, have continuous/unbounded variables, or exceed the
 conversion limits. The complete request uses `on_conversion_error: skip` to run
 the convertible instances and record every failure in `conversion_errors` in
 `results.json` and the bundle's `manifest.json`. Set it to `error` to fail at the
 first conversion error instead. `catalog_count` includes Birkhoff subinstances
 and portfolio variants. Increasing a size limit does not add support for another
-model type. An empty convertible dataset always fails.
+model type. An empty convertible dataset always fails. Catalog requests also
+default to skipping conversion errors when the policy is omitted; explicit
+instance lists retain strict error handling unless configured otherwise.
 
 ## Install
 

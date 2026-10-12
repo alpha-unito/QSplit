@@ -17,7 +17,16 @@ pytest.importorskip("qoblib")
 pytest.importorskip("pyscipopt")
 
 from qsplit.benchmark.bridge import finalize, prepare, serialize, solution_object
-from qsplit.benchmark.conversion import decode, encode_model, labs_record, model_evaluation, read_lp, to_qubo
+from qsplit.benchmark.conversion import (
+    decode,
+    encode_model,
+    labs_record,
+    model_evaluation,
+    model_qubo_dimension,
+    native_model,
+    read_lp,
+    to_qubo,
+)
 from qsplit.benchmark.local_benchmark import run
 
 REPO = Path(__file__).resolve().parents[2]
@@ -95,6 +104,58 @@ def test_conversion_rejects_unbounded_fractional_or_oversized_domains():
             encode_model({"variables": {"x": bounds}})
     with pytest.raises(ValueError, match="max_variables"):
         labs_record(5, max_variables=5)
+
+
+def test_preflight_counts_slack_and_rejects_before_building_qubo(monkeypatch):
+    model = {
+        "variables": {"x": [-1, 2], "y": [0, 1]},
+        "constraints": [{"coefficients": {"x": 0.5, "y": -0.25}, "lower": -0.5, "upper": 1}],
+    }
+    dim = model_qubo_dimension(model)
+    assert dim == encode_model(model)["dim"]
+    assert dim > 3
+    monkeypatch.setattr("qsplit.benchmark.conversion.defaultdict", Mock(side_effect=AssertionError("QUBO allocated")))
+    with pytest.raises(ValueError, match="max_variables"):
+        encode_model(model, max_variables=3)
+
+
+def test_birkhoff_budget_includes_slack_before_enumerating_permutations(monkeypatch):
+    instance = SimpleNamespace(instances={"one": {"n": 7, "scale": 4096}})
+    permutations = Mock(side_effect=AssertionError("Permutations enumerated"))
+    monkeypatch.setattr("qsplit.benchmark.conversion.itertools.permutations", permutations)
+    with pytest.raises(ValueError, match="max_variables"):
+        native_model("birkhoff", instance, max_variables=100_000)
+    permutations.assert_not_called()
+
+
+def test_lp_budget_rejects_before_materializing_constraints(tmp_path):
+    path = tmp_path / "oversized.lp"
+    path.write_text("Minimize\n obj: x + y\nSubject To\n c: x + y <= 1\nBinary\n x y\nEnd\n")
+    with pytest.raises(ValueError, match="LP requires more than max_variables=1"):
+        read_lp(path, max_variables=1)
+
+
+def test_explicit_bound_overrides_can_reduce_an_lp_to_the_budget(tmp_path, monkeypatch):
+    lp = tmp_path / "model.lp"
+    lp.write_text("Minimize\n obj: x + y\nSubject To\n c: x + y = 1\nBinary\n x y\nEnd\n")
+    request = tmp_path / "request.yaml"
+    request.write_text(
+        yaml.safe_dump(
+            {
+                "runs": 1,
+                "check": "off",
+                "max_variables": 1,
+                "max_matrix_bytes": 8,
+                "instances": [{"problem": "sports", "instance": "tiny", "bounds": {"y": [0, 0]}}],
+            }
+        )
+    )
+    problem = SimpleNamespace(load_solution=Mock(side_effect=NotImplementedError))
+    monkeypatch.setattr("qsplit.benchmark.bridge.get_problem", lambda *args, **kwargs: problem)
+    monkeypatch.setattr("qsplit.benchmark.bridge.load_instance", lambda *args: None)
+    monkeypatch.setattr("qsplit.benchmark.bridge.load_model", lambda *args: lp)
+    dataset = prepare(request, tmp_path / "bundle")
+    assert json.loads(dataset.read_text())["dim"] == 1
 
 
 @pytest.fixture

@@ -122,6 +122,39 @@ def test_all_selection_reports_failures_and_preserves_strict_mode(tmp_path, caps
     assert empty["count"] == 0 and len(empty["conversion_errors"]) == 1
 
 
+def test_catalog_defaults_skip_unsupported_entries_and_budget_before_conversion(tmp_path, monkeypatch):
+    source = tmp_path / "QOBLIB"
+    files = {
+        "02-labs/solutions/labs002.sol": "01\n",
+        "02-labs/solutions/labs004.sol": "0100\n",
+        "03-birkhoff/instances/large.json": json.dumps({"one": {"id": "one", "n": 100, "scale": 1000}}),
+    }
+    for relative, text in files.items():
+        path = source / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+    request = tmp_path / "request.yaml"
+    request.write_text('instances: all\nruns: 1\ncheck: "off"\nmax_matrix_bytes: 72\n')
+    parsed = read_request(request)
+    assert parsed["on_conversion_error"] == "skip"
+    assert parsed["max_variables"] == 100_000
+    encoded_lengths = []
+    from qsplit.benchmark.conversion import labs_record
+
+    def encode_labs(n, **options):
+        encoded_lengths.append(n)
+        assert n == 2
+        return labs_record(n, **options)
+
+    monkeypatch.setattr("qsplit.benchmark.bridge.labs_record", encode_labs)
+    dataset = prepare(request, tmp_path / "bundle", repository=source)
+    manifest = json.loads((dataset.parent / "manifest.json").read_text())
+    assert manifest["catalog_count"] == 3 and manifest["count"] == 1
+    assert len(manifest["conversion_errors"]) == 2
+    assert {e["problem"] for e in manifest["conversion_errors"]} == {"labs", "birkhoff"}
+    assert encoded_lengths == [2]
+
+
 def test_local_cli_reads_pipeline_yaml_and_reports_progress(tmp_path):
     pytest.importorskip("dwave.samplers")
     source = tmp_path / "source"

@@ -87,7 +87,7 @@ dependencies. Install your chosen backend separately:
 `uv sync --extra benchmark --extra dwave` for `local_benchmark` with simulated annealing, or
 `uv sync --extra benchmark --extra ibm-cpu --extra streamflow` for a workflow using
 the IBM CPU adapter. Select the workflow backend in its solver configuration and
-StreamFlow bindings. Start from the [benchmark request](streamflow/cwl/benchmark.request.template.yaml)
+StreamFlow bindings. Start from the [benchmark request](streamflow/cwl/benchmark.all.request.template.yaml)
 and [workflow settings](streamflow/cwl/benchmark.config.template.yml).
 See [QOBLIB benchmarks](BENCHMARKING.md) for the complete-catalog example, local
 and SSH execution commands, conversion limits, and configuring `cut_dim`.

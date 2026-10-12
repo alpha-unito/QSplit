@@ -20,7 +20,73 @@ def integer_weights(span: int) -> list[int]:
     return weights
 
 
+def _scaled_constraint(constraint):
+    bounds = [constraint.get("lower"), constraint.get("upper")]
+    values = list(constraint["coefficients"].values()) + [v for v in bounds if v is not None]
+    if all(abs(v) <= 2**53 and v == int(v) for v in values):
+        divisor = math.gcd(*(int(v) for v in values)) or 1
+        coefficients = {k: int(v) // divisor for k, v in constraint["coefficients"].items()}
+        lower, upper = [None if v is None else int(v) // divisor for v in bounds]
+    else:
+        fractions = {k: Fraction(str(v)) for k, v in constraint["coefficients"].items()}
+        values = list(fractions.values()) + [Fraction(str(v)) for v in bounds if v is not None]
+        denominator = math.lcm(*(v.denominator for v in values))
+        divisor = math.gcd(*(int(v * denominator) for v in values)) or 1
+        scale = Fraction(denominator, divisor)
+        coefficients = {k: int(v * scale) for k, v in fractions.items()}
+        lower, upper = [None if v is None else int(Fraction(str(v)) * scale) for v in bounds]
+    return coefficients, lower, upper
+
+
+def model_qubo_dimension(model, *, max_variables=None):
+    dim = 0
+
+    def add(span):
+        nonlocal dim
+        if span < 0:
+            raise ValueError("Empty integer domain / constraint has no feasible assignment")
+        dim += int(span).bit_length()
+        if max_variables is not None and max(dim, 1) > max_variables:
+            raise ValueError(f"QUBO exceeds max_variables={max_variables}; choose a smaller instance")
+
+    for name, (lower, upper) in model["variables"].items():
+        if not all(math.isfinite(v) and v == int(v) for v in (lower, upper)):
+            raise ValueError(f"{name}: finite integral bounds are required")
+        add(upper - lower)
+    for constraint in model.get("constraints", []):
+        coefficients, lower, upper = _scaled_constraint(constraint)
+        if lower == upper:
+            continue
+        minimum = sum(c * model["variables"][k][0 if c >= 0 else 1] for k, c in coefficients.items())
+        maximum = sum(c * model["variables"][k][1 if c >= 0 else 0] for k, c in coefficients.items())
+        if upper is not None:
+            add(upper - minimum)
+        if lower is not None:
+            add(maximum - lower)
+    add(0)
+    return max(dim, 1)
+
+
+def native_qubo_dimension(slug, instance):
+    if slug == "labs":
+        return instance * (instance + 1) // 2
+    if slug == "marketsplit":
+        return max(1, instance.n_cols)
+    if slug == "independentset":
+        return max(1, instance.n + len(instance.edges))
+    if slug == "birkhoff":
+        return max(
+            1,
+            sum(
+                math.factorial(int(data["n"])) * (1 + 2 * int(data["scale"]).bit_length())
+                for data in instance.instances.values()
+            ),
+        )
+    raise ValueError(f"No native model for {slug}")
+
+
 def encode_model(model: dict, *, penalty=None, max_variables=4096) -> dict:
+    model_qubo_dimension(model, max_variables=max_variables)
     coefficients = defaultdict(float)
     offset = float(model.get("constant", 0))
     dim = 0
@@ -74,14 +140,7 @@ def encode_model(model: dict, *, penalty=None, max_variables=4096) -> dict:
         raise ValueError("penalty must be finite and positive")
 
     for index, constraint in enumerate(model.get("constraints", [])):
-        fractions = {k: Fraction(str(v)) for k, v in constraint["coefficients"].items()}
-        bounds = [constraint.get("lower"), constraint.get("upper")]
-        values = list(fractions.values()) + [Fraction(str(v)) for v in bounds if v is not None]
-        denominator = math.lcm(*(v.denominator for v in values))
-        divisor = math.gcd(*(int(v * denominator) for v in values)) or 1
-        scale = Fraction(denominator, divisor)
-        row_coefficients = {k: int(v * scale) for k, v in fractions.items()}
-        lower, upper = [None if v is None else int(Fraction(str(v)) * scale) for v in bounds]
+        row_coefficients, lower, upper = _scaled_constraint(constraint)
         a, ac = affine(row_coefficients)
         minimum = ac + sum(min(0, v) for v in a.values())
         maximum = ac + sum(max(0, v) for v in a.values())
@@ -122,13 +181,21 @@ def to_qubo(record):
     return QUBO(mat, np.arange(n), np.arange(n), offset=record["offset"])
 
 
-def read_lp(path: Path) -> dict:
+def read_lp(path: Path, *, max_variables=None) -> dict:
     from pyscipopt import Model
 
     scip = Model()
     scip.hideOutput()
     scip.readProblem(str(path))
     variables = scip.getVars()
+    if (
+        max_variables is not None
+        and sum(
+            v.vtype() in {"BINARY", "INTEGER", "IMPLINT"} and v.getUbOriginal() > v.getLbOriginal() for v in variables
+        )
+        > max_variables
+    ):
+        raise ValueError(f"LP requires more than max_variables={max_variables} QUBO variables")
     objective = {v.name: float(v.getObj()) for v in variables if v.getObj()}
     quadratic = []
     auxiliary = None
@@ -175,6 +242,8 @@ def read_lp(path: Path) -> dict:
 
 
 def native_model(slug, instance, *, max_variables=4096):
+    if native_qubo_dimension(slug, instance) > max_variables:
+        raise ValueError(f"{slug} formulation exceeds max_variables={max_variables}")
     model = {"variables": {}, "linear": {}, "constraints": []}
     if slug == "marketsplit":
         names = [f"x#{i + 1}" for i in range(instance.n_cols)]
@@ -190,8 +259,6 @@ def native_model(slug, instance, *, max_variables=4096):
         permutation_map = {}
         for key, data in instance.instances.items():
             n, scale = int(data["n"]), int(data["scale"])
-            if math.factorial(n) * (scale.bit_length() + 1) > max_variables:
-                raise ValueError("Birkhoff permutation formulation exceeds max_variables")
             permutations = list(itertools.permutations(range(1, n + 1)))
             permutation_map[key] = permutations
             weights = [f"w${key}#{i}" for i in range(len(permutations))]
@@ -219,6 +286,8 @@ def native_model(slug, instance, *, max_variables=4096):
 def labs_record(n, *, penalty=None, max_variables=4096):
     if n < 1 or n > max_variables:
         raise ValueError("Invalid LABS length / max_variables")
+    if native_qubo_dimension("labs", n) > max_variables:
+        raise ValueError("LABS quadratization exceeds max_variables")
     model = {"variables": {f"x#{i}": [0, 1] for i in range(n)}, "constraints": []}
     for i in range(n):
         for j in range(i + 1, n):
@@ -226,8 +295,6 @@ def labs_record(n, *, penalty=None, max_variables=4096):
     coefficients = defaultdict(float)
     offset = 0.0
     names = list(model["variables"])
-    if len(names) > max_variables:
-        raise ValueError("LABS quadratization exceeds max_variables")
     ids = {name: i for i, name in enumerate(names)}
     for lag in range(1, n):
         a = defaultdict(int)
