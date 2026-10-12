@@ -1,5 +1,20 @@
 cwlVersion: v1.2
 class: CommandLineTool
+requirements:
+  - class: InlineJavascriptRequirement
+  - class: InitialWorkDirRequirement
+    listing:
+      - entryname: pipeline.json
+        entry: |
+          ${
+            return JSON.stringify({
+              split_method: inputs.split_method,
+              aggregate_method: inputs.aggregate_method,
+              cut_dim: inputs.cut_dim,
+              refinement_method: inputs.refinement_method,
+              refinement_loops: inputs.refinement_loops
+            });
+          }
 baseCommand:
 - python
 - -m
@@ -16,27 +31,19 @@ inputs:
       prefix: --solutions-dir
   split_method:
     type: string?
-    inputBinding:
-      prefix: --split-method
   aggregate_method:
     type: string?
-    inputBinding:
-      prefix: --aggregate-method
   cut_dim:
     type: int?
-    inputBinding:
-      prefix: --cut-dim
   refinement_method:
     type: string?
-    inputBinding:
-      prefix: --refinement-method
   refinement_loops:
     type: int?
-    inputBinding:
-      prefix: --refinement-loops
 arguments:
 - --output-dir
 - benchmark_results
+- --pipeline-config
+- pipeline.json
 outputs:
   benchmark_results:
     type: Directory

@@ -2,10 +2,13 @@ import bz2
 import gzip
 import hashlib
 import lzma
+import re
 import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
+
+from qsplit.benchmark.progress import progress
 
 DIRECTORIES = {
     slug: f"{i:02d}-{slug}"
@@ -140,3 +143,85 @@ def source_hashes(source_dir):
         for p in sorted(root.rglob("*"))
         if p.is_file()
     }
+
+
+def catalog_entries(repository, formulations, *, problems=None):
+    root = Path(repository).resolve()
+    if not root.is_dir():
+        raise ValueError(f"QOBLIB checkout not found: {root}")
+    progress("catalog", f"scanning checkout {root}")
+    entries = []
+    extensions = {
+        "marketsplit": ".dat",
+        "birkhoff": ".json",
+        "sports": ".xml",
+        "independentset": ".gph",
+        "routing": ".vrp",
+        "topology": ".dat",
+    }
+    for slug, directory in DIRECTORIES.items():
+        if problems is not None and slug not in problems:
+            continue
+        progress("catalog", f"scanning class {slug}")
+        folder = root / directory
+        instances = set()
+        instance_paths = {}
+        for path in (folder / "instances").rglob("*"):
+            if not path.is_file():
+                continue
+            filename = path.name
+            for suffix in (".xz", ".gz", ".bz2", ".lzma"):
+                filename = filename.removesuffix(suffix)
+            if slug in extensions and filename.endswith(extensions[slug]):
+                instances.add(logical_name(path))
+                instance_paths[logical_name(path)] = path.relative_to(root).as_posix()
+            elif slug == "steiner" and filename == "arcs.dat":
+                instances.add(path.parent.name)
+            elif slug == "portfolio" and filename == "stock_prices.txt":
+                instances.add(path.parent.name)
+        models = sorted(
+            path
+            for path in (folder / "models").rglob("*")
+            if path.is_file() and path.name.endswith((".lp", ".lp.xz", ".lp.gz", ".lp.bz2", ".lp.lzma"))
+        )
+        if slug in {"labs", "network", "topology"}:
+            for path in models + list((folder / "solutions").rglob("*")):
+                name = logical_name(path)
+                if slug == "labs" and (match := re.fullmatch(r"labs_?(\d+)", name)):
+                    instances.add(str(int(match[1])))
+                elif slug == "network" and re.fullmatch(r"network\d+", name):
+                    instances.add(name)
+                elif slug == "topology" and re.fullmatch(r"topology_\d+_\d+", name):
+                    instances.add(name)
+        if slug not in formulations:
+            entries.extend(
+                {"problem": slug, "instance": name, "source_instance": instance_paths[name], "reference_solution": name}
+                if slug == "marketsplit"
+                else {"problem": slug, "instance": name}
+                for name in sorted(instances)
+            )
+            continue
+        covered = set()
+        for path in models:
+            if formulations[slug] not in path.relative_to(folder / "models").parts:
+                continue
+            name = logical_name(path)
+            entry = {"problem": slug, "instance": name, "model": path.relative_to(root).as_posix()}
+            if slug == "portfolio":
+                match = re.fullmatch(r"bqp_(.+)_b(\d+)_l(.+)", name)
+                if not match:
+                    raise ValueError(f"Cannot infer portfolio parameters from {path}")
+                entry["instance"] = "po_" + match[1]
+                entry["parameters"] = {"budget": int(match[2]), "lambda": float(match[3])}
+                references = sorted(
+                    (folder / "solutions").rglob(f"po_{match[1]}_b{match[2]}_l{match[3]}.*.sol"),
+                    key=lambda p: (".opt." not in p.name, p.as_posix()),
+                )
+                if references:
+                    entry["reference_solution"] = references[0].relative_to(root).as_posix()
+            covered.add(entry["instance"])
+            entries.append(entry)
+        entries.extend({"problem": slug, "instance": name} for name in sorted(instances - covered))
+    if not entries:
+        raise ValueError(f"No QOBLIB instances or models found in {root}")
+    return entries

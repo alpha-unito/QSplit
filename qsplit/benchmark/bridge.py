@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import datetime
+from difflib import get_close_matches
 from importlib.metadata import version
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -14,7 +15,16 @@ from zoneinfo import ZoneInfo
 import yaml
 
 from qsplit.benchmark.conversion import decode, encode_model, labs_record, model_evaluation, native_model, read_lp
-from qsplit.benchmark.sources import DIRECTORIES, get_problem, load_instance, load_model, repository_ref, source_hashes
+from qsplit.benchmark.progress import progress
+from qsplit.benchmark.sources import (
+    DIRECTORIES,
+    catalog_entries,
+    get_problem,
+    load_instance,
+    load_model,
+    repository_ref,
+    source_hashes,
+)
 
 NATIVE = {"marketsplit", "independentset", "labs", "birkhoff"}
 DEFAULT_FORMULATION = {
@@ -40,8 +50,10 @@ def write_json(path, data):
 
 def read_request(path):
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not isinstance(data.get("instances"), list) or not data["instances"]:
-        raise ValueError("Benchmark request must contain a nonempty instances list")
+    if not isinstance(data, dict) or not (
+        data.get("instances") == "all" or isinstance(data.get("instances"), list) and data["instances"]
+    ):
+        raise ValueError("Benchmark request must contain a nonempty instances list or instances: all")
     runs = data.get("runs", 5)
     maximum = data.get("max_variables", 4096)
     if data.get("check") is False:
@@ -53,7 +65,29 @@ def read_request(path):
         raise ValueError("max_matrix_bytes must be a positive integer")
     if data.get("check", "auto") not in {"auto", "required", "off"}:
         raise ValueError("check must be auto, required or off")
-    names = [str(e["instance"]) for e in data["instances"]] + [data.get("submission_name", "QSplit")]
+    if data.get("on_conversion_error", "error") not in {"error", "skip"}:
+        raise ValueError("on_conversion_error must be error or skip")
+    selection = data["instances"]
+    names = []
+    if selection != "all":
+        if all(isinstance(e, str) for e in selection):
+            problems = selection
+        elif all(
+            isinstance(e, dict) and {"problem", "instance"} <= e.keys() and isinstance(e["problem"], str)
+            for e in selection
+        ):
+            problems = [e["problem"] for e in selection]
+            names = [str(e["instance"]) for e in selection]
+        else:
+            raise ValueError(
+                "instances must be all, a list of problem-class names, or a list of {problem, instance} entries"
+            )
+        for slug in problems:
+            if slug not in DIRECTORIES:
+                matches = get_close_matches(slug, DIRECTORIES, n=1)
+                hint = f"; did you mean {matches[0]!r}?" if matches else f"; valid classes: {', '.join(DIRECTORIES)}"
+                raise ValueError(f"Unknown QOBLIB problem class: {slug!r}{hint}")
+    names.append(data.get("submission_name", "QSplit"))
     if any(not re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9._-]*", name) for name in names):
         raise ValueError("Instance and submission names must be simple filenames; model may contain a repository path")
     return data
@@ -62,6 +96,7 @@ def read_request(path):
 def prepare(request_path, output_dir, *, repository=None):
     import qoblib
 
+    progress("prepare", f"reading request {request_path}")
     request = read_request(request_path)
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
@@ -71,117 +106,149 @@ def prepare(request_path, output_dir, *, repository=None):
     source_dir.mkdir(parents=True, exist_ok=True)
     ref = repository_ref(repository) if repository else request.get("ref", qoblib.get_ref())
     records = []
+    conversion_errors = []
     seen = set()
     entries = []
-    for entry in request["instances"]:
+    selection = request["instances"]
+    if selection == "all" or isinstance(selection[0], str):
+        if repository is None:
+            raise ValueError("Catalog selection requires --repository /path/to/QOBLIB")
+        selection = catalog_entries(repository, DEFAULT_FORMULATION, problems=None if selection == "all" else selection)
+
+    progress("prepare", f"catalog selected: {len(selection)} entries; runs per instance={request.get('runs', 5)}")
+
+    def record_error(entry, exc):
+        progress("prepare", f"conversion failed: {exc}", entry=entry)
+        if request.get("on_conversion_error", "error") == "error":
+            raise exc
+        conversion_errors.append({**entry, "status": "CONVERSION_FAILED", "error": str(exc)})
+
+    for position, entry in enumerate(selection, 1):
         if entry["problem"] != "birkhoff":
             entries.append(entry)
             continue
-        name = str(entry["instance"])
-        problem = get_problem("birkhoff", ref=ref, source_dir=source_dir, repository=repository)
-        collection = load_instance(problem, name)
-        selected = entry.get("subinstance")
-        matches = [(k, v) for k, v in collection.instances.items() if selected is None or selected in {k, v["id"]}]
-        if not matches:
-            raise ValueError(f"No Birkhoff sub-instance {selected!r} in {name}")
-        for key, data in matches:
-            entries.append({**entry, "instance": data["id"], "source_instance": name, "subinstance": key})
-    for entry in entries:
-        slug, name = entry["problem"], str(entry["instance"])
-        if not re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9._-]*", name):
-            raise ValueError("Invalid instance identifier in source data")
-        if slug not in DIRECTORIES:
-            raise ValueError(f"Unknown QOBLIB problem: {slug}")
-        problem = get_problem(slug, ref=ref, source_dir=source_dir, repository=repository)
-        source_name = entry.get("source_instance", name)
-        instance = load_instance(problem, source_name)
-        if slug == "portfolio":
-            parameters = entry.get("parameters", {})
-            if "budget" not in parameters or "lambda" not in parameters:
-                raise ValueError("Portfolio requires parameters.budget and parameters.lambda matching the LP variant")
-        if slug == "birkhoff":
-            from qoblib.problems.birkhoff import BirkhoffInstance
-
-            key = entry["subinstance"]
-            instance = BirkhoffInstance({key: instance.instances[key]}, name=name, path=instance.path)
-        options = {
-            "penalty": entry.get("penalty", request.get("penalty")),
-            "max_variables": request.get("max_variables", 4096),
-        }
-        if slug == "labs":
-            record = labs_record(instance, **options)
-            formulation = "native_labs_products"
-            name = f"labs{instance:03d}"
-        else:
-            if slug in NATIVE:
-                if entry.get("model"):
-                    raise ValueError(f"{slug} uses its native reversible formulation; omit model")
-                model = native_model(slug, instance, max_variables=options["max_variables"])
-                formulation = f"native_{slug}"
-            else:
-                formulation = entry.get("formulation", DEFAULT_FORMULATION[slug])
-                path = load_model(problem, entry.get("model", name), formulation)
-                model = read_lp(path)
-                if slug == "portfolio":
-                    name = path.stem
-                for variable, bounds in entry.get("bounds", {}).items():
-                    if variable not in model["variables"]:
-                        raise ValueError(f"Unknown bound override: {variable}")
-                    model["variables"][variable] = bounds
-                if any(abs(v) >= 1e20 for bounds in model["variables"].values() for v in bounds):
-                    raise ValueError("Unbounded model variable: provide explicit finite bounds in the request")
-            record = encode_model(model, **options)
-        if (slug, name) in seen:
-            raise ValueError(f"Duplicate instance: {slug}/{name}")
-        seen.add((slug, name))
-        fingerprint = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()[:16]
-        safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", name)
-        identity = f"{slug}_{safe_name}_{fingerprint}"
-        reference = None
-        reference_name = entry.get("reference_solution", name if slug == "portfolio" else source_name)
         try:
-            if slug == "labs":
-                from qoblib.problems.labs import LABSSolution
-
-                path = problem.fetch(entry.get("reference_solution", f"labs{instance:03d}"), kind="solution")
-                text = "".join(line.strip() for line in path.read_text().splitlines() if not line.startswith("#"))
-                if len(text) != instance or set(text) - {"0", "1"}:
-                    raise ValueError("Unrecognized LABS reference sequence")
-                reference = LABSSolution([2 * int(v) - 1 for v in text])
-            else:
-                reference = problem.load_solution(reference_name)
-            if slug == "birkhoff":
-                from qoblib.problems.birkhoff import BirkhoffSolution
-
-                reference = BirkhoffSolution({k: v for k, v in reference.solutions.items() if v["id"] == name})
-                if not reference.solutions:
-                    raise ValueError(f"No Birkhoff reference solution for {name}")
-            if slug == "sports":
-                reference = None
+            progress("catalog", "loading Birkhoff collection", entry=entry, index=position, total=len(selection))
+            name = str(entry["instance"])
+            problem = get_problem("birkhoff", ref=ref, source_dir=source_dir, repository=repository)
+            collection = load_instance(problem, name)
+            selected = entry.get("subinstance")
+            matches = [(k, v) for k, v in collection.instances.items() if selected is None or selected in {k, v["id"]}]
+            if not matches:
+                raise ValueError(f"No Birkhoff sub-instance {selected!r} in {name}")
+            for key, data in matches:
+                entries.append({**entry, "instance": data["id"], "source_instance": name, "subinstance": key})
+            progress("catalog", f"expanded {len(matches)} subinstances", entry=entry)
         except (KeyError, ValueError, NotImplementedError, qoblib.QoblibError) as exc:
-            reference_error = str(exc)
-        else:
-            reference_error = None
-        reference_objective = problem.compute_objective(instance, reference) if reference is not None else None
-        record.update(
-            {
-                "problem": slug,
-                "instance": name,
-                "source_instance": source_name,
-                "subinstance": entry.get("subinstance"),
-                "instance_id": identity,
-                "ref": ref,
-                "formulation": formulation,
-                "parameters": entry.get("parameters", {}),
-                "variable_aliases": entry.get("variable_aliases", {}),
-                "reference_objective": reference_objective,
-                "reference_error": reference_error,
+            record_error(entry, exc)
+    for position, entry in enumerate(entries, 1):
+        try:
+            progress("prepare", "loading instance", entry=entry, index=position, total=len(entries))
+            slug, name = entry["problem"], str(entry["instance"])
+            if not re.fullmatch(r"[A-Za-z0-9_-][A-Za-z0-9._-]*", name):
+                raise ValueError("Invalid instance identifier in source data")
+            if slug not in DIRECTORIES:
+                raise ValueError(f"Unknown QOBLIB problem: {slug}")
+            problem = get_problem(slug, ref=ref, source_dir=source_dir, repository=repository)
+            source_name = entry.get("source_instance", name)
+            instance = load_instance(problem, source_name)
+            if slug == "portfolio":
+                parameters = entry.get("parameters", {})
+                if "budget" not in parameters or "lambda" not in parameters:
+                    raise ValueError(
+                        "Portfolio requires parameters.budget and parameters.lambda matching the LP variant"
+                    )
+            if slug == "birkhoff":
+                from qoblib.problems.birkhoff import BirkhoffInstance
+
+                key = entry["subinstance"]
+                instance = BirkhoffInstance({key: instance.instances[key]}, name=name, path=instance.path)
+            options = {
+                "penalty": entry.get("penalty", request.get("penalty")),
+                "max_variables": request.get("max_variables", 4096),
             }
-        )
-        if record["dim"] ** 2 * 8 > request.get("max_matrix_bytes", 256 * 1024**2):
-            raise ValueError(f"{name}: dense QSplit matrix exceeds max_matrix_bytes")
-        for run in range(request.get("runs", 5)):
-            records.append({**record, "id": f"{identity}_run{run:03d}", "run": run})
+            if slug == "labs":
+                progress("prepare", f"encoding LABS length={instance}", entry=entry)
+                record = labs_record(instance, **options)
+                formulation = "native_labs_products"
+                name = f"labs{instance:03d}"
+            else:
+                if slug in NATIVE:
+                    if entry.get("model"):
+                        raise ValueError(f"{slug} uses its native reversible formulation; omit model")
+                    model = native_model(slug, instance, max_variables=options["max_variables"])
+                    formulation = f"native_{slug}"
+                else:
+                    formulation = entry.get("formulation", DEFAULT_FORMULATION[slug])
+                    progress("prepare", f"loading LP formulation={formulation}", entry=entry)
+                    path = load_model(problem, entry.get("model", name), formulation)
+                    model = read_lp(path)
+                    if slug == "portfolio":
+                        name = path.stem
+                    for variable, bounds in entry.get("bounds", {}).items():
+                        if variable not in model["variables"]:
+                            raise ValueError(f"Unknown bound override: {variable}")
+                        model["variables"][variable] = bounds
+                    if any(abs(v) >= 1e20 for bounds in model["variables"].values() for v in bounds):
+                        raise ValueError("Unbounded model variable: provide explicit finite bounds in the request")
+                progress("prepare", f"encoding model variables={len(model['variables'])}", entry=entry)
+                record = encode_model(model, **options)
+            progress("prepare", f"QUBO ready dim={record['dim']}; loading reference solution", entry=entry)
+            if (slug, name) in seen:
+                raise ValueError(f"Duplicate instance: {slug}/{name}")
+            seen.add((slug, name))
+            fingerprint = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()[:16]
+            safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", name)
+            identity = f"{slug}_{safe_name}_{fingerprint}"
+            reference = None
+            reference_name = entry.get("reference_solution", name if slug == "portfolio" else source_name)
+            try:
+                if slug == "labs":
+                    from qoblib.problems.labs import LABSSolution
+
+                    path = problem.fetch(entry.get("reference_solution", f"labs{instance:03d}"), kind="solution")
+                    text = "".join(line.strip() for line in path.read_text().splitlines() if not line.startswith("#"))
+                    if len(text) != instance or set(text) - {"0", "1"}:
+                        raise ValueError("Unrecognized LABS reference sequence")
+                    reference = LABSSolution([2 * int(v) - 1 for v in text])
+                else:
+                    reference = problem.load_solution(reference_name)
+                if slug == "birkhoff":
+                    from qoblib.problems.birkhoff import BirkhoffSolution
+
+                    reference = BirkhoffSolution({k: v for k, v in reference.solutions.items() if v["id"] == name})
+                    if not reference.solutions:
+                        raise ValueError(f"No Birkhoff reference solution for {name}")
+                if slug == "sports":
+                    reference = None
+            except (KeyError, ValueError, NotImplementedError, qoblib.QoblibError) as exc:
+                reference_error = str(exc)
+            else:
+                reference_error = None
+            reference_objective = problem.compute_objective(instance, reference) if reference is not None else None
+            record.update(
+                {
+                    "problem": slug,
+                    "instance": name,
+                    "source_instance": source_name,
+                    "subinstance": entry.get("subinstance"),
+                    "instance_id": identity,
+                    "ref": ref,
+                    "formulation": formulation,
+                    "parameters": entry.get("parameters", {}),
+                    "variable_aliases": entry.get("variable_aliases", {}),
+                    "reference_objective": reference_objective,
+                    "reference_error": reference_error,
+                }
+            )
+            if record["dim"] ** 2 * 8 > request.get("max_matrix_bytes", 256 * 1024**2):
+                raise ValueError(f"{name}: dense QSplit matrix exceeds max_matrix_bytes")
+            for run in range(request.get("runs", 5)):
+                records.append({**record, "id": f"{identity}_run{run:03d}", "run": run})
+            progress("prepare", "converted", entry=entry, index=position, total=len(entries))
+        except (KeyError, ValueError, NotImplementedError, qoblib.QoblibError) as exc:
+            record_error(entry, exc)
+    progress("prepare", f"writing dataset: {len(records)} runs; conversion failures={len(conversion_errors)}")
     dataset = root / "dataset.jsonl"
     dataset.write_text("".join(json.dumps(r, allow_nan=False) + "\n" for r in records), encoding="utf-8")
     write_json(
@@ -193,9 +260,15 @@ def prepare(request_path, output_dir, *, repository=None):
             "source_hashes": source_hashes(source_dir),
             "dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
             "count": len(records),
+            "catalog_count": len(entries)
+            + sum("subinstance" not in e for e in conversion_errors if e["problem"] == "birkhoff"),
+            "conversion_errors": conversion_errors,
             "versions": {p: version(p) for p in ["qsplit", "qoblib", "numpy", "pyscipopt"]},
         },
     )
+    if not records:
+        raise ValueError(f"No convertible instances; see {root / 'manifest.json'}")
+    progress("prepare", f"completed; dataset={dataset}; manifest={root / 'manifest.json'}")
     return dataset
 
 
@@ -348,6 +421,7 @@ def serialize(solution, slug, instance):
 def finalize(bundle_dir, solutions_dir, output_dir, *, timings=None, pipeline=None):
     import qoblib
 
+    progress("export", f"verifying bundle {bundle_dir}")
     bundle, output = Path(bundle_dir), Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     manifest = json.loads((bundle / "manifest.json").read_text())
@@ -361,7 +435,8 @@ def finalize(bundle_dir, solutions_dir, output_dir, *, timings=None, pipeline=No
     rows = []
     records = [json.loads(line) for line in (bundle / "dataset.jsonl").read_text().splitlines() if line.strip()]
     problems = {}
-    for record in records:
+    for position, record in enumerate(records, 1):
+        progress("export", "decoding and checking solution", entry=record, index=position, total=len(records))
         slug, name = record["problem"], record["instance"]
         if slug not in problems:
             problems[slug] = get_problem(
@@ -463,6 +538,9 @@ def finalize(bundle_dir, solutions_dir, output_dir, *, timings=None, pipeline=No
             target_dir / f"{name}_run{record['run']:03d}_variables.json",
             decode(record, candidates[evaluated.index(best)]["bitstring"]),
         )
+        progress(
+            "export", f"completed checker={best['checker_status']}", entry=record, index=position, total=len(records)
+        )
     groups = defaultdict(list)
     for record, row in zip(records, rows):
         groups[(row["problem"], row["instance"])].append((record, row))
@@ -536,7 +614,15 @@ def finalize(bundle_dir, solutions_dir, output_dir, *, timings=None, pipeline=No
             }
         )
     write_json(
-        output / "results.json", {"schema_version": 1, "ref": manifest["ref"], "runs": rows, "summary": summaries}
+        output / "results.json",
+        {
+            "schema_version": 1,
+            "ref": manifest["ref"],
+            "runs": rows,
+            "summary": summaries,
+            "catalog_count": manifest.get("catalog_count", len(summaries)),
+            "conversion_errors": manifest.get("conversion_errors", []),
+        },
     )
     write_json(output / "provenance.json", {**manifest, "pipeline": pipeline})
     (output / "README.md").write_text(
@@ -546,4 +632,5 @@ def finalize(bundle_dir, solutions_dir, output_dir, *, timings=None, pipeline=No
         "objectives in results.json. Source hashes and versions are in provenance.json.\n",
         encoding="utf-8",
     )
+    progress("export", f"completed: {len(rows)} runs, {len(summaries)} instances; report={output / 'results.json'}")
     return output / "results.json"

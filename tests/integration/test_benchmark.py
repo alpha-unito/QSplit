@@ -2,6 +2,7 @@ import csv
 import itertools
 import json
 import os
+import shutil
 import subprocess
 import sysconfig
 from pathlib import Path
@@ -228,13 +229,21 @@ def test_export_rejects_leaf_only_and_incomplete_results(tmp_path, source_reques
 
 
 @pytest.mark.streamflow
-def test_actual_streamflow_benchmark_bridges(tmp_path, source_request):
+@pytest.mark.parametrize("all_instances", [False, True])
+def test_actual_streamflow_benchmark_bridges(tmp_path, source_request, all_instances):
     pytest.importorskip("dwave.samplers")
     pytest.importorskip("streamflow.main")
     source, request = source_request
-    request.write_text(
-        yaml.safe_dump({"runs": 2, "check": "off", "instances": [{"problem": "marketsplit", "instance": "tiny"}]})
-    )
+    data = {"runs": 2, "check": "off", "instances": [{"problem": "marketsplit", "instance": "tiny"}]}
+    if all_instances:
+        for folder in ["02-labs", "03-birkhoff", "07-independentset"]:
+            shutil.rmtree(source / folder)
+        steiner = source / "04-steiner/instances/missing"
+        steiner.mkdir(parents=True)
+        (steiner / "arcs.dat").write_text("1 2 1\n")
+        (steiner / "terms.dat").write_text("1 1\n2 1\n")
+        data.update(instances="all", on_conversion_error="skip")
+    request.write_text(yaml.safe_dump(data))
     settings = tmp_path / "settings.yml"
     settings.write_text(
         yaml.safe_dump(
@@ -285,9 +294,18 @@ def test_actual_streamflow_benchmark_bridges(tmp_path, source_request):
     reports = list(output.rglob("results.json"))
     assert reports
     report = json.loads(reports[0].read_text())
+    log = log_path.read_text()
+    assert "QSPLIT BENCHMARK prepare" in log and "QSPLIT BENCHMARK export" in log
+    assert "marketsplit/tiny" in log and "remaining=0" in log
+    provenance = json.loads(next(output.rglob("provenance.json")).read_text())
+    assert provenance["pipeline"]["cut_dim"] == 2
+    assert provenance["pipeline"]["refinement_loops"] == 1
     assert len(report["runs"]) == 2
     assert all(r["solution_file"] and r["model_feasible"] for r in report["runs"])
     assert all(r["qubo_energy"] == 0 and r["offset"] > 0 for r in report["runs"])
+    if all_instances:
+        assert report["catalog_count"] == 2
+        assert report["conversion_errors"][0]["problem"] == "steiner"
 
 
 def test_required_checker_errors_are_not_reported_as_feasible(monkeypatch, tmp_path, source_request):

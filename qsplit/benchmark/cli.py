@@ -1,5 +1,6 @@
 import argparse
 
+from qsplit import configuration
 from qsplit.benchmark.bridge import finalize, prepare
 
 
@@ -14,19 +15,12 @@ def main():
     final.add_argument("--bundle", required=True)
     final.add_argument("--solutions-dir", required=True)
     final.add_argument("--output-dir", default="benchmark_results")
-    final.add_argument("--split-method")
-    final.add_argument("--aggregate-method")
-    final.add_argument("--cut-dim", type=int)
-    final.add_argument("--refinement-method")
-    final.add_argument("--refinement-loops", type=int)
+    final.add_argument("--pipeline-config", help="YAML/JSON file with pipeline provenance supplied by CWL")
     args = parser.parse_args()
     if args.command == "prepare":
         print(prepare(args.request, args.output_dir, repository=args.repository))
     else:
-        pipeline = {
-            key: getattr(args, key)
-            for key in ["split_method", "aggregate_method", "cut_dim", "refinement_method", "refinement_loops"]
-        }
+        pipeline = configuration.load(args.pipeline_config)
         print(finalize(args.bundle, args.solutions_dir, args.output_dir, pipeline=pipeline))
 
 

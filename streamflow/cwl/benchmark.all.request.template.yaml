@@ -1,0 +1,18 @@
+# Use all for the complete checkout, or a list of problem-class names for a subset.
+# Birkhoff collections are expanded into their individual benchmark instances.
+instances: [labs]
+ref: main
+runs: 1
+check: auto
+# Continue on unsupported/oversized conversions; report every failure in results.json.
+# Use error to stop at the first conversion failure instead.
+on_conversion_error: skip
+max_variables: 10000000
+max_matrix_bytes: 2000000000
+submission_name: QSplit
+submission:
+  submitter: ""
+  affiliation: ""
+  reference: ""
+  hardware: ""
+  paradigm: Classical
