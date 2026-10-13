@@ -183,7 +183,7 @@ py::list split_quadtree(const Qubo &q, int cut, double ratio) {
                 batch_groups.push_back(std::move(groups));
             }
         }
-        Array contracted({py::ssize_t(0), py::ssize_t(0)});
+        auto contracted = zeros(0);
         if (finite) {
             Array membership({n, count * macros});
             std::fill_n(membership.mutable_data(), membership.size(), 0.0);
