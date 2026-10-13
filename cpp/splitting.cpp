@@ -128,57 +128,111 @@ py::list split_quadtree(const Qubo &q, int cut, double ratio) {
         auto r = real[i], c = real[j];
         return v.m(r, c) + v.m(c, r) - (r == c ? v.m(r, r) : 0);
     };
-    for (py::ssize_t center = 0; center < static_cast<py::ssize_t>(real.size()); ++center) {
-        std::vector<std::vector<py::ssize_t>> groups;
-        auto order = range(0, real.size());
-        order.erase(order.begin() + center);
+    const auto n = static_cast<py::ssize_t>(real.size());
+    // Contract several centers together so NumPy can use its existing BLAS backend.
+    // S = Q + Q.T; macro diagonals must be halved after contraction.
+    auto symmetric = macros ? zeros(n) : zeros(0);
+    auto symmetric_view = symmetric.mutable_unchecked<2>();
+    // Direct sums preserve nonfinite behavior; BLAS would spread NaNs through 0 * inf.
+    bool finite = macros > 0;
+    {
+        py::gil_scoped_release release;
+        if (macros)
+            for (py::ssize_t i = 0; i < n; ++i)
+                for (py::ssize_t j = i; j < n; ++j) {
+                    auto value = v.m(real[i], real[j]) + v.m(real[j], real[i]);
+                    symmetric_view(i, j) = symmetric_view(j, i) = value;
+                    finite = finite && std::isfinite(value);
+                }
+    }
+    auto matmul = py::module_::import("numpy").attr("matmul");
+    // Keep temporary membership/contraction arrays to about 128 columns.
+    const auto batch_size = finite ? std::max(1, 128 / macros) : 1;
+    using Groups = std::vector<std::vector<py::ssize_t>>;
+    // Macro lists can share immutable Python IDs instead of allocating N copies of each ID.
+    std::vector<py::int_> variable_ids;
+    variable_ids.reserve(n);
+    for (auto r : real)
+        variable_ids.emplace_back(v.r(r));
+    for (py::ssize_t start_center = 0; start_center < n; start_center += batch_size) {
+        auto count = std::min<py::ssize_t>(batch_size, n - start_center);
+        std::vector<Groups> batch_groups;
         {
             py::gil_scoped_release release;
-            std::stable_sort(order.begin(), order.end(), [&](auto a, auto b) {
-                auto wa = std::abs(sym(center, a)), wb = std::abs(sym(center, b));
-                return !std::isnan(wa) && (std::isnan(wb) || wa > wb);
-            });
-            groups.push_back({center});
-            for (int i = 0; i < exact - 1; ++i)
-                groups.push_back({order[i]});
-            auto remaining = order.size() - (exact - 1);
-            std::size_t start = exact - 1;
-            for (int m = 0; m < macros; ++m) {
-                auto count = remaining / macros + (static_cast<std::size_t>(m) < remaining % macros);
-                groups.emplace_back(order.begin() + start, order.begin() + start + count);
-                start += count;
+            for (py::ssize_t center = start_center; center < start_center + count; ++center) {
+                Groups groups;
+                auto order = range(0, n);
+                order.erase(order.begin() + center);
+                std::vector<double> weights(n);
+                for (auto i : order)
+                    weights[i] = std::abs(finite ? symmetric_view(center, i) : sym(center, i));
+                std::stable_sort(order.begin(), order.end(), [&](auto a, auto b) {
+                    auto wa = weights[a], wb = weights[b];
+                    return !std::isnan(wa) && (std::isnan(wb) || wa > wb);
+                });
+                groups.push_back({center});
+                for (int i = 0; i < exact - 1; ++i)
+                    groups.push_back({order[i]});
+                auto remaining = order.size() - (exact - 1);
+                std::size_t start = exact - 1;
+                for (int m = 0; m < macros; ++m) {
+                    auto size = remaining / macros + (static_cast<std::size_t>(m) < remaining % macros);
+                    groups.emplace_back(order.begin() + start, order.begin() + start + size);
+                    start += size;
+                }
+                batch_groups.push_back(std::move(groups));
             }
         }
-        auto mat = zeros(cut);
-        auto out = mat.mutable_unchecked<2>();
-        std::vector<Id> ids;
-        py::dict members;
-        for (int i = 0; i < cut; ++i) {
-            ids.push_back(i < exact ? v.r(real[groups[i][0]]) : -(i - exact + 1000));
-            if (i >= exact) {
-                std::vector<Id> values;
-                for (auto j : groups[i])
-                    values.push_back(v.r(real[j]));
-                members[py::int_(ids.back())] = py::cast(values);
+        auto contracted = zeros(0);
+        if (finite) {
+            Array membership({n, count * macros});
+            std::fill_n(membership.mutable_data(), membership.size(), 0.0);
+            auto membership_view = membership.mutable_unchecked<2>();
+            {
+                py::gil_scoped_release release;
+                for (py::ssize_t b = 0; b < count; ++b)
+                    for (int m = 0; m < macros; ++m)
+                        for (auto r : batch_groups[b][exact + m])
+                            membership_view(r, b * macros + m) = 1.0;
             }
+            contracted = matmul(symmetric, membership).cast<Array>();
         }
-        {
-            py::gil_scoped_release release;
+        auto contraction = contracted.unchecked<2>();
+        for (py::ssize_t b = 0; b < count; ++b) {
+            const auto &groups = batch_groups[b];
+            auto mat = zeros(cut);
+            auto out = mat.mutable_unchecked<2>();
+            std::vector<Id> ids;
+            py::dict members;
             for (int i = 0; i < cut; ++i) {
-                for (int j = i; j < cut; ++j) {
-                    for (auto r : groups[i])
-                        for (auto c : groups[j]) {
-                            if (i == j)
-                                out(i, j) += v.m(real[r], real[c]);
-                            else
-                                out(i, j) += sym(r, c);
-                        }
+                ids.push_back(i < exact ? v.r(real[groups[i][0]]) : -(i - exact + 1000));
+                if (i >= exact) {
+                    py::list values(groups[i].size());
+                    for (std::size_t k = 0; k < groups[i].size(); ++k)
+                        values[k] = variable_ids[groups[i][k]];
+                    members[py::int_(ids.back())] = values;
                 }
             }
+            {
+                py::gil_scoped_release release;
+                for (int i = 0; i < cut; ++i)
+                    for (int j = i; j < cut; ++j) {
+                        if (finite && j >= exact) {
+                            double sum = 0;
+                            for (auto r : groups[i])
+                                sum += contraction(r, b * macros + j - exact);
+                            out(i, j) = i == j ? sum / 2 : sum;
+                        } else {
+                            for (auto r : groups[i])
+                                for (auto c : groups[j])
+                                    out(i, j) += i == j ? v.m(real[r], real[c]) : sym(r, c);
+                        }
+                    }
+            }
+            auto sub = py::cast(Qubo(mat, indices(ids), indices(ids), q.offset));
+            sub.attr("macro_members") = members;
+            result.append(sub);
         }
-        auto sub = py::cast(Qubo(mat, indices(ids), indices(ids), q.offset));
-        sub.attr("macro_members") = members;
-        result.append(sub);
     }
     return result;
 }

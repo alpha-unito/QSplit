@@ -1,0 +1,36 @@
+ref: main
+runs: 5
+check: auto 
+max_variables: 4096
+max_matrix_bytes: 268435456
+submission_name: QSplit
+submission:
+  submitter: ""
+  affiliation: ""
+  reference: ""
+  hardware: ""
+  paradigm: Classical
+instances:
+  - problem: labs
+    instance: '8'
+  # - problem: marketsplit
+  #   instance: ms_03_050_002
+  # - problem: independentset
+  #   instance: farm
+  # - problem: birkhoff
+  #   instance: qbench_03_dense
+  # - problem: sports
+  #   instance: Late_005_Tiny
+  # - problem: network
+  #   instance: network05
+  # - problem: routing
+  #   instance: XSH-n20-k4-01
+  # - problem: topology
+  #   instance: topology_15_3
+  # - problem: portfolio
+  #   instance: po_a010_t10_s00
+  #   model: 06-portfolio/models/binary_quadratic_programming/lp_files/a010_t10_s00_b004/bqp_a010_t10_s00_b004_l0.lp.xz
+  #   parameters: {budget: 4, lambda: 0}
+  # - problem: steiner
+  #   instance: stp_s003_l1_t2_h0_rs97531
+  #   model: <exact path from qoblib.files('steiner', kind='model')>

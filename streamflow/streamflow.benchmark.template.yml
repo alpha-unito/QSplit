@@ -1,0 +1,31 @@
+version: v1.0
+workflows:
+  benchmark:
+    type: cwl
+    config:
+      file: cwl/benchmark.cwl
+      settings: cwl/benchmark.config.yml
+    bindings:
+    - step: /qsplit/qsplit_instances/parallelize
+      target:
+        deployment: qsplit-solvers
+    - step: /qsplit/qsplit_instances/refine/solve
+      target:
+        deployment: qsplit-solvers
+deployments:
+  qsplit-worker:
+    type: local
+    workdir: work/benchmark-solvers
+    config: {}
+  qsplit-solvers:
+    type: qsplit.quantum_connector
+    wraps: qsplit-worker
+    config:
+      provider: dwave
+      providerPool: [dwave]
+      maxConcurrentJobs:
+        dwave: 2
+database:
+  type: sqlite
+  config:
+    connection: work/benchmark.db

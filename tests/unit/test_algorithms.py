@@ -44,12 +44,23 @@ def test_graph_partition_covers_every_real_variable_once(connected, make_qubo):
     assert all(sub.offset == 4 for sub in subs)
 
 
-def test_quadtree_macro_energy_equals_expanded_assignment(make_qubo, monkeypatch):
+@pytest.mark.parametrize("dim,sparse", [(6, False), (130, True)])
+@pytest.mark.parametrize("ratio", [0, 0.5, 0.75])
+def test_quadtree_macro_energy_equals_expanded_assignment(make_qubo, monkeypatch, dim, sparse, ratio):
     monkeypatch.setitem(configuration.current(), "CUT_DIM", "4")
-    monkeypatch.setitem(configuration.current(), "EXACT_RATIO", "0.5")
-    matrix = np.triu(np.random.default_rng(17).integers(-4, 5, (6, 6)))
-    qubo = make_qubo(matrix, ids=[60, 20, 10, 40, 30, 50], offset=5)
-    for sub in split_quadtree.split_problem(qubo):
+    monkeypatch.setitem(configuration.current(), "EXACT_RATIO", str(ratio))
+    rng = np.random.default_rng(17)
+    matrix = np.triu(rng.integers(-4, 5, (dim, dim)))
+    if sparse:
+        matrix[rng.random((dim, dim)) < 0.9] = 0
+    qubo = make_qubo(matrix, ids=10 * (rng.permutation(dim) + 1), offset=5)
+    for center, sub in enumerate(split_quadtree.split_problem(qubo)):
+        exact = max(1, int(4 * ratio))
+        order = np.argsort(-np.abs(qubo.mat[center] + qubo.mat[:, center]), kind="stable")
+        order = order[order != center]
+        np.testing.assert_array_equal(sub.rows_idx[:exact], qubo.rows_idx[np.r_[center, order[: exact - 1]]])
+        for macro, positions in zip(sub.macro_members, np.array_split(order[exact - 1 :], 4 - exact)):
+            assert sub.macro_members[macro] == qubo.rows_idx[positions].tolist()
         for bits in product((0, 1), repeat=sub.problem_size):
             assignment = dict(zip(sub.rows_idx, bits))
             expanded = {key: value for key, value in assignment.items() if key >= 0}
@@ -58,6 +69,14 @@ def test_quadtree_macro_energy_equals_expanded_assignment(make_qubo, monkeypatch
             x = np.array([expanded[idx] for idx in qubo.rows_idx])
             z = np.array(bits)
             assert z @ sub.mat @ z + sub.offset == pytest.approx(x @ qubo.mat @ x + qubo.offset)
+
+
+def test_quadtree_nonfinite_couplings_do_not_contaminate_unrelated_macros(make_qubo):
+    matrix = np.eye(8)
+    matrix[0, 1] = np.inf
+    qubo = make_qubo(matrix)
+    sub = split_quadtree.split_problem(qubo, config={"CUT_DIM": 4, "EXACT_RATIO": 0.5})[0]
+    np.testing.assert_array_equal(sub.mat, [[1, np.inf, 0, 0], [0, 1, 0, 0], [0, 0, 3, 0], [0, 0, 0, 3]])
 
 
 def test_qubo_sanitization_preserves_binary_objective(make_qubo):

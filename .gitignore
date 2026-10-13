@@ -15,11 +15,14 @@ maxcut_*
 .venv*
 *.jsonl
 *.log
+configs
+qoblib-local
 # Local test reports and subprocess coverage data
 .coverage.*
 htmlcov/
 reports/
 coverage.xml
+benchmark_output
 
 # Runtime YAML can contain private API keys. Only explicit public templates and
 # repository tooling are allowed, regardless of filename or directory.
@@ -30,8 +33,16 @@ coverage.xml
 !/streamflow/streamflow.local.template.yml
 !/streamflow/cwl/config.template.yml
 !/streamflow/cwl/instance.config.template.yml
+!/streamflow/streamflow.benchmark.template.yml
+!/streamflow/cwl/benchmark.config.template.yml
+!/streamflow/cwl/benchmark.request.template.yaml
+!/streamflow/cwl/benchmark.solver.yaml
+!/streamflow/cwl/benchmark.all.request.template.yaml
+!/streamflow/cwl/benchmark.all.config.template.yml
+!/streamflow/streamflow.benchmark.remote.template.yml
 !/.pre-commit-config.yaml
 !/.github/workflows/ci.yml
+!/.github/dependabot.yml
 
 # Native extension and distribution artifacts
 *.so

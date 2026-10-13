@@ -2,6 +2,9 @@
 # (ignored by Git) and keep only the keys each process/step needs.
 # Keys retain their former names, but are read only from YAML, never the environment.
 CUT_DIM: 16
+# Pipeline selection for local_benchmark. CWL uses its workflow settings YAML.
+SPLIT_METHOD: recursive_graph
+AGGREGATE_METHOD: auto
 STRIDE: -1
 EXACT_RATIO: 0.75
 QSPLIT_BACKEND: dwave

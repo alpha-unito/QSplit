@@ -226,7 +226,7 @@ def main() -> None:
                 matrix_name = f"{scheduled_count:06d}_{safe_id}.csv"
                 matrix_path = output_dir / matrix_name
                 matrix_path.write_text(
-                    "\n".join(",".join(f"{value:g}" for value in row) for row in matrix) + "\n",
+                    "\n".join(",".join(f"{value:.17g}" for value in row) for row in matrix) + "\n",
                     encoding="utf-8",
                 )
                 scheduled_count += 1

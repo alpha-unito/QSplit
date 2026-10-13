@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "pybind11>=3.0,<4"]
+requires = ["setuptools>=83.0.0", "pybind11>=3.0,<4"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -24,9 +24,9 @@ dwave = ["dwave-system==1.34.0"]
 
 ibm-cpu = ["qiskit>=2.1.2", "qsplit[ibm-core]", "qiskit-aer==0.17.2"]
 
-ibm-gpu = ["qiskit==1.4.1", "qsplit[ibm-core]", "qiskit-aer-gpu-cu11==0.17.2"]
+ibm-gpu = ["qiskit==1.4.2", "qsplit[ibm-core]", "qiskit-aer-gpu-cu11==0.17.2"]
 
-iqm = ["iqm-client[qiskit]==33.0.4; python_version < '3.13'", "qiskit-algorithms==0.4.0"]
+iqm = ["iqm-client[qiskit]==34.0.2; python_version < '3.13'", "qiskit-algorithms==0.4.0"]
 
 quantinuum = ["qnexus>=0.40.1", "pytket>=2.13.0", "pytket-qiskit>=0.77.0"]
 
@@ -38,7 +38,7 @@ dev = [
     "qiskit-algorithms==0.4.0",
     "qiskit-ibm-runtime==0.43.1",
     "qiskit-aer==0.17.2",
-    "pytest==9.0.1",
+    "pytest==9.0.3",
     "pytest-cov==7.0.0",
     "coverage>=7.10.6",
     "pre-commit>=4.5.1",
@@ -51,13 +51,18 @@ dataset = [
     "networkx==3.6.1",
     "tqdm==4.67.1",
     "h5py>=3.15.1",
-    "aiohttp==3.13.3",
-    "fsspec>=2025.3.0",
+    "aiohttp==3.14.3",
+    "fsspec>=2026.6.0",
     "dwave-system==1.34.0",
     "matplotlib>=3.10.8",
 ]
 
-streamflow = ["streamflow>=0.2.0dev13"]
+streamflow = ["streamflow>=0.2.0rc3"]
+
+benchmark = [
+    "qoblib @ git+https://github.com/ZIB-AOPT/qoblib-python.git@6de56e92df6dfbf352c269662a66f4ceddd37bf2",
+    "pyscipopt>=6.2.1,<7",
+]
 
 [tool.uv]
 cache-keys = [
@@ -98,6 +103,8 @@ cli_refine = "qsplit.cwl.cli.refine:main"
 cli_dataset_prepare = "qsplit.cwl.cli.dataset_prepare:main"
 cli_collect_dataset_results = "qsplit.cwl.cli.collect_dataset_results:main"
 cli_persist_instance_solution = "qsplit.cwl.cli.persist_instance_solution:main"
+local_benchmark = "qsplit.benchmark.local_benchmark:main"
+cli_benchmark = "qsplit.benchmark.cli:main"
 
 [project.entry-points."unito.streamflow.plugin"]
 qsplit = "streamflow.quantum.plugin.plugin:QSplitStreamFlowPlugin"

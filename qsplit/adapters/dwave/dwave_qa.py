@@ -8,8 +8,9 @@ from qsplit.qubo import QUBO
 
 @configuration.configured
 def solve(qubo: QUBO) -> pd.DataFrame:
+    # GHSA-w8v5-vhqr-4h9v: DiskCache has no patched release; avoid its pickle cache.
     return to_dataframe(
-        EmbeddingComposite(DWaveSampler(token=configuration.require("DWAVE_API_TOKEN"))).sample(
+        EmbeddingComposite(DWaveSampler(token=configuration.require("DWAVE_API_TOKEN"), cache_home="off")).sample(
             from_qubo_matrix_to_bqm(qubo), num_reads=10
         ),
         qubo,

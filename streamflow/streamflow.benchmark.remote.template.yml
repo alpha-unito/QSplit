@@ -1,0 +1,48 @@
+# Preparation, result persistence and QOBLIB export run on the launching machine.
+# Split, solve, aggregate and refinement run on an SSH worker with QSplit installed.
+version: v1.0
+workflows:
+  benchmark:
+    type: cwl
+    config:
+      file: cwl/benchmark.cwl
+      settings: cwl/benchmark.remote.config.yml
+    bindings:
+      - step: /qsplit/qsplit_instances/split
+        target: {deployment: qsplit-worker, service: qsplit-cpu}
+      - step: /qsplit/qsplit_instances/parallelize
+        target: {deployment: qsplit-solvers}
+      - step: /qsplit/qsplit_instances/aggregate
+        target: {deployment: qsplit-worker, service: qsplit-cpu}
+      - step: /qsplit/qsplit_instances/initialize_refinement
+        target: {deployment: qsplit-worker, service: qsplit-cpu}
+      - step: /qsplit/qsplit_instances/refine/prepare
+        target: {deployment: qsplit-worker, service: qsplit-cpu}
+      - step: /qsplit/qsplit_instances/refine/solve
+        target: {deployment: qsplit-solvers}
+      - step: /qsplit/qsplit_instances/refine/update
+        target: {deployment: qsplit-worker, service: qsplit-cpu}
+deployments:
+  qsplit-worker:
+    type: ssh
+    workdir: /absolute/path/to/remote/benchmark-work
+    config:
+      nodes:
+        - hostname: worker.example.org
+          username: your-user
+      services:
+        qsplit-cpu: templates/benchmark_ssh.sh
+  qsplit-solvers:
+    type: qsplit.quantum_connector
+    wraps:
+      deployment: qsplit-worker
+      service: qsplit-cpu
+    config:
+      provider: dwave
+      providerPool: [dwave]
+      maxConcurrentJobs:
+        dwave: 2
+database:
+  type: sqlite
+  config:
+    connection: work/benchmark-remote.db

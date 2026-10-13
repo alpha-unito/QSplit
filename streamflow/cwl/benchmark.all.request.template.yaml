@@ -1,0 +1,22 @@
+# Discover all classes; convert only compatible instances within the budgets below.
+# Use a list of problem-class names to restrict the catalog.
+# Birkhoff collections are expanded into their individual benchmark instances.
+instances: all
+ref: main
+runs: 1
+check: auto
+# Continue on unsupported/oversized conversions; report every failure in results.json.
+# Use error to stop at the first conversion failure instead.
+on_conversion_error: skip
+# Budget the full QUBO, including auxiliary variables and slack, before conversion.
+# 100,000 float64 variables require 80 GB for ONE dense matrix.
+# Lower max_matrix_bytes to the memory available to one process on your node.
+max_variables: 100000
+max_matrix_bytes: 80000000000
+submission_name: QSplit
+submission:
+  submitter: ""
+  affiliation: ""
+  reference: ""
+  hardware: ""
+  paradigm: Classical
