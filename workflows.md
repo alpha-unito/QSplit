@@ -6,9 +6,11 @@ For installation and a runnable local example, start with [README.md](README.md)
 
 - [Split and aggregate compatibility](#split-and-aggregate-compatibility)
 - [Refinement choices](#refinement-choices)
+- [Split and refinement compatibility](#split-and-refinement-compatibility)
 - [Configure a pipeline](#configure-a-pipeline)
 - [Place the steps](#place-the-steps)
 - [Python entry points](#python-entry-points)
+- [Python refinement functions](#python-refinement-functions)
 
 ## Split and aggregate compatibility
 
@@ -45,17 +47,56 @@ fallback requires the `dwave` extra on the aggregation worker.
 
 ## Refinement choices
 
-Every valid pairing above supports all three refinement strategies.
+The distributed workflows accept the following `refinement_method` values, as
+defined in [the refinement CLI](qsplit/cwl/cli/refine.py). There are two concrete
+strategies, plus automatic selection and a disabled mode. Python's `refine_result`
+accepts the three enabled values through `REFINEMENT_METHOD`; disable it with
+`REFINEMENT_LOOPS: 0`.
 
 | `refinement_method` | Behaviour |
 | --- | --- |
 | `none` | Return the initial aggregate result |
-| `conditioned` | Solve one bounded block at a time, holding outside variables at their current values; accept globally non-worsening updates |
 | `mean_field` | Rebuild real-variable windows using fractional boundary fields from shared beliefs |
 | `soft_consensus` | Add soft agreement penalties, preserving quadtree macrovariable groups |
 | `consensus` | Select soft-consensus when macrovariable templates exist, otherwise mean-field |
 
-For consensus methods, the logical cycle is:
+### Split and refinement compatibility
+
+✓ marks a supported combination after any compatible initial aggregation from
+the split/aggregate table. These columns are workflow method names, not Python
+module names.
+
+| Initial split / refinement | `none` | `mean_field` | `soft_consensus` | `consensus` resolves to |
+| --- | :---: | :---: | :---: | --- |
+| `linear` | ✓ | ✓ | ✓ | `mean_field` |
+| `recursive` | ✓ | ✓ | ✓ | `mean_field` |
+| `k_interactions` | ✓ | ✓ | ✓ | `mean_field` |
+| `recursive_graph` | ✓ | ✓ | ✓ | `mean_field` |
+| `quadtree` | ✓ | ✓ | ✓* | `soft_consensus`* when macrovariables exist, otherwise `mean_field` |
+
+*With macrovariables, `soft_consensus` requires principal templates (matching row
+and column IDs), complete `macro_members` metadata, and a `refinement_cut_dim`
+large enough for each full template, counting both real and macrovariables.
+It cannot subdivide those templates. `mean_field` instead extracts real-variable
+windows and drops macrovariables, so it can use smaller refinement blocks
+than the initial quadtree split.
+
+The aggregator used during refinement is a separate choice:
+
+| Refinement / `refinement_aggregate_method` | `linear` | `linear_belief_propagation` | `recursive_graph` |
+| --- | :---: | :---: | :---: |
+| `mean_field` | ✓ | ✓ | ✓ |
+| `soft_consensus` | ✓ | ✓ | ✓ |
+
+`consensus` uses the row of its resolved strategy and is the default for Python
+refinement when `REFINEMENT_METHOD` is omitted. `none` performs no refinement
+aggregation. The workflow validates this setting even when it is unused; `auto`,
+`recursive`, `k_interactions` and `quadtree` are not accepted here. In particular,
+recursive initialization does not require tree aggregation in subsequent rounds.
+
+All enabled refinement methods prepare the complete set of subproblems for a
+round before any solves. The CWL workflow scatters those independent problems
+to its Solve workers. The logical cycle is:
 
 ```mermaid
 flowchart LR
@@ -71,11 +112,7 @@ Initial splitting runs once. In subsequent consensus rounds, aggregation happens
 inside the CWL `update` step and uses `refinement_aggregate_method`.
 `merge_solved` only collects files; it does not combine variable assignments.
 
-Conditioned refinement composes the global assignment one block at a time.
-Each accepted update is visible to the next block; it does not use the consensus
-aggregator. One sweep visits every real variable in shuffled blocks.
-
-`refinement_loops` counts additional full sweeps or consensus rounds. The first
+`refinement_loops` counts additional consensus rounds. The first
 round runs when enabled with a positive budget. Later rounds continue while
 budget and patience remain, based on observed global improvement; they do not
 predict future improvement. All candidates are evaluated on the original QUBO,
@@ -95,7 +132,8 @@ refinement_cut_dim: 8
 refinement_aggregate_method: linear
 ```
 
-Use `none` or a non-positive loop budget to disable refinement.
+In CWL, use `none` or a non-positive loop budget to disable refinement. In Python,
+use a non-positive `REFINEMENT_LOOPS`; `none` is not an enabled Python method name.
 `refinement_cut_dim: null` reuses `cut_dim`. Consensus aggregation can be `linear`,
 `linear_belief_propagation` or `recursive_graph`, independently of initialization.
 Soft-consensus preserves macrovariable blocks, so `refinement_cut_dim` must
@@ -107,7 +145,7 @@ Optional per-step YAML files tune algorithms and backends:
 | --- | --- |
 | `split_configs` | Splitter settings such as `STRIDE` and `EXACT_RATIO` |
 | `parallel_configs`, `iqm_configs`, `quantinuum_h2_configs`, `quantinuum_h2e_configs` | Settings and credentials for the corresponding initial solver lane |
-| `refinement_configs` | `REFINEMENT_TOLERANCE`, `REFINEMENT_PATIENCE`, `REFINEMENT_SEED`, `REFINEMENT_STRENGTH` |
+| `refinement_configs` | `REFINEMENT_TOLERANCE`, `REFINEMENT_PATIENCE`, `REFINEMENT_STRENGTH` |
 | `refinement_solver_configs` | Settings and credentials for refinement solves |
 | `aggregate_configs`, `storage_configs` | Initial aggregation and storage settings |
 
@@ -123,6 +161,8 @@ refinement_solver_configs:
 See [the configuration template](qsplit.config.template.yaml) for
 available keys. Workflow method and budget inputs control distributed refinement;
 `REFINEMENT_METHOD` and `REFINEMENT_LOOPS` are used by the Python controller.
+The default patience is 1 round without significant global improvement.
+`REFINEMENT_STRENGTH` controls soft-consensus penalties (default `0.1`).
 
 `refinement_backend: null` uses connector/config selection. Refinement can use a
 different backend from initialization. `QSPLIT_SOLVER_MODULE` selects a custom
@@ -162,3 +202,45 @@ complete global solution. Pass solved subproblems to reuse their windows and
 beliefs. Numerical methods run in C++; Python handles configuration and solver calls.
 The deprecated local runner also offers composed samplers and logical expansion;
 logical expansion is a local initialization option.
+
+### Python refinement functions
+
+The [refinement package](qsplit/refinement/) also exposes lower-level functions.
+In particular, `refine_linear` and `refine_quadtree` exist in the repository but
+`linear` and `quadtree` are not accepted as `refinement_method` or
+`REFINEMENT_METHOD` values.
+
+| Module in `qsplit.refinement` | Entry point | Behaviour and template compatibility |
+| --- | --- | --- |
+| `refine_mean_field` | `refine_problems(subproblems, qubo, config=...)` | Rebuilds principal real-variable windows from template row/column IDs, subdividing them to `CUT_DIM`; ignores padding and macrovariable IDs |
+| `refine_soft_consensus` | `refine_problems(subproblems, qubo, config=...)` | Rebuilds bounded real-variable windows and preserves macrovariable templates subject to the size/metadata constraints above |
+| `refine_linear` | `refine_problems(subproblems, qubo)` | Mean-field without window subdivision: uses each distinct real row/column window at its original size; does not preserve macrovariables |
+| `refine_quadtree` | `refine_problems(subproblems, qubo, config=...)` | Rebuilds existing principal quadtree templates with soft penalties and preserves `macro_members`; does not subdivide templates or enforce `CUT_DIM`; unsuitable for off-diagonal or padded templates |
+
+The subproblem-generating functions can be supplied explicitly to
+`refine_result(refinement=...)`, for example:
+
+```python
+from qsplit.refinement import refine_result
+from qsplit.refinement.refine_linear import refine_problems
+
+result = refine_result(
+    qubo,  # already has a complete global solution
+    solve=solve,
+    subproblems=solved_subproblems,
+    refinement=refine_problems,
+    config={"CUT_DIM": 16, "REFINEMENT_LOOPS": 3},
+)
+```
+
+An explicit `refinement` callback takes precedence over `REFINEMENT_METHOD`.
+Choose an `aggregate` callable compatible with the generated subproblems;
+`refine_result` defaults to linear voting. Without `subproblems`, it creates
+contiguous real-variable templates of `block_size` (default `CUT_DIM`).
+
+In the [deprecated local runner](qsplit/local_runner.py), `consensus` has
+pipeline-specific defaults: `qsplit_sampler_refined_iterative` uses
+`refine_linear`, `qsplit_sampler_refined_quadtree` uses `refine_quadtree`, and the
+recursive, interactions and graph-partitioning samplers use `refine_mean_field`.
+The generic `refine_result` and distributed workflows use the metadata-based
+selection described in the compatibility table.

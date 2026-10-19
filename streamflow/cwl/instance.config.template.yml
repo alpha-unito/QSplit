@@ -5,7 +5,7 @@ input_matrix:
 split_method: linear
 aggregate_method: linear_belief_propagation
 cut_dim: 8
-refinement_method: conditioned
+refinement_method: mean_field
 refinement_loops: 2
 refinement_cut_dim: 8
 refinement_aggregate_method: linear

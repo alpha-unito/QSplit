@@ -113,7 +113,7 @@ def test_large_conflicts_call_python_solver_once_and_keep_offset(make_qubo):
     assert result.loc["row", "energy"] == -6
 
 
-def test_conditioned_fractional_beliefs_match_expectation(make_qubo):
+def test_boundary_fields_with_fractional_beliefs_match_expectation(make_qubo):
     q = make_qubo([[2, -4, 3], [0, 1, -2], [0, 0, -1]], ids=[20, 10, 30], offset=7)
     beliefs = {20: 0.25, 10: 0.75, 30: 0.5}
     sub = condition_subproblem(q, [30], beliefs)

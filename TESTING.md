@@ -25,7 +25,7 @@ Optional SDK tests are skipped when their dependencies are absent.
 For pipeline changes, focus on
 [distributed refinement tests](tests/integration/test_distributed_refinement.py) and
 [StreamFlow E2E tests](tests/e2e/test_workflows.py). They cover method combinations,
-file transfers, sequential conditioned updates, state/history outputs and resume.
+file transfers, complete refinement rounds, state/history outputs and resume.
 The [native core tests](tests/unit/test_native_core.py) check C++ bindings,
 serialization and numerical invariants. Tests verify global energies and valid
 assignments; passing them does not establish optimization quality or quantum advantage.

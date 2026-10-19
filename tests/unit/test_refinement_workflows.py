@@ -19,7 +19,7 @@ from qsplit.splitting.split_recursive import split_leaves
 from qsplit.splitting.split_recursive_graph import split_problem as graph
 
 PIPELINES = ["iterative", "quadtree", "recursive", "interactions", "graph_partitioning"]
-METHODS = ["conditioned", "consensus", "mean_field", "soft_consensus"]
+METHODS = ["consensus", "mean_field", "soft_consensus"]
 
 
 @pytest.mark.parametrize("pipeline", PIPELINES)
@@ -38,8 +38,6 @@ def test_every_refinement_preserves_complete_best_global_solution(
     assert 1 <= len(result.refinement_history) <= 3
     assert result.solutions.energy.min() == min(result.refinement_history)
     assert result.solutions.energy.min() <= result.refinement_history[0]
-    if method == "conditioned":
-        assert np.all(np.diff(result.refinement_history) <= 0)
 
 
 @pytest.mark.parametrize("pipeline", PIPELINES)
@@ -102,17 +100,49 @@ def test_recursive_tree_initialization_with_flat_refinement(make_qubo, exact_sol
     assert len(result.refinement_history) == 2
 
 
-@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.parametrize("method", [None, *METHODS])
 def test_refine_any_incumbent_without_split_templates(method, make_qubo, exact_solver, assert_solution):
     qubo = make_qubo([[1, -3], [0, 1]], ids=[30, 10], offset=5)
     qubo.solutions = pd.DataFrame({30: [0], 10: [0], "energy": [-999]})
+    config = {"CUT_DIM": 2, "REFINEMENT_LOOPS": 1}
+    if method is not None:
+        config["REFINEMENT_METHOD"] = method
     result = refine_result(
         qubo,
         solve=exact_solver,
-        config={"CUT_DIM": 2, "REFINEMENT_LOOPS": 1, "REFINEMENT_METHOD": method},
+        config=config,
     )
     assert_solution(result)
     assert result.refinement_history == [5, 4]
+
+
+def test_default_refinement_preserves_macro_templates(make_qubo, exact_solver, assert_solution):
+    qubo = make_qubo(np.triu(-np.ones((5, 5))), offset=7)
+    qubo.solutions = exact_solver(qubo)
+    subs = quadtree(qubo, config={"CUT_DIM": 2})
+    for sub in subs:
+        sub.solutions = exact_solver(sub)
+    solved = []
+
+    def solve(sub):
+        solved.append(sub)
+        return exact_solver(sub)
+
+    result = refine_result(qubo, solve=solve, subproblems=subs, config={"CUT_DIM": 2, "REFINEMENT_LOOPS": 1})
+    assert_solution(result)
+    assert len(solved) == len(subs)
+    assert [sub.macro_members for sub in solved] == [sub.macro_members for sub in subs]
+
+
+def test_removed_refinement_is_rejected(make_qubo, exact_solver):
+    qubo = make_qubo([[-1]])
+    qubo.solutions = exact_solver(qubo)
+    with pytest.raises(ValueError, match="REFINEMENT_METHOD must be"):
+        refine_result(
+            qubo,
+            solve=exact_solver,
+            config={"CUT_DIM": 2, "REFINEMENT_LOOPS": 1, "REFINEMENT_METHOD": "conditioned"},
+        )
 
 
 @pytest.mark.parametrize("strategy", [mean_field, soft_consensus])
@@ -148,7 +178,7 @@ def test_soft_consensus_reuses_native_macro_objective_and_evidence(make_qubo, ex
         assert a.macro_members == b.macro_members
 
 
-@pytest.mark.parametrize("method", ["conditioned", "mean_field", "soft_consensus"])
+@pytest.mark.parametrize("method", ["mean_field", "soft_consensus"])
 def test_recursive_logical_expansion_initialization_is_preserved(method, make_qubo, exact_solver, monkeypatch):
     monkeypatch.setattr(local_runner, "solve", exact_solver)
     monkeypatch.setattr(local_runner, "LOGICAL_EXPANSION", True)

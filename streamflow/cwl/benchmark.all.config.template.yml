@@ -9,7 +9,7 @@ solutions_store_dir: /absolute/path/to/benchmark-all/solutions
 cut_dim: 10
 split_method: quadtree
 aggregate_method: auto
-refinement_method: conditioned
+refinement_method: consensus
 refinement_loops: 5
 parallel_configs:
   - class: File

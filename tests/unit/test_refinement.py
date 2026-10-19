@@ -10,9 +10,7 @@ from dimod import ExactSolver
 from qsplit import configuration, local_runner
 from qsplit.adapters.dwave.util import from_qubo_matrix_to_bqm, to_dataframe
 from qsplit.qubo import QUBO
-from qsplit.refinement import runner as refinement_runner
 from qsplit.refinement.propagation import collect_beliefs, condition_subproblem
-from qsplit.refinement.refine_conditioned import refine_solutions
 from qsplit.refinement.refine_linear import refine_problems as refine_linear
 from qsplit.refinement.refine_quadtree import refine_problems as refine_quadtree
 from qsplit.splitting.split_quadtree import split_problem as split_quadtree
@@ -29,7 +27,7 @@ def make_qubo(matrix, ids=None, offset=0.0):
 
 
 class TestPropagation(unittest.TestCase):
-    def test_conditioned_energy_equals_global_energy_for_every_local_assignment(self):
+    def test_boundary_conditioning_preserves_global_energy_for_every_local_assignment(self):
         qubo = make_qubo([[2, -4, 3, 0], [0, 1, -2, 0], [0, 0, -1, 0], [0, 0, 0, 0]], ids=[20, 10, 30, -1], offset=7)
         fixed = {20: 0, 10: 1, 30: 0}
         sub = condition_subproblem(qubo, [30, 20], fixed)
@@ -38,27 +36,6 @@ class TestPropagation(unittest.TestCase):
             x = np.array([full.get(idx, 0) for idx in qubo.rows_idx])
             local = np.array(bits)
             self.assertEqual(local @ sub.mat @ local + sub.offset, x @ qubo.mat @ x + qubo.offset)
-
-    def test_sequential_updates_do_not_combine_incompatible_local_improvements(self):
-        qubo = make_qubo([[-1, 3], [0, -1]])
-        qubo.solutions = pd.DataFrame({0: [0], 1: [0], "energy": [0.0]})
-        result = refine_solutions(qubo, exact_solve, 1, np.random.default_rng(0))
-        self.assertEqual(result.iloc[0]["energy"], -1)
-        self.assertEqual(result.iloc[0][0] + result.iloc[0][1], 1)
-        self.assertEqual(qubo.solutions.iloc[0]["energy"], 0)
-
-    def test_joint_updates_cross_a_single_variable_barrier(self):
-        qubo = make_qubo([[1, -3], [0, 1]])
-        qubo.solutions = pd.DataFrame({0: [0], 1: [0], "energy": [0.0]})
-        result = refine_solutions(qubo, exact_solve, 2, np.random.default_rng(0))
-        self.assertEqual(result.iloc[0].tolist(), [1, 1, -1])
-
-    def test_conditioned_refinement_rejects_a_worsening_sampler_result(self):
-        qubo = make_qubo([[-1, 0], [0, -2]])
-        qubo.solutions = pd.DataFrame({0: [1], 1: [1], "energy": [-3.0]})
-        solve = Mock(return_value=pd.DataFrame({0: [0], 1: [0], "energy": [-999.0]}))
-        result = refine_solutions(qubo, solve, 2, np.random.default_rng(0))
-        pd.testing.assert_frame_equal(result, qubo.solutions, check_dtype=False)
 
     def test_beliefs_weight_each_subproblem_once_and_ignore_invalid_samples(self):
         qubo = make_qubo(np.eye(2))
@@ -205,7 +182,6 @@ class TestRefinedSamplers(unittest.TestCase):
                     "CUT_DIM": "4",
                     "REFINEMENT_LOOPS": "4",
                     "REFINEMENT_STRENGTH": "0.1",
-                    "REFINEMENT_METHOD": "consensus",
                 }
                 with (
                     patch.dict(configuration.current(), env, clear=True),
@@ -247,40 +223,19 @@ class TestRefinedSamplers(unittest.TestCase):
         self.assertEqual(aggregate.call_count, 2)
         self.assertEqual(result.refinement_history, [-3, -3])
 
-    def test_conditioned_refinement_waits_for_multiple_stalled_sweeps(self):
-        for patience, expected_calls, expected_energy in ((2, 2, 0), (3, 3, -1)):
+    def test_refinement_waits_for_multiple_stalled_rounds(self):
+        for patience, expected_rounds, expected_energy in ((2, 2, 0), (3, 3, -1)):
             env = {"CUT_DIM": "2", "REFINEMENT_LOOPS": "3", "REFINEMENT_PATIENCE": str(patience)}
             initial = pd.DataFrame({0: [0], "energy": [0.0]})
             improved = pd.DataFrame({0: [1], "energy": [-1.0]})
             with (
                 patch.dict(configuration.current(), env, clear=True),
-                patch.object(local_runner, "solve", return_value=initial),
-                patch.object(refinement_runner, "refine_solutions", side_effect=[initial, initial, improved]) as refine,
+                patch.object(local_runner, "solve", side_effect=[initial, initial, initial, improved]) as solve,
             ):
                 result = local_runner.qsplit_sampler_refined_quadtree(make_qubo([[-1]]))
-            self.assertEqual(refine.call_count, expected_calls)
+            self.assertEqual(solve.call_count, expected_rounds + 1)
+            self.assertEqual(len(result.refinement_history), expected_rounds + 1)
             self.assertEqual(result.solutions.iloc[0]["energy"], expected_energy)
-
-    def test_conditioned_neighborhoods_change_and_respect_cut_dim(self):
-        qubo = make_qubo(-np.eye(6), ids=[60, 10, 50, 20, 40, 30])
-        env = {"CUT_DIM": "2", "REFINEMENT_LOOPS": "3", "REFINEMENT_SEED": "42"}
-        for sampler in self.samplers:
-            windows = []
-
-            def solve(sub):
-                windows.append(tuple(sub.cols_idx))
-                self.assertLessEqual(sub.problem_size, 2)
-                return exact_solve(sub)
-
-            with (
-                patch.dict(configuration.current(), env, clear=True),
-                patch.object(local_runner, "solve", side_effect=solve),
-            ):
-                result = sampler(deepcopy(qubo))
-            self.assertEqual(len(result.refinement_history), 4)
-            self.assertTrue(np.all(np.diff(result.refinement_history) <= 0))
-            self.assertNotEqual(set(windows[-9:-6]), set(windows[-6:-3]))
-            self.assertEqual(result.solutions.iloc[0]["energy"], -6)
 
     def test_invalid_configuration_fails_explicitly(self):
         for name, value, sampler in (

@@ -31,7 +31,7 @@ def solve_files(sources, directory, solver):
 
 
 @pytest.mark.parametrize("split_method", ["recursive", "linear", "k_interactions", "recursive_graph", "quadtree"])
-@pytest.mark.parametrize("method", ["conditioned", "consensus", "mean_field", "soft_consensus"])
+@pytest.mark.parametrize("method", ["consensus", "mean_field", "soft_consensus"])
 def test_distributed_rounds_match_local_native_controller(
     split_method, method, tmp_path, monkeypatch, exact_solver, assert_solution
 ):
@@ -102,18 +102,15 @@ def test_distributed_rounds_match_local_native_controller(
         )
         state = updated / "state.pkl"
         units += 1
-        assert units <= 2 * 3
+        assert units <= 2
     result = load_qubo(state)
     assert_solution(result)
     assert result.refinement_history == expected.refinement_history
     assert result.solutions.energy.min() == expected.solutions.energy.min()
-    if method == "conditioned":
-        assert units == 3 * (len(result.refinement_history) - 1)
-    else:
-        assert units == len(result.refinement_history) - 1
+    assert units == len(result.refinement_history) - 1
 
 
-@pytest.mark.parametrize("method", ["none", "conditioned", "mean_field", "soft_consensus"])
+@pytest.mark.parametrize("method", ["none", "mean_field", "soft_consensus"])
 def test_zero_objective_and_disabled_refinement(method, tmp_path, monkeypatch, exact_solver):
     source = tmp_path / "zero.csv"
     np.savetxt(source, np.zeros((3, 3)), delimiter=",")
@@ -210,13 +207,41 @@ def test_invalid_initial_combinations_fail_before_solving(method, tmp_path, monk
         )
 
 
-def test_conditioned_state_handles_duplicate_dataframe_indices_and_offset(make_qubo, exact_solver):
-    qubo = make_qubo([[1, -3], [0, 1]], ids=[30, 10], offset=7)
+@pytest.mark.parametrize("method", ["consensus", "mean_field", "soft_consensus"])
+def test_prepare_builds_entire_round_before_update(method, make_qubo, exact_solver, assert_solution):
+    qubo = make_qubo(-np.eye(5), ids=[30, 10, 50, 20, 40], offset=7)
     qubo.instance_id = "case"
-    qubo.solutions = pd.DataFrame({30: [0, 1], 10: [0, 0], "energy": [7, 8]}, index=[5, 5])
-    refine.initialize(qubo, [qubo], method="conditioned", loops=1, block_size=2, aggregate_method="linear")
-    sub = refine.prepare(qubo, [qubo])[0]
-    sub.solutions = exact_solver(sub)
-    refine.update(qubo, [sub])
-    assert qubo.refinement_history == [7, 6]
-    assert qubo.solutions.iloc[0].tolist() == [1, 1, 6]
+    qubo.solutions = pd.DataFrame({**{idx: [0, 0] for idx in qubo.rows_idx}, "energy": [7, 7]}, index=[5, 5])
+    templates = [deepcopy(qubo)]
+    refine.initialize(qubo, templates, method=method, loops=1, block_size=2, aggregate_method="linear")
+
+    blocks = refine.prepare(qubo, templates)
+    assert len(blocks) == 3
+    assert sorted(idx for sub in blocks for idx in sub.rows_idx) == sorted(qubo.rows_idx)
+    assert all(sub.solutions is None and sub.problem_size <= 2 for sub in blocks)
+    assert len(qubo.refinement_state["pending"]) == 3
+    assert qubo.refinement_state["rounds"] == 0
+    assert qubo.refinement_history == [7]
+    assert (qubo.solutions.energy == 7).all()
+
+    for sub in blocks:
+        sub.solutions = exact_solver(sub)
+    refine.update(qubo, list(reversed(blocks)))
+    assert_solution(qubo)
+    assert qubo.refinement_history == [7, 2]
+    assert qubo.refinement_state["rounds"] == 1
+    assert not qubo.refinement_state["active"]
+
+
+def test_removed_refinement_is_rejected_in_settings_and_saved_state(make_qubo, exact_solver):
+    qubo = make_qubo([[-1]])
+    qubo.instance_id = "case"
+    qubo.solutions = exact_solver(qubo)
+    with pytest.raises(ValueError, match="Unknown refinement method"):
+        refine.initialize(qubo, [qubo], method="conditioned", loops=1, block_size=2, aggregate_method="linear")
+    refine.initialize(qubo, [qubo], method="mean_field", loops=1, block_size=2, aggregate_method="linear")
+    qubo.refinement_state["options"]["method"] = "conditioned"
+    with pytest.raises(ValueError, match="Unknown refinement method in saved state"):
+        refine.prepare(qubo, [qubo])
+    with pytest.raises(ValueError, match="Unknown refinement method in saved state"):
+        refine.update(qubo, [qubo])

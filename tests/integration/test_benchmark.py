@@ -314,7 +314,7 @@ def test_actual_streamflow_benchmark_bridges(tmp_path, source_request, all_insta
                 "solutions_store_dir": str(tmp_path / "store"),
                 "cut_dim": 2,
                 "split_method": "recursive_graph",
-                "refinement_method": "conditioned",
+                "refinement_method": "consensus",
                 "refinement_loops": 1,
             }
         )

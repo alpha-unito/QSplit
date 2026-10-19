@@ -164,7 +164,7 @@ def test_local_cli_reads_pipeline_yaml_and_reports_progress(tmp_path):
     config = tmp_path / "config.yaml"
     config.write_text(
         "CUT_DIM: 2\nSPLIT_METHOD: linear\nAGGREGATE_METHOD: linear_belief_propagation\n"
-        "REFINEMENT_LOOPS: 1\nREFINEMENT_METHOD: conditioned\n"
+        "REFINEMENT_LOOPS: 1\nREFINEMENT_METHOD: consensus\n"
     )
     output = tmp_path / "output"
     command = [

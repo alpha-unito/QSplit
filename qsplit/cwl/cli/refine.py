@@ -13,7 +13,7 @@ from qsplit.qubo import QUBO
 from qsplit.refinement.refine_mean_field import refine_problems as mean_field
 from qsplit.refinement.refine_soft_consensus import refine_problems as soft_consensus
 
-REFINEMENT_METHODS = ["none", "conditioned", "consensus", "mean_field", "soft_consensus"]
+REFINEMENT_METHODS = ["none", "consensus", "mean_field", "soft_consensus"]
 
 
 def load_samples(paths, instance_id, expected=None):
@@ -47,7 +47,7 @@ def initialize(qubo, samples, *, method, loops, block_size, aggregate_method):
     options = {"method": method, "loops": max(loops, 0), "block_size": block_size, "aggregate": aggregate_method}
     if active:
         tolerance = float(configuration.get("REFINEMENT_TOLERANCE", "1e-9"))
-        patience = int(configuration.get("REFINEMENT_PATIENCE", "10" if method == "conditioned" else "1"))
+        patience = int(configuration.get("REFINEMENT_PATIENCE", "1"))
         strength = float(configuration.get("REFINEMENT_STRENGTH", "0.1")) if method == "soft_consensus" else 0.0
         if not np.isfinite(tolerance) or tolerance < 0:
             raise ValueError("REFINEMENT_TOLERANCE must be finite and non-negative")
@@ -55,11 +55,7 @@ def initialize(qubo, samples, *, method, loops, block_size, aggregate_method):
             raise ValueError("REFINEMENT_PATIENCE must be positive")
         if not np.isfinite(strength) or strength < 0:
             raise ValueError("REFINEMENT_STRENGTH must be finite and non-negative")
-        seed = int(configuration.get("REFINEMENT_SEED", "0")) if method == "conditioned" else 0
         options.update(tolerance=tolerance, patience=patience, strength=strength)
-        rng_state = np.random.default_rng(seed).bit_generator.state
-    else:
-        rng_state = None
     qubo.solutions = _core.validate_solutions(qubo.solutions.copy(deep=True), qubo)
     energy = float(qubo.solutions.energy.min())
     if not np.isfinite(energy):
@@ -69,13 +65,9 @@ def initialize(qubo, samples, *, method, loops, block_size, aggregate_method):
         "options": options,
         "active": active and bool(samples),
         "rounds": 0,
-        "cursor": 0,
-        "windows": [],
-        "rng_state": rng_state,
         "stalled": 0,
         "best_energy": energy,
         "round_start_energy": energy,
-        "working_solutions": qubo.solutions.copy(deep=True),
     }
     return qubo
 
@@ -86,29 +78,17 @@ def prepare(qubo, samples):
     if not info["active"]:
         info["pending"] = {}
         return []
-    if options["method"] == "conditioned":
-        if not info["windows"]:
-            ids = [int(idx) for idx in qubo.rows_idx if idx >= 0]
-            rng = np.random.default_rng()
-            rng.bit_generator.state = info["rng_state"]
-            order = rng.permutation(ids).tolist()
-            size = options["block_size"]
-            info["windows"] = [order[start : start + size] for start in range(0, len(order), size)]
-            info["rng_state"] = rng.bit_generator.state
-            info["round_start_energy"] = info["best_energy"]
-        working = info["working_solutions"]
-        assignment = working.iloc[working.energy.to_numpy().argmin()].drop("energy").to_dict()
-        subs = [_core.condition_subproblem(qubo, info["windows"][info["cursor"]], assignment)]
-    else:
-        info["round_start_energy"] = info["best_energy"]
-        strategy = mean_field if options["method"] == "mean_field" else soft_consensus
-        subs = strategy(
-            samples, qubo, config={"CUT_DIM": options["block_size"], "REFINEMENT_STRENGTH": options["strength"]}
-        )
+    info["round_start_energy"] = info["best_energy"]
+    strategies = {"mean_field": mean_field, "soft_consensus": soft_consensus}
+    if options["method"] not in strategies:
+        raise ValueError(f"Unknown refinement method in saved state: {options['method']}")
+    subs = strategies[options["method"]](
+        samples, qubo, config={"CUT_DIM": options["block_size"], "REFINEMENT_STRENGTH": options["strength"]}
+    )
     expected = {}
     for index, sub in enumerate(subs):
         sub.instance_id = qubo.instance_id
-        sub.node_id = f"refine_{info['rounds']:06d}_{info['cursor']:06d}_{index:06d}"
+        sub.node_id = f"refine_{info['rounds']:06d}_{index:06d}"
         expected[sub.node_id] = [sub.rows_idx.tolist(), sub.cols_idx.tolist()]
     info["pending"] = expected
     return subs
@@ -119,22 +99,9 @@ def update(qubo, samples):
     options = info["options"]
     if not info["active"]:
         return qubo
-    if options["method"] == "conditioned":
-        if len(samples) != 1:
-            raise ValueError("Conditioned refinement requires exactly one solved block per transition")
-        working = deepcopy(qubo)
-        working.solutions = info["working_solutions"]
-        candidates = (
-            _core.accept_conditioned(working, samples[0], samples[0].solutions)
-            if np.any(samples[0].mat)
-            else working.solutions.copy(deep=True)
-        )
-        info["working_solutions"] = candidates.copy(deep=True)
-        info["cursor"] += 1
-        finished = info["cursor"] == len(info["windows"])
-    else:
-        candidates = AGGREGATORS[options["aggregate"]](samples, deepcopy(qubo)).solutions
-        finished = True
+    if options["method"] not in {"mean_field", "soft_consensus"}:
+        raise ValueError(f"Unknown refinement method in saved state: {options['method']}")
+    candidates = AGGREGATORS[options["aggregate"]](samples, deepcopy(qubo)).solutions
     candidates = _core.validate_solutions(candidates.copy(deep=True), qubo)
     energy = float(candidates.energy.min())
     if not np.isfinite(energy):
@@ -143,13 +110,11 @@ def update(qubo, samples):
         qubo.solutions = candidates
         info["best_energy"] = energy
     qubo.refinement_subproblems = samples
-    if finished:
-        qubo.refinement_history.append(energy)
-        info["rounds"] += 1
-        improvement = info["round_start_energy"] - energy
-        info["stalled"] = info["stalled"] + 1 if improvement <= options["tolerance"] else 0
-        info["cursor"], info["windows"] = 0, []
-        info["active"] = info["rounds"] < options["loops"] and info["stalled"] < options["patience"] and bool(samples)
+    qubo.refinement_history.append(energy)
+    info["rounds"] += 1
+    improvement = info["round_start_energy"] - energy
+    info["stalled"] = info["stalled"] + 1 if improvement <= options["tolerance"] else 0
+    info["active"] = info["rounds"] < options["loops"] and info["stalled"] < options["patience"] and bool(samples)
     return qubo
 
 

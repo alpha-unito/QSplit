@@ -24,7 +24,7 @@ def run(request, output_dir, *, repository=None, split_method=None, aggregate_me
         "SPLIT_METHOD": "recursive_graph",
         "AGGREGATE_METHOD": "auto",
         "REFINEMENT_LOOPS": 0,
-        "REFINEMENT_METHOD": "conditioned",
+        "REFINEMENT_METHOD": "consensus",
         **configuration.load(config),
     }
     settings["QSPLIT_BACKEND"] = "dwave"

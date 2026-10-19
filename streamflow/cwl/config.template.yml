@@ -7,7 +7,7 @@ split_method: recursive
 aggregate_method: auto
 cut_dim: 10
 # Set both a refinement method and a positive budget to enable distributed rounds.
-refinement_method: none  # conditioned, mean_field, soft_consensus, or consensus
+refinement_method: none  # mean_field, soft_consensus, or consensus
 refinement_loops: 0
 refinement_cut_dim: null  # null uses cut_dim; set independently for the refinement backend
 refinement_aggregate_method: linear  # or linear_belief_propagation / recursive_graph

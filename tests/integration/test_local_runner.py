@@ -62,7 +62,7 @@ def test_recursive_leaf_api_matches_recursive_runner(make_qubo, exact_solver, mo
     assert result.solutions.energy.min() == expected.solutions.energy.min()
 
 
-@pytest.mark.parametrize("method", ["conditioned", "consensus", "mean_field", "soft_consensus"])
+@pytest.mark.parametrize("method", ["consensus", "mean_field", "soft_consensus"])
 @pytest.mark.parametrize(
     "sampler",
     [

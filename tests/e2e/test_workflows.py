@@ -95,7 +95,7 @@ def test_installed_commands_split_scatter_aggregate(tmp_path, run_command):
     "split_method,aggregate_method,refinement_method",
     [
         ("recursive", "auto", "none"),
-        ("linear", "linear_belief_propagation", "conditioned"),
+        ("linear", "linear_belief_propagation", "mean_field"),
         ("recursive", "linear", "mean_field"),
         ("k_interactions", "recursive_graph", "soft_consensus"),
         ("recursive_graph", "linear_belief_propagation", "consensus"),
@@ -212,8 +212,6 @@ def test_actual_cwl_dataset_workflow_and_resume(
             if with_yaml:
                 assert history[0] == 0
                 assert min(history) < history[0]
-            if refinement_method == "conditioned":
-                assert np.all(np.diff(history) <= 0)
     states = list((tmp_path / "output").rglob("state*.pkl"))
     assert len(states) == 2
     assert {load_qubo(path).instance_id for path in states} == set(matrices)

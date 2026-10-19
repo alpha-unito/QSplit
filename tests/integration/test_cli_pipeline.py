@@ -161,7 +161,7 @@ def test_workspace_recovery_uses_only_matching_instance_and_indices(tmp_path, ma
     assert aggregate._discover_solved_for_instance([root], "case", {"root_0"}, {paths[0]}, specs) == []
 
 
-@pytest.mark.parametrize("method", ["conditioned", "consensus", "mean_field", "soft_consensus"])
+@pytest.mark.parametrize("method", ["consensus", "mean_field", "soft_consensus"])
 @pytest.mark.parametrize("constant", [False, True])
 def test_cli_optional_refinement(method, constant, tmp_path, monkeypatch, exact_solver):
     monkeypatch.chdir(tmp_path)

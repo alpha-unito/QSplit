@@ -95,7 +95,7 @@ Pipeline parameters are supplied only through YAML; the CLI takes paths to the
 request, repository, parameter files and output directory. The local runner uses
 `CUT_DIM: 16` by default and the existing D-Wave simulated annealing adapter.
 The local runner defaults to zero refinement rounds; pass a YAML with
-`REFINEMENT_LOOPS: 2` and `REFINEMENT_METHOD: conditioned` through `--config` to
+`REFINEMENT_LOOPS: 2` and `REFINEMENT_METHOD: consensus` through `--config` to
 match the workflow example. Results are in `reports/qoblib-local/results/results.json`.
 Use a fresh output directory when changing the pipeline.
 

@@ -30,7 +30,7 @@ uv run --no-sync streamflow run --debug \
 ```
 
 This example uses the bundled CSV, simulated annealing, linear splitting,
-belief-propagation aggregation and two conditioned refinement sweeps.
+belief-propagation aggregation and up to two mean-field refinement rounds.
 It runs entirely locally and requires no QPU or cluster access.
 
 ## Configure your run

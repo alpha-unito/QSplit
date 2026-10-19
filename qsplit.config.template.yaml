@@ -12,13 +12,12 @@ QSPLIT_BACKEND: dwave
 # transfer the layer angles to the full circuit for one final backend run.
 LOCAL_TRAINING_QUBITS: 20
 # QSPLIT_SOLVER_MODULE: qsplit.adapters.all_zero
-# conditioned, consensus (pipeline default), mean_field, or soft_consensus.
-REFINEMENT_METHOD: conditioned
+# consensus (pipeline default), mean_field, or soft_consensus.
+REFINEMENT_METHOD: consensus
 REFINEMENT_LOOPS: 0
 REFINEMENT_TOLERANCE: 1.0e-9
-# Default patience: 10 for conditioned refinement, 1 for other methods.
-# REFINEMENT_PATIENCE: 10
-REFINEMENT_SEED: 0
+# Default patience: 1 round without significant global improvement.
+# REFINEMENT_PATIENCE: 1
 REFINEMENT_STRENGTH: 0.1
 
 # Paths refer to the machine executing the step. Prefer absolute paths for
