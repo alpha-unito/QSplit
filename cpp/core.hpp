@@ -24,25 +24,55 @@ constexpr double inf = std::numeric_limits<double>::infinity();
 constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 
 struct Qubo {
-    Array mat;
+    py::object mat;
     Indices rows_idx, cols_idx;
     double offset;
     py::ssize_t problem_size;
     py::object solutions = py::none();
-    Qubo(Array mat, Indices rows, Indices cols, double offset = 0);
+    Qubo(py::object mat, Indices rows, Indices cols, double offset = 0);
 };
 
-// Own the array references while unchecked, strided views are in use. The public
-// arrays remain writable, so validate dimensions at each numerical entry point.
+// Own storage while numerical loops release the GIL. CSR access never densifies.
+struct MatrixView {
+    py::object matrix;
+    Array dense, values;
+    py::array_t<Id, py::array::c_style | py::array::forcecast> columns, pointers;
+    bool sparse;
+    py::ssize_t n;
+    const char *dense_data = nullptr;
+    py::ssize_t row_stride = 0, col_stride = 0;
+    explicit MatrixView(py::object matrix);
+    double operator()(py::ssize_t i, py::ssize_t j) const {
+        if (!sparse)
+            return *reinterpret_cast<const double *>(dense_data + i * row_stride + j * col_stride);
+        const auto *first = columns.data() + pointers.at(i), *last = columns.data() + pointers.at(i + 1);
+        const auto *found = std::lower_bound(first, last, j);
+        return found != last && *found == j ? values.at(found - columns.data()) : 0.0;
+    }
+    template <class F> void each(F f) const {
+        for (py::ssize_t i = 0; i < n; ++i)
+            row(i, [&](auto j, auto value) { f(i, j, value); });
+    }
+    template <class F> void row(py::ssize_t i, F f) const {
+        if (sparse) {
+            for (auto k = pointers.at(i); k < pointers.at(i + 1); ++k)
+                if (values.at(k) != 0)
+                    f(columns.at(k), values.at(k));
+        } else {
+            for (py::ssize_t j = 0; j < n; ++j)
+                if (auto value = (*this)(i, j); value != 0)
+                    f(j, value);
+        }
+    }
+};
 struct View {
-    Array matrix;
+    MatrixView m;
     Indices rows, cols;
-    py::detail::unchecked_reference<double, 2> m;
     py::detail::unchecked_reference<Id, 1> r, c;
     py::ssize_t n;
     explicit View(const Qubo &q);
 };
-Array sanitize(Array mat);
+py::object sanitize(py::object mat);
 Indices indices(const std::vector<Id> &values);
 Array zeros(py::ssize_t n);
 std::vector<Id> variables(const Qubo &q, bool rows_only = false);
@@ -85,7 +115,7 @@ py::object aggregate_recursive(py::tuple subs, py::object q, py::function resolv
 py::object aggregate_trivial(const Qubo &ul, const Qubo &lr, py::object q);
 py::object aggregate_leaves(py::list subs, py::object q, py::function resolve);
 py::tuple logical_expansion(py::tuple subs);
-double calculate_energy(Array x, Array mat);
+double calculate_energy(Array x, py::object mat);
 
 std::map<Id, double> collect_beliefs(py::list subs, const Qubo &q);
 Qubo condition(const Qubo &q, const std::vector<Id> &window, const std::map<Id, double> &beliefs);

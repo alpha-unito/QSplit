@@ -2,6 +2,7 @@ import dimod
 import numpy as np
 import pandas as pd
 from dimod import BinaryQuadraticModel, SampleSet
+from scipy import sparse
 
 from qsplit.qubo import QUBO
 
@@ -11,11 +12,17 @@ def from_qubo_matrix_to_bqm(qubo: QUBO) -> BinaryQuadraticModel:
     cols_idx = np.array(qubo.cols_idx)
     mask = (rows_idx != -1) & (cols_idx != -1)
     filtered_mat = qubo.mat[np.ix_(mask, mask)]
-    linear = np.diag(filtered_mat).astype(np.float64)
-    q_rows, q_cols = np.triu_indices_from(filtered_mat, k=1)
-    quad_values = filtered_mat[q_rows, q_cols].astype(np.float64)
-    mask_quad = quad_values != 0
-    quadratic = (q_rows[mask_quad], q_cols[mask_quad], quad_values[mask_quad])
+    if sparse.issparse(filtered_mat):
+        linear = filtered_mat.diagonal()
+        upper = sparse.triu(filtered_mat, k=1, format="coo")
+        mask_quad = upper.data != 0
+        quadratic = (upper.row[mask_quad], upper.col[mask_quad], upper.data[mask_quad])
+    else:
+        linear = np.diag(filtered_mat).astype(np.float64)
+        q_rows, q_cols = np.triu_indices_from(filtered_mat, k=1)
+        quad_values = filtered_mat[q_rows, q_cols].astype(np.float64)
+        mask_quad = quad_values != 0
+        quadratic = (q_rows[mask_quad], q_cols[mask_quad], quad_values[mask_quad])
     return BinaryQuadraticModel.from_numpy_vectors(linear, quadratic, offset=qubo.offset, vartype=dimod.BINARY)
 
 

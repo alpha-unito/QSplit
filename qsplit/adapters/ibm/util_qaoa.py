@@ -18,6 +18,7 @@ from qiskit_ibm_runtime import SamplerV2 as RuntimeSamplerV2
 
 from qsplit.adapters.ibm.util import get_variables_mapping
 from qsplit.adapters.training import training_subproblem
+from qsplit.matrix import nonzero_terms
 from qsplit.qubo import QUBO
 
 
@@ -27,16 +28,13 @@ def __from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[QuantumCircuit, SparsePau
 
     pauli_list = []
 
-    for i, row_var in enumerate(qubo.rows_idx):
-        for j, col_var in enumerate(qubo.cols_idx):
-            coeff = qubo.mat[i, j]
-            if coeff == 0:
-                continue
+    for i, j, coeff in nonzero_terms(qubo.mat):
+        row_var, col_var = qubo.rows_idx[i], qubo.cols_idx[j]
 
-            if row_var == col_var:
-                pauli_list.append(("Z", [var_to_qubit[row_var]], coeff))
-            else:
-                pauli_list.append(("ZZ", [var_to_qubit[row_var], var_to_qubit[col_var]], coeff))
+        if row_var == col_var:
+            pauli_list.append(("Z", [var_to_qubit[row_var]], coeff))
+        else:
+            pauli_list.append(("ZZ", [var_to_qubit[row_var], var_to_qubit[col_var]], coeff))
 
     if qubo.offset != 0:
         pauli_list.append(("I" * num_qubits, list(range(num_qubits)), qubo.offset))

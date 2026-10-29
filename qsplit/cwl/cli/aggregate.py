@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 import numpy as np
+from scipy import sparse
 
 from qsplit import configuration
 from qsplit.adapters.all_zero import solve as zero_solve
@@ -181,7 +182,11 @@ def main() -> None:
         raise ValueError("Split manifest references unknown real variables")
     missing_idx = sorted(rows_missing | cols_missing) if method == "recursive" else []
     for idx in missing_idx:
-        full_qubo.mat = np.pad(full_qubo.mat, ((0, 1), (0, 1)), mode="constant")
+        if sparse.issparse(full_qubo.mat):
+            size = full_qubo.problem_size + 1
+            full_qubo.mat.resize((size, size))
+        else:
+            full_qubo.mat = np.pad(full_qubo.mat, ((0, 1), (0, 1)), mode="constant")
         full_qubo.rows_idx = np.append(full_qubo.rows_idx, idx)
         full_qubo.cols_idx = np.append(full_qubo.cols_idx, idx)
         full_qubo.problem_size = full_qubo.mat.shape[0]

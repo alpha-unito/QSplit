@@ -3,6 +3,7 @@ from math import comb
 import numpy as np
 
 from qsplit import configuration
+from qsplit.matrix import as_dense
 from qsplit.qubo import QUBO
 
 
@@ -21,17 +22,17 @@ def training_subproblem(qubo: QUBO, *, pce_k: int | None = None) -> QUBO:
         return qubo
 
     weights = dict.fromkeys(variables, 0.0)
-    for var, weight in zip(qubo.rows_idx, np.abs(qubo.mat).sum(axis=1)):
+    for var, weight in zip(qubo.rows_idx, np.asarray(abs(qubo.mat).sum(axis=1)).ravel()):
         weights[var] += weight
-    for var, weight in zip(qubo.cols_idx, np.abs(qubo.mat).sum(axis=0)):
+    for var, weight in zip(qubo.cols_idx, np.asarray(abs(qubo.mat).sum(axis=0)).ravel()):
         weights[var] += weight
     selected = sorted(sorted(variables, key=lambda var: (-weights[var], var))[:limit])
     positions = {var: i for i, var in enumerate(selected)}
     rows = [i for i, var in enumerate(qubo.rows_idx) if var in positions]
     cols = [i for i, var in enumerate(qubo.cols_idx) if var in positions]
     matrix = np.zeros((len(selected), len(selected)))
-    matrix[np.ix_([positions[qubo.rows_idx[i]] for i in rows], [positions[qubo.cols_idx[i]] for i in cols])] = qubo.mat[
-        np.ix_(rows, cols)
-    ]
+    matrix[np.ix_([positions[qubo.rows_idx[i]] for i in rows], [positions[qubo.cols_idx[i]] for i in cols])] = as_dense(
+        qubo.mat[np.ix_(rows, cols)]
+    )
     indices = np.asarray(selected)
     return QUBO(matrix, indices, indices.copy(), offset=qubo.offset)

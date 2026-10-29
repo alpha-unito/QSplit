@@ -7,6 +7,7 @@ from qsplit import _core, configuration
 from qsplit.adapters.all_zero import solve as zero_solve
 from qsplit.aggregation.aggregate_linear import aggregate_solutions
 from qsplit.halting_heuristic.stop import is_empty
+from qsplit.matrix import has_terms
 from qsplit.qubo import QUBO
 from qsplit.refinement.refine_mean_field import refine_problems as mean_field
 from qsplit.refinement.refine_soft_consensus import refine_problems as soft_consensus
@@ -14,7 +15,7 @@ from qsplit.refinement.refine_soft_consensus import refine_problems as soft_cons
 
 def solve_problems(subproblems, solve):
     for sub in subproblems:
-        empty = not np.any(sub.mat) if getattr(sub, "macro_members", {}) else is_empty(sub)
+        empty = not has_terms(sub.mat) if getattr(sub, "macro_members", {}) else is_empty(sub)
         if empty:
             sub.solutions = zero_solve(sub)
             sub.solutions["energy"] = sub.offset

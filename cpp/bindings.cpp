@@ -6,15 +6,21 @@ PYBIND11_MODULE(_core, m) {
     m.doc() = "QSplit C++17 computational core";
     auto cls =
         py::class_<Qubo>(m, "QUBO", py::dynamic_attr())
-            .def(py::init<Array, Indices, Indices, double>(), "mat"_a, "rows_idx"_a, "cols_idx"_a, "offset"_a = 0.0)
-            .def_readwrite("mat", &Qubo::mat)
+            .def(py::init<py::object, Indices, Indices, double>(), "mat"_a, "rows_idx"_a, "cols_idx"_a, "offset"_a = 0.0)
+            .def_property("mat", [](const Qubo &q) { return q.mat; }, [](Qubo &q, py::object value) {
+                if (!py::isinstance<py::array>(value) &&
+                    py::module_::import("scipy.sparse").attr("issparse")(value).cast<bool>())
+                    q.mat = py::module_::import("qsplit.matrix").attr("as_csr")(value);
+                else
+                    q.mat = value.cast<Array>();
+            })
             .def_readwrite("rows_idx", &Qubo::rows_idx)
             .def_readwrite("cols_idx", &Qubo::cols_idx)
             .def_readwrite("offset", &Qubo::offset)
             .def_readwrite("problem_size", &Qubo::problem_size)
             .def_readwrite("solutions", &Qubo::solutions)
             .def_static(
-                "sanitize", [](Array a, Indices cols, Indices rows) { return py::make_tuple(sanitize(a), cols, rows); },
+                "sanitize", [](py::object a, Indices cols, Indices rows) { return py::make_tuple(sanitize(a), cols, rows); },
                 "mat"_a, "cols_idx"_a, "rows_idx"_a)
             .def("__str__",
                  [](const Qubo &q) {
@@ -35,7 +41,7 @@ PYBIND11_MODULE(_core, m) {
                 },
                 [](py::dict state) {
                     // The dictionary schema and module path also read pre-port Python pickles.
-                    auto mat = state["mat"].cast<Array>();
+                    auto mat = py::reinterpret_borrow<py::object>(state["mat"]);
                     Qubo q(mat, state["rows_idx"].cast<Indices>(), state["cols_idx"].cast<Indices>(),
                            state["offset"].cast<double>());
                     q.mat = mat; // Mutable matrices must survive pickle without being re-sanitized.

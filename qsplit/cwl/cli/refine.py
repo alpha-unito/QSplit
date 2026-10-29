@@ -9,6 +9,7 @@ from qsplit import _core, configuration
 from qsplit.adapters.all_zero import solve as constant_solution
 from qsplit.cwl.cli.utils import bitstring_from_row, load_qubo, parse_solved_paths, save_qubo
 from qsplit.cwl.methods import AGGREGATORS, resolve_refinement_aggregate
+from qsplit.matrix import has_terms
 from qsplit.qubo import QUBO
 from qsplit.refinement.refine_mean_field import refine_problems as mean_field
 from qsplit.refinement.refine_soft_consensus import refine_problems as soft_consensus
@@ -161,7 +162,7 @@ def main():
         for folder in ("subproblems", "solved_constant"):
             Path(folder).mkdir(exist_ok=True)
         for sub in subs:
-            if np.any(sub.mat):
+            if has_terms(sub.mat):
                 save_qubo(Path("subproblems") / f"{sub.node_id}.pkl", sub)
             else:
                 sub.solutions, sub.backend = constant_solution(sub), "constant"

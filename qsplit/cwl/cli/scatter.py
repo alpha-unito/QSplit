@@ -10,6 +10,7 @@ import pandas as pd
 
 from qsplit import configuration
 from qsplit.cwl.cli.utils import load_qubo, save_qubo
+from qsplit.matrix import as_dense
 from qsplit.qubo import QUBO
 
 IQM_CACHE_MISS_EXIT_CODE = 75
@@ -153,7 +154,7 @@ def _same_subproblem(a: QUBO, b: QUBO) -> bool:
         return False
     if not np.array_equal(np.asarray(a.cols_idx), np.asarray(b.cols_idx)):
         return False
-    if not np.allclose(np.asarray(a.mat), np.asarray(b.mat), atol=1e-12, rtol=0.0):
+    if not np.allclose(as_dense(a.mat), as_dense(b.mat), atol=1e-12, rtol=0.0):
         return False
     return abs(float(getattr(a, "offset", 0.0)) - float(getattr(b, "offset", 0.0))) <= 1e-12
 

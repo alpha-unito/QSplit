@@ -14,6 +14,7 @@ from scipy.optimize import minimize
 
 from qsplit import configuration
 from qsplit.adapters.training import training_subproblem
+from qsplit.matrix import nonzero_terms
 
 
 class TKET_BACKEND(Enum):
@@ -31,20 +32,18 @@ def __from_qubo_matrix_to_circuit(qubo):
     var_to_qubit, all_vars = __get_variables_mapping(qubo)
     op_dict = {}
 
-    for i, r in enumerate(qubo.rows_idx):
-        for j, c in enumerate(qubo.cols_idx):
-            coeff = float(qubo.mat[i, j])
-            if coeff == 0:
-                continue
+    for i, j, coeff in nonzero_terms(qubo.mat):
+        r, c = qubo.rows_idx[i], qubo.cols_idx[j]
+        coeff = float(coeff)
 
-            qr = Qubit(var_to_qubit[r])
-            if r == c:
-                qp = QubitPauliString([qr], [Pauli.Z])
-            else:
-                qc = Qubit(var_to_qubit[c])
-                qp = QubitPauliString([qr, qc], [Pauli.Z, Pauli.Z])
+        qr = Qubit(var_to_qubit[r])
+        if r == c:
+            qp = QubitPauliString([qr], [Pauli.Z])
+        else:
+            qc = Qubit(var_to_qubit[c])
+            qp = QubitPauliString([qr, qc], [Pauli.Z, Pauli.Z])
 
-            op_dict[qp] = op_dict.get(qp, 0) + coeff
+        op_dict[qp] = op_dict.get(qp, 0) + coeff
 
     return QubitPauliOperator(op_dict), var_to_qubit, all_vars
 

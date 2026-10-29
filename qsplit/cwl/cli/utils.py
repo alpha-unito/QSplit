@@ -4,6 +4,7 @@ from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
 from qsplit.qubo import QUBO
 
@@ -21,7 +22,11 @@ def load_qubo(path: str | Path) -> QUBO:
 
 
 def build_qubo_from_matrix(matrix_path: str) -> QUBO:
-    mat = np.loadtxt(matrix_path, delimiter=",", ndmin=2)
+    mat = (
+        sparse.load_npz(matrix_path)
+        if Path(matrix_path).suffix == ".npz"
+        else np.loadtxt(matrix_path, delimiter=",", ndmin=2)
+    )
     n = mat.shape[0]
     qubo = QUBO(mat=mat, rows_idx=np.arange(n), cols_idx=np.arange(n))
     save_qubo("initial_qubo.pkl", qubo)

@@ -1,6 +1,7 @@
 import numpy as np
+from scipy.sparse import csr_array
 
 from qsplit._core import QUBO as QUBO
 
 int_arr = np.ndarray[tuple[int], np.dtype[int]]
-flt_mat = np.ndarray[tuple[int, int], np.dtype[np.float64]]
+flt_mat = np.ndarray[tuple[int, int], np.dtype[np.float64]] | csr_array

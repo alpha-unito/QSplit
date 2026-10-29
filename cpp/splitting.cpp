@@ -13,13 +13,20 @@ std::vector<py::ssize_t> range(py::ssize_t start, py::ssize_t end) {
 }
 Qubo padded(const Qubo &q, py::ssize_t n) {
     View v(q);
-    auto mat = zeros(n);
-    auto out = mat.mutable_unchecked<2>();
     std::vector<Id> rows(n), cols(n);
     for (py::ssize_t i = 0; i < n; ++i) {
         rows[i] = i < v.n ? v.r(i) : -(i - v.n + 1);
         cols[i] = i < v.n ? v.c(i) : -(i - v.n + 1);
     }
+    if (v.m.sparse) {
+        auto mat = v.m.matrix.attr("copy")();
+        mat.attr("resize")(py::make_tuple(n, n));
+        Qubo result(mat, indices(rows), indices(cols), q.offset);
+        result.mat = mat; // Preserve mutable lower-left entries, just as in the dense path.
+        return result;
+    }
+    auto mat = zeros(n);
+    auto out = mat.mutable_unchecked<2>();
     for (py::ssize_t i = 0; i < v.n; ++i)
         for (py::ssize_t j = 0; j < v.n; ++j)
             out(i, j) = v.m(i, j);
@@ -35,10 +42,13 @@ py::tuple split_recursive(const Qubo &q) {
     auto p = padded(q, original.n + original.n % 2);
     View v(p);
     auto half = v.n / 2;
-    for (py::ssize_t i = half; i < v.n; ++i)
-        for (py::ssize_t j = 0; j < half; ++j)
-            if (v.m(i, j) != 0)
-                throw py::value_error("Lower left sub-matrix must be 0");
+    bool lower_left = false;
+    {
+        py::gil_scoped_release release;
+        v.m.each([&](auto i, auto j, auto) { lower_left = lower_left || (i >= half && j < half); });
+    }
+    if (lower_left)
+        throw py::value_error("Lower left sub-matrix must be 0");
     auto first = range(0, half), last = range(half, v.n);
     return py::make_tuple(subqubo(p, first, first, 0), subqubo(p, first, last, 0), subqubo(p, last, last, 0));
 }
@@ -58,6 +68,23 @@ py::list split_linear(Qubo &q, int cut, int stride) {
         q.problem_size = size;
     }
     View v(q);
+    if (v.m.sparse) {
+        std::set<std::pair<py::ssize_t, py::ssize_t>> blocks;
+        {
+            py::gil_scoped_release release;
+            v.m.each([&](auto r, auto c, auto) {
+                auto first_r = std::max<py::ssize_t>(0, (r - cut + stride) / stride);
+                auto first_c = std::max<py::ssize_t>(0, (c - cut + stride) / stride);
+                for (auto i = first_r; i <= r / stride && i * stride <= size - cut; ++i)
+                    for (auto j = std::max(i, first_c); j <= c / stride && j * stride <= size - cut; ++j)
+                        blocks.emplace(i * stride, j * stride);
+            });
+        }
+        py::list result;
+        for (auto [i, j] : blocks)
+            result.append(subqubo(q, range(i, i + cut), range(j, j + cut), 0));
+        return result;
+    }
     py::list result;
     for (py::ssize_t i = 0; i <= size - cut; i += stride) {
         for (py::ssize_t j = i; j <= size - cut; j += stride) {
@@ -131,13 +158,14 @@ py::list split_quadtree(const Qubo &q, int cut, double ratio) {
     const auto n = static_cast<py::ssize_t>(real.size());
     // Contract several centers together so NumPy can use its existing BLAS backend.
     // S = Q + Q.T; macro diagonals must be halved after contraction.
-    auto symmetric = macros ? zeros(n) : zeros(0);
+    auto symmetric = macros && !v.m.sparse ? zeros(n) : zeros(0);
+    py::object sparse_symmetric;
     auto symmetric_view = symmetric.mutable_unchecked<2>();
     // Direct sums preserve nonfinite behavior; BLAS would spread NaNs through 0 * inf.
     bool finite = macros > 0;
     {
         py::gil_scoped_release release;
-        if (macros)
+        if (macros && !v.m.sparse)
             for (py::ssize_t i = 0; i < n; ++i)
                 for (py::ssize_t j = i; j < n; ++j) {
                     auto value = v.m(real[i], real[j]) + v.m(real[j], real[i]);
@@ -145,7 +173,13 @@ py::list split_quadtree(const Qubo &q, int cut, double ratio) {
                     finite = finite && std::isfinite(value);
                 }
     }
-    auto matmul = py::module_::import("numpy").attr("matmul");
+    if (macros && v.m.sparse) {
+        auto ids = indices(std::vector<Id>(real.begin(), real.end()));
+        auto ix = py::module_::import("numpy").attr("ix_")(ids, ids);
+        auto principal = v.m.matrix.attr("__getitem__")(ix);
+        sparse_symmetric = principal.attr("__add__")(principal.attr("T"));
+        finite = py::module_::import("numpy").attr("isfinite")(sparse_symmetric.attr("data")).attr("all")().cast<bool>();
+    }
     // Keep temporary membership/contraction arrays to about 128 columns.
     const auto batch_size = finite ? std::max(1, 128 / macros) : 1;
     using Groups = std::vector<std::vector<py::ssize_t>>;
@@ -165,7 +199,7 @@ py::list split_quadtree(const Qubo &q, int cut, double ratio) {
                 order.erase(order.begin() + center);
                 std::vector<double> weights(n);
                 for (auto i : order)
-                    weights[i] = std::abs(finite ? symmetric_view(center, i) : sym(center, i));
+                    weights[i] = std::abs(finite && !v.m.sparse ? symmetric_view(center, i) : sym(center, i));
                 std::stable_sort(order.begin(), order.end(), [&](auto a, auto b) {
                     auto wa = weights[a], wb = weights[b];
                     return !std::isnan(wa) && (std::isnan(wb) || wa > wb);
@@ -195,7 +229,8 @@ py::list split_quadtree(const Qubo &q, int cut, double ratio) {
                         for (auto r : batch_groups[b][exact + m])
                             membership_view(r, b * macros + m) = 1.0;
             }
-            contracted = matmul(symmetric, membership).cast<Array>();
+            contracted = (v.m.sparse ? sparse_symmetric.attr("__matmul__")(membership)
+                                     : symmetric.attr("__matmul__")(membership)).cast<Array>();
         }
         auto contraction = contracted.unchecked<2>();
         for (py::ssize_t b = 0; b < count; ++b) {
@@ -244,16 +279,15 @@ py::list split_graph(const Qubo &q, int cut, py::function partition) {
     std::vector<py::ssize_t> nodes;
     {
         py::gil_scoped_release release;
-        for (py::ssize_t i = 0; i < v.n; ++i) {
-            if (v.c(i) == -1)
-                continue;
-            nodes.push_back(i);
-            for (py::ssize_t j = i + 1; j < v.n; ++j)
-                if (v.c(j) != -1 && v.m(i, j) != 0) {
-                    adjacency[i].push_back(j);
-                    adjacency[j].push_back(i);
-                }
-        }
+        for (py::ssize_t i = 0; i < v.n; ++i)
+            if (v.c(i) != -1)
+                nodes.push_back(i);
+        v.m.each([&](auto i, auto j, auto) {
+            if (j > i && v.c(i) != -1 && v.c(j) != -1) {
+                adjacency[i].push_back(j);
+                adjacency[j].push_back(i);
+            }
+        });
     }
     py::list result;
     std::function<void(const std::vector<py::ssize_t> &)> visit = [&](const auto &current) {

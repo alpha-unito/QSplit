@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import sparse
 
 from qsplit.cwl.cli import aggregate, refine, split
 from qsplit.cwl.cli.utils import load_qubo, save_qubo
@@ -30,14 +31,18 @@ def solve_files(sources, directory, solver):
     return paths
 
 
+@pytest.mark.parametrize("sparse_input", [False, True])
 @pytest.mark.parametrize("split_method", ["recursive", "linear", "k_interactions", "recursive_graph", "quadtree"])
 @pytest.mark.parametrize("method", ["consensus", "mean_field", "soft_consensus"])
 def test_distributed_rounds_match_local_native_controller(
-    split_method, method, tmp_path, monkeypatch, exact_solver, assert_solution
+    split_method, method, sparse_input, tmp_path, monkeypatch, exact_solver, assert_solution
 ):
     matrix = np.triu(np.random.default_rng(4).integers(-3, 4, (5, 5)))
-    source = tmp_path / "input.csv"
-    np.savetxt(source, matrix, delimiter=",")
+    source = tmp_path / ("input.npz" if sparse_input else "input.csv")
+    if sparse_input:
+        sparse.save_npz(source, sparse.csr_array(matrix))
+    else:
+        np.savetxt(source, matrix, delimiter=",")
     start = tmp_path / "split"
     invoke(monkeypatch, start, split, "--input-matrix", source, "--cut-dim", 2, "--split-method", split_method)
     paths = solve_files(sorted((start / "planned/parallel").glob("*.pkl")), tmp_path / "initial-solves", exact_solver)

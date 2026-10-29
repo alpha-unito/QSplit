@@ -5,6 +5,7 @@ from fractions import Fraction
 from pathlib import Path
 
 import numpy as np
+from scipy import sparse
 
 from qsplit.qubo import QUBO
 
@@ -175,9 +176,9 @@ def _qubo_record(dim, coefficients, offset, metadata):
 
 def to_qubo(record):
     n = record["dim"]
-    mat = np.zeros((n, n))
-    for i, j, value in record["qubo_mat"]:
-        mat[i, j] += value
+    terms = record["qubo_mat"]
+    rows, cols, values = zip(*terms) if terms else ([], [], [])
+    mat = sparse.coo_array((values, (rows, cols)), shape=(n, n)).tocsr()
     return QUBO(mat, np.arange(n), np.arange(n), offset=record["offset"])
 
 

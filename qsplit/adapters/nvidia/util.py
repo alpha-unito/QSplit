@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from cudaq import spin
 
+from qsplit.matrix import nonzero_terms
 from qsplit.qubo import QUBO
 
 
@@ -59,24 +60,21 @@ def from_qubo_matrix_to_circuit(qubo: QUBO) -> tuple[tuple, cudaq.SpinOperator, 
     lin_coeffs = []
     cost_hamiltonian = 0.0 * spin.i(0)
 
-    for i, row_var in enumerate(qubo.rows_idx):
-        for j, col_var in enumerate(qubo.cols_idx):
-            coeff = qubo.mat[i, j]
-            if coeff == 0:
-                continue
+    for i, j, coeff in nonzero_terms(qubo.mat):
+        row_var, col_var = qubo.rows_idx[i], qubo.cols_idx[j]
 
-            u = var_to_qubit[row_var]
-            v = var_to_qubit[col_var]
+        u = var_to_qubit[row_var]
+        v = var_to_qubit[col_var]
 
-            if row_var == col_var:
-                cost_hamiltonian += coeff * spin.z(u)
-                lin_qubits.append(u)
-                lin_coeffs.append(coeff)
-            else:
-                cost_hamiltonian += coeff * spin.z(u) * spin.z(v)
-                quad_src.append(u)
-                quad_tgt.append(v)
-                quad_coeffs.append(coeff)
+        if row_var == col_var:
+            cost_hamiltonian += coeff * spin.z(u)
+            lin_qubits.append(u)
+            lin_coeffs.append(coeff)
+        else:
+            cost_hamiltonian += coeff * spin.z(u) * spin.z(v)
+            quad_src.append(u)
+            quad_tgt.append(v)
+            quad_coeffs.append(coeff)
 
     layers = 2
     circuit_args = (num_qubits, layers, quad_src, quad_tgt, quad_coeffs, lin_qubits, lin_coeffs)

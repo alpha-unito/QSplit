@@ -8,16 +8,15 @@ void require(bool ok, const char *message) {
         throw py::error_already_set();
     }
 }
-void validate(Array mat, Indices rows, Indices cols) {
-    require(mat.ndim() == 2 && mat.shape(0) == mat.shape(1), "Problem matrix must be square");
-    require(cols.ndim() == 1 && mat.shape(1) == cols.shape(0),
+void validate(const MatrixView &mat, Indices rows, Indices cols) {
+    require(cols.ndim() == 1 && mat.n == cols.shape(0),
             "Invalid numer of columns, must be as long as cols_idx array");
-    require(rows.ndim() == 1 && mat.shape(0) == rows.shape(0),
+    require(rows.ndim() == 1 && mat.n == rows.shape(0),
             "Invalid numer of rows, must be as long as rows_idx array");
 }
 } // namespace
 
-Array sanitize(Array mat) {
+Array sanitize_dense(Array mat) {
     require(mat.ndim() == 2 && mat.shape(0) == mat.shape(1), "Problem matrix must be square");
     auto a = mat.unchecked<2>();
     const auto n = a.shape(0);
@@ -44,16 +43,42 @@ Array sanitize(Array mat) {
     return result;
 }
 
-Qubo::Qubo(Array a, Indices rows, Indices cols, double off)
+py::object sanitize(py::object mat) {
+    if (!py::isinstance<py::array>(mat) && py::module_::import("scipy.sparse").attr("issparse")(mat).cast<bool>())
+        return py::module_::import("qsplit.matrix").attr("sanitize_sparse")(mat);
+    return sanitize_dense(mat.cast<Array>());
+}
+MatrixView::MatrixView(py::object input) : matrix(std::move(input)) {
+    sparse = !py::isinstance<py::array>(matrix) &&
+             py::module_::import("scipy.sparse").attr("issparse")(matrix).cast<bool>();
+    if (sparse) {
+        matrix = py::module_::import("qsplit.matrix").attr("as_csr")(matrix);
+        auto shape = matrix.attr("shape").cast<std::vector<py::ssize_t>>();
+        require(shape.size() == 2 && shape[0] == shape[1], "Problem matrix must be square");
+        n = shape[0];
+        values = matrix.attr("data").cast<Array>();
+        columns = matrix.attr("indices").cast<decltype(columns)>();
+        pointers = matrix.attr("indptr").cast<decltype(pointers)>();
+    } else {
+        dense = matrix.cast<Array>();
+        require(dense.ndim() == 2 && dense.shape(0) == dense.shape(1), "Problem matrix must be square");
+        n = dense.shape(0);
+        dense_data = reinterpret_cast<const char *>(dense.data());
+        row_stride = dense.strides(0);
+        col_stride = dense.strides(1);
+    }
+}
+Qubo::Qubo(py::object a, Indices rows, Indices cols, double off)
     : mat(std::move(a)), rows_idx(std::move(rows)), cols_idx(std::move(cols)), offset(off), problem_size(0) {
-    validate(mat, rows_idx, cols_idx);
+    MatrixView matrix(mat);
+    validate(matrix, rows_idx, cols_idx);
     mat = sanitize(mat);
-    problem_size = mat.shape(0);
+    problem_size = matrix.n;
 }
 
 View::View(const Qubo &q)
-    : matrix(q.mat), rows(q.rows_idx), cols(q.cols_idx), m((validate(matrix, rows, cols), matrix.unchecked<2>())),
-      r(rows.unchecked<1>()), c(cols.unchecked<1>()), n(matrix.shape(0)) {
+    : m(q.mat), rows(q.rows_idx), cols(q.cols_idx),
+      r((validate(m, rows, cols), rows.unchecked<1>())), c(cols.unchecked<1>()), n(m.n) {
     if (q.problem_size != n)
         throw py::value_error("problem_size must match the QUBO matrix");
 }
@@ -99,9 +124,12 @@ double energy(const View &v, const std::map<Id, double> &assignment) {
     // Accumulate in row-major order for cache locality, preserving each column's
     // summation order from rows @ matrix @ cols.
     std::vector<double> contracted(v.n, 0);
-    for (py::ssize_t i = 0; i < v.n; ++i)
-        for (py::ssize_t j = 0; j < v.n; ++j)
-            contracted[j] += rows[i] * v.m(i, j);
+    if (v.m.sparse)
+        v.m.each([&](auto i, auto j, auto value) { contracted[j] += rows[i] * value; });
+    else
+        for (py::ssize_t i = 0; i < v.n; ++i)
+            for (py::ssize_t j = 0; j < v.n; ++j)
+                contracted[j] += rows[i] * v.m(i, j);
     double result = 0;
     for (py::ssize_t j = 0; j < v.n; ++j)
         result += contracted[j] * cols[j];
@@ -110,24 +138,26 @@ double energy(const View &v, const std::map<Id, double> &assignment) {
 bool empty(const Qubo &q) {
     View v(q);
     py::gil_scoped_release release;
-    for (py::ssize_t i = 0; i < v.n; ++i)
-        if (v.r(i) >= 0)
-            for (py::ssize_t j = 0; j < v.n; ++j)
-                if (v.c(j) >= 0 && v.m(i, j) != 0)
-                    return false;
+    for (py::ssize_t i = 0; i < v.n; ++i) {
+        if (v.r(i) < 0)
+            continue;
+        bool found = false;
+        v.m.row(i, [&](auto j, auto) { found = found || v.c(j) >= 0; });
+        if (found)
+            return false;
+    }
     return true;
 }
 std::size_t vars_count(const Qubo &q) {
     View v(q);
     py::gil_scoped_release release;
     std::vector<bool> active_rows(v.n), active_cols(v.n);
-    for (py::ssize_t i = 0; i < v.n; ++i)
-        if (v.r(i) >= 0)
-            for (py::ssize_t j = 0; j < v.n; ++j)
-                if (v.c(j) >= 0 && v.m(i, j) != 0) {
-                    active_rows[i] = true;
-                    active_cols[j] = true;
-                }
+    v.m.each([&](auto i, auto j, auto) {
+        if (v.r(i) >= 0 && v.c(j) >= 0) {
+            active_rows[i] = true;
+            active_cols[j] = true;
+        }
+    });
     std::set<Id> found;
     for (py::ssize_t i = 0; i < v.n; ++i) {
         if (active_rows[i])
@@ -141,8 +171,6 @@ Qubo subqubo(const Qubo &q, const std::vector<py::ssize_t> &rows, const std::vec
     View v(q);
     if (rows.size() != cols.size())
         throw py::value_error("Subproblem must be square");
-    auto mat = zeros(rows.size());
-    auto out = mat.mutable_unchecked<2>();
     std::vector<Id> r, c;
     for (auto i : rows) {
         if (i < 0 || i >= v.n)
@@ -154,6 +182,14 @@ Qubo subqubo(const Qubo &q, const std::vector<py::ssize_t> &rows, const std::vec
             throw py::index_error("Invalid column position");
         c.push_back(v.c(j));
     }
+    if (v.m.sparse) {
+        auto rr = indices(std::vector<Id>(rows.begin(), rows.end()));
+        auto cc = indices(std::vector<Id>(cols.begin(), cols.end()));
+        auto ix = py::module_::import("numpy").attr("ix_")(rr, cc);
+        return Qubo(v.m.matrix.attr("__getitem__")(ix), indices(r), indices(c), offset);
+    }
+    auto mat = zeros(rows.size());
+    auto out = mat.mutable_unchecked<2>();
     {
         py::gil_scoped_release release;
         for (std::size_t i = 0; i < rows.size(); ++i)

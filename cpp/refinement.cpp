@@ -29,6 +29,43 @@ Qubo condition(const Qubo &q, const std::vector<Id> &window, const std::map<Id, 
     auto matrix = zeros(window.size());
     auto out = matrix.mutable_unchecked<2>();
     double offset = q.offset;
+    if (v.m.sparse) {
+        std::vector<py::ssize_t> local_r(v.n, -1), local_c(v.n, -1), outer_r(v.n, -1), outer_c(v.n, -1);
+        for (std::size_t i = 0; i < window.size(); ++i) {
+            local_r[window_rows[i]] = i;
+            local_c[window_cols[i]] = i;
+        }
+        for (std::size_t i = 0; i < outside.size(); ++i) {
+            outer_r[outside_rows[i]] = i;
+            outer_c[outside_cols[i]] = i;
+        }
+        {
+            py::gil_scoped_release release;
+            std::vector<double> contracted(outside.size(), 0), coupling(window.size(), 0);
+            v.m.each([&](auto i, auto j, auto value) {
+                auto r = local_r[i], c = local_c[j], a = outer_r[i], b = outer_c[j];
+                if (r >= 0 && c >= 0)
+                    out(r, c) = value;
+                else if (r >= 0 && b >= 0)
+                    coupling[r] += value * probabilities[b];
+                else if (a >= 0 && c >= 0)
+                    coupling[c] += value * probabilities[a];
+                else if (a >= 0 && b >= 0)
+                    contracted[b] += probabilities[a] * value;
+            });
+            for (std::size_t i = 0; i < window.size(); ++i)
+                out(i, i) += coupling[i];
+            double outside_energy = 0, correction = 0;
+            for (std::size_t j = 0; j < outside.size(); ++j) {
+                auto p = probabilities[j];
+                outside_energy += contracted[j] * p;
+                correction += v.m(outside_rows[j], outside_cols[j]) * (p - p * p);
+            }
+            offset += outside_energy;
+            offset += correction;
+        }
+        return Qubo(matrix, indices(window), indices(window), offset);
+    }
     {
         py::gil_scoped_release release;
         for (std::size_t i = 0; i < window.size(); ++i) {
@@ -208,7 +245,8 @@ py::list soft_consensus(py::list subs, const Qubo &q, double strength, const std
         }
         Qubo base(matrix, sub.rows_idx.attr("copy")().cast<Indices>(), sub.cols_idx.attr("copy")().cast<Indices>(),
                   q.offset);
-        auto out = base.mat.mutable_unchecked<2>();
+        auto base_matrix = base.mat.cast<Array>();
+        auto out = base_matrix.mutable_unchecked<2>();
         {
             py::gil_scoped_release release;
             std::vector<double> penalties(s.n);

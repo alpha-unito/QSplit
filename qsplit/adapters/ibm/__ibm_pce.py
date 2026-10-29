@@ -8,10 +8,12 @@ from qiskit.circuit.library import qaoa_ansatz
 from qiskit.primitives import BackendEstimatorV2, StatevectorEstimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_ibm_runtime import EstimatorV2, IBMBackend
+from scipy import sparse
 from scipy.optimize import minimize
 
 from qsplit.adapters.ibm.util import get_variables_mapping, to_dataframe
 from qsplit.adapters.training import training_subproblem
+from qsplit.matrix import as_dense
 from qsplit.qubo import QUBO
 
 
@@ -130,7 +132,9 @@ def _variables_mapping(qubo: QUBO):
 
 
 def _build_pce_problem(qubo: QUBO, k: int = 3):
-    if not np.isfinite(qubo.mat).all() or not np.isfinite(qubo.offset):
+    matrix = qubo.mat
+    coefficients = matrix.data if sparse.issparse(matrix) else matrix
+    if not np.isfinite(coefficients).all() or not np.isfinite(qubo.offset):
         raise ValueError("PCE requires finite QUBO coefficients and offset")
     var_to_qubit, all_vars = _variables_mapping(qubo)
     n = len(all_vars)
@@ -139,7 +143,7 @@ def _build_pce_problem(qubo: QUBO, k: int = 3):
     cols = [i for i, var in enumerate(qubo.cols_idx) if var >= 0]
     row_indices = np.asarray([var_to_qubit[qubo.rows_idx[i]] for i in rows], dtype=int)
     col_indices = np.asarray([var_to_qubit[qubo.cols_idx[i]] for i in cols], dtype=int)
-    np.add.at(Q, (row_indices[:, None], col_indices[None, :]), qubo.mat[np.ix_(rows, cols)])
+    np.add.at(Q, (row_indices[:, None], col_indices[None, :]), as_dense(matrix[np.ix_(rows, cols)]))
     Q = np.triu(Q, 1) + np.triu(Q.T, 1) + np.diag(np.diag(Q))
     J_prime = {}
 

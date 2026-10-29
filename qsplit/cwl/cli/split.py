@@ -11,6 +11,7 @@ from qsplit.adapters.dummy import solve as dummy_solve
 from qsplit.cwl.cli.utils import build_qubo_from_matrix, save_qubo
 from qsplit.cwl.methods import SPLIT_METHODS, SPLITTERS, resolve_aggregate
 from qsplit.halting_heuristic.stop import is_empty, is_sparse
+from qsplit.matrix import has_terms
 from qsplit.qubo import QUBO
 from qsplit.splitting.split_recursive import split_problem
 
@@ -226,7 +227,7 @@ def main() -> None:
                 "offset": sub.offset,
                 "children": [],
             }
-            empty = not sub.mat.any() if getattr(sub, "macro_members", {}) else is_empty(sub)
+            empty = not has_terms(sub.mat) if getattr(sub, "macro_members", {}) else is_empty(sub)
             if empty:
                 sub.solutions, sub.backend = dummy_solve(sub), "dummy"
                 save_qubo(solved_dir / f"{node_id}.pkl", sub)

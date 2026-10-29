@@ -267,21 +267,17 @@ py::object resolve_conflicts(py::object df, const Qubo &q, py::function solve, i
             auto m = matrix.mutable_unchecked<2>();
             {
                 py::gil_scoped_release release;
-                for (py::ssize_t i = 0; i < v.n; ++i) {
-                    if (v.r(i) < 0)
-                        continue;
-                    for (py::ssize_t j = 0; j < v.n; ++j) {
-                        if (v.c(j) < 0 || v.m(i, j) == 0)
-                            continue;
-                        bool r = local.count(v.r(i)), c = local.count(v.c(j));
-                        if (r && c)
-                            m(local.at(v.r(i)), local.at(v.c(j))) += v.m(i, j);
-                        else if (r)
-                            m(local.at(v.r(i)), local.at(v.r(i))) += v.m(i, j) * assignment[v.c(j)];
-                        else if (c)
-                            m(local.at(v.c(j)), local.at(v.c(j))) += v.m(i, j) * assignment[v.r(i)];
-                    }
-                }
+                v.m.each([&](auto i, auto j, auto value) {
+                    if (v.r(i) < 0 || v.c(j) < 0)
+                        return;
+                    bool r = local.count(v.r(i)), c = local.count(v.c(j));
+                    if (r && c)
+                        m(local.at(v.r(i)), local.at(v.c(j))) += value;
+                    else if (r)
+                        m(local.at(v.r(i)), local.at(v.r(i))) += value * assignment[v.c(j)];
+                    else if (c)
+                        m(local.at(v.c(j)), local.at(v.c(j))) += value * assignment[v.r(i)];
+                });
             }
             Qubo sub(matrix, indices(missing), indices(missing));
             View s(sub);
@@ -441,27 +437,52 @@ py::tuple logical_expansion(py::tuple subs) {
             hints[id] = sum / count;
     }
     View u(ul), v(ur), l(lr);
-    auto um = ul.mat.mutable_unchecked<2>(), lm = lr.mat.mutable_unchecked<2>();
+    auto upper = u.m.sparse ? zeros(0) : ul.mat.cast<Array>();
+    auto lower = l.m.sparse ? zeros(0) : lr.mat.cast<Array>();
+    auto um = upper.mutable_unchecked<2>(), lm = lower.mutable_unchecked<2>();
+    std::vector<double> upper_delta(u.n, 0), lower_delta(l.n, 0);
     auto up = positions(ul.rows_idx), lp = positions(lr.rows_idx);
-    py::gil_scoped_release release;
-    for (py::ssize_t i = 0; i < v.n; ++i)
-        for (py::ssize_t j = 0; j < v.n; ++j) {
-            if (v.m(i, j) == 0)
-                continue;
-            if (v.r(i) >= 0 && up.count(v.r(i)) && hints.count(v.c(j)))
-                um(up.at(v.r(i)), up.at(v.r(i))) += v.m(i, j) * hints.at(v.c(j));
-            if (v.c(j) >= 0 && lp.count(v.c(j)) && hints.count(v.r(i)))
-                lm(lp.at(v.c(j)), lp.at(v.c(j))) += v.m(i, j) * hints.at(v.r(i));
-        }
+    {
+        py::gil_scoped_release release;
+        v.m.each([&](auto i, auto j, auto value) {
+            if (v.r(i) >= 0 && up.count(v.r(i)) && hints.count(v.c(j))) {
+                auto pos = up.at(v.r(i));
+                auto delta = value * hints.at(v.c(j));
+                if (u.m.sparse)
+                    upper_delta[pos] += delta;
+                else
+                    um(pos, pos) += delta;
+            }
+            if (v.c(j) >= 0 && lp.count(v.c(j)) && hints.count(v.r(i))) {
+                auto pos = lp.at(v.c(j));
+                auto delta = value * hints.at(v.r(i));
+                if (l.m.sparse)
+                    lower_delta[pos] += delta;
+                else
+                    lm(pos, pos) += delta;
+            }
+        });
+    }
+    if (u.m.sparse)
+        ul.mat.attr("setdiag")(ul.mat.attr("diagonal")().attr("__add__")(py::cast(upper_delta)));
+    if (l.m.sparse)
+        lr.mat.attr("setdiag")(lr.mat.attr("diagonal")().attr("__add__")(py::cast(lower_delta)));
     return subs;
 }
-double calculate_energy(Array x, Array mat) {
+double calculate_energy(Array x, py::object mat) {
     auto a = x.unchecked<1>();
-    auto m = mat.unchecked<2>();
-    if (m.shape(0) != a.shape(0) || m.shape(1) != a.shape(0))
+    MatrixView m(mat);
+    if (m.n != a.shape(0))
         throw py::value_error("Incompatible energy dimensions");
     py::gil_scoped_release release;
     double e = 0;
+    if (m.sparse) {
+        std::vector<double> contracted(m.n, 0);
+        m.each([&](auto i, auto j, auto value) { contracted[j] += (std::isinf(a(i)) ? 0 : a(i)) * value; });
+        for (py::ssize_t j = 0; j < m.n; ++j)
+            e += contracted[j] * (std::isinf(a(j)) ? 0 : a(j));
+        return e;
+    }
     for (py::ssize_t j = 0; j < a.shape(0); ++j) {
         double column = 0;
         for (py::ssize_t i = 0; i < a.shape(0); ++i)
